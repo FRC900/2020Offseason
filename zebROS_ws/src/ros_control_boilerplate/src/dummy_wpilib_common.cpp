@@ -9,7 +9,6 @@ const char* GetWPILibVersion(void)
 	return "900.2020";
 }
 
-
 #include <AHRS.h>
 AHRS::AHRS(frc::SPI::Port)
 {
@@ -966,3 +965,79 @@ std::shared_ptr<NetworkTable> NetworkTableInstance::GetTable(const Twine& /*key*
 
 } // namespace nt
 
+#if 0
+#include <rev/CANSparkMaxLowLevel.h>
+
+rev::CANSparkMaxLowLevel::CANSparkMaxLowLevel(int deviceID, rev::CANSparkMaxLowLevel::MotorType type)
+	: m_motorType(type)
+	, m_deviceID(deviceID)
+{
+	ROS_ERROR("Called CANSparkMaxLowLevel(int deviceID, MotorType type) on unsupported platform");
+}
+rev::CANSparkMaxLowLevel::~CANSparkMaxLowLevel()
+{
+	ROS_ERROR("Called CANSparkMaxLowLevel::CANSparkMaxLowLevel() on unsupported platform");
+}
+
+
+#include <rev/CANSparkMax.h>
+rev::CANSparkMax::CANSparkMax(int deviceID, rev::CANSparkMaxLowLevel::MotorType type)
+	: CANSparkMaxLowLevel(deviceID, type)
+{
+	ROS_ERROR("And also called CANSparkMax::CANSparkMax(int deviceID, MotorType type) on unsupported platform");
+}
+
+void rev::CANSparkMax::Set(double speed)
+{
+	(void)speed;
+	ROS_ERROR("Called CANSparkMax::Set(double speed) on unsupported platform");
+}
+
+double rev::CANSparkMax::Get(void) const
+{
+	ROS_ERROR("Called CANSparkMax::Get() on unsupported platform");
+	return 900;
+}
+
+void rev::CANSparkMax::SetInverted(bool isInverted)
+{
+	(void)isInverted;
+	ROS_ERROR("Called CANSparkMax::SetInverted(bool isInverted) on unsupported platform");
+}
+bool rev::CANSparkMax::GetInverted() const
+{
+	ROS_ERROR("Called CANSparkMax::GetInverted() on unsupported platform");
+	return false;
+}
+void rev::CANSparkMax::Disable()
+{
+	ROS_ERROR("Called CANSparkMax::Disable() on unsupported platform");
+}
+void rev::CANSparkMax::StopMotor()
+{
+	ROS_ERROR("Called CANSparkMax::StopMotor() on unsupported platform");
+}
+void rev::CANSparkMax::PIDWrite(double output)
+{
+	(void)output;
+	ROS_ERROR("Called CANSparkMax::PIDWrite() on unsupported platform");
+}
+
+bool rev::CANSparkMax::IsFollower()
+{
+	ROS_ERROR("Called CANSparkMax::IsFollower() on unsupported platform");
+	return false;
+}
+
+uint16_t rev::CANSparkMax::GetFaults()
+{
+	ROS_ERROR("Called CANSparkMax::GetFaults() on unsupported platform");
+	return 0xFFFF;
+}
+
+uint16_t rev::CANSparkMax::GetStickyFaults()
+{
+	ROS_ERROR("Called CANSparkMax::GetStickyFaults() on unsupported platform");
+	return 0xFFFF;
+}
+#endif

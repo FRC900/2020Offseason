@@ -254,7 +254,7 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 	// TODO - merge me into frc robot interface, add a sim setting, etc.
 	for (size_t i = 0; i < num_as726xs_; i++)
 	{
-		ROS_INFO_STREAM_NAMED("frcrobot_hw_interface",
+		ROS_INFO_STREAM_NAMED("frcrobot_sim_interface",
 							  "Loading as726x joint " << i << "=" << as726x_names_[i] <<
 							  (as726x_local_updates_[i] ? " local" : " remote") << " update, " <<
 							  (as726x_local_hardwares_[i] ? "local" : "remote") << " hardware" <<
@@ -273,8 +273,17 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 
 	for (size_t i = 0; i < num_talon_orchestras_; i++)
 	{
-		ROS_INFO_STREAM_NAMED("frcrobot_hw_interface",
+		ROS_INFO_STREAM_NAMED("frcrobot_sim_interface",
 							  "Loading joint " << i << "=" << talon_orchestra_names_[i]);
+	}
+
+	for (size_t i = 0; i < num_spark_maxs_; i++)
+	{
+		ROS_INFO_STREAM_NAMED("frcrobot_sim_interface",
+							  "Loading joint " << i << "=" << spark_max_names_[i] <<
+							  (spark_max_local_updates_[i] ? " local" : " remote") << " update, " <<
+							  (spark_max_local_hardwares_[i] ? "local" : "remote") << " hardware" <<
+							  " as CAN id " << spark_max_can_ids_[i]);
 	}
 
 	// Hard-code a simulation for the shooter flywheel
@@ -448,6 +457,21 @@ bool FRCRobotSimInterface::evaluateDigitalInput(ros_control_boilerplate::LineBre
 void FRCRobotSimInterface::write(const ros::Time& time, const ros::Duration& period)
 {
 	FRCRobotInterface::write(time, period);
+	// Was the robot enabled last time write was run?
+	static bool last_robot_enabled = false;
+
+	// Is match data reporting the robot enabled now?
+	bool robot_enabled = false;
+	{
+		std::unique_lock<std::mutex> l(match_data_mutex_, std::try_to_lock);
+		if (l.owns_lock())
+			robot_enabled = match_data_.isEnabled();
+		else
+			robot_enabled = last_robot_enabled;
+	}
+
+
+
 	for (std::size_t joint_id = 0; joint_id < num_canifiers_; ++joint_id)
 	{
 		if (!canifier_local_hardwares_[joint_id])
@@ -587,6 +611,7 @@ void FRCRobotSimInterface::write(const ros::Time& time, const ros::Duration& per
 			ROS_INFO_STREAM("CANifier " << canifier_names_[joint_id] << " : cleared sticky faults");
 		}
 	}
+	last_robot_enabled = robot_enabled;
 
 	for (std::size_t joint_id = 0; joint_id < num_cancoders_; ++joint_id)
 	{
