@@ -62,6 +62,7 @@
 #include <hal/HALBase.h>
 #include <hal/DriverStation.h>
 #include <hal/FRCUsageReporting.h>
+#include <rev/CANSparkMax.h>
 
 #include <AHRS.h>
 
@@ -73,6 +74,7 @@
 #include "ros_control_boilerplate/canifier_convert.h"
 #include "ros_control_boilerplate/DSError.h"
 #include "ros_control_boilerplate/frc_robot_interface.h"
+#include "ros_control_boilerplate/rev_convert.h"
 #include "ros_control_boilerplate/tracer.h"
 
 namespace ros_control_boilerplate
@@ -98,12 +100,28 @@ class FRCRobotHWInterface : public ros_control_boilerplate::FRCRobotInterface
 		virtual void write(const ros::Time& time, const ros::Duration& period) override;
 
 	private:
+		bool safeSparkMaxCall(rev::REVLibError can_error,
+				const std::string &spark_max_method_name);
+
 		std::vector<std::shared_ptr<ctre::phoenix::CANifier>> canifiers_;
 		std::vector<std::shared_ptr<std::mutex>> canifier_read_state_mutexes_;
 		std::vector<std::shared_ptr<hardware_interface::canifier::CANifierHWState>> canifier_read_thread_states_;
 		std::vector<std::thread> canifier_read_threads_;
 		void canifier_read_thread(std::shared_ptr<ctre::phoenix::CANifier> canifier,
 				std::shared_ptr<hardware_interface::canifier::CANifierHWState> state,
+				std::shared_ptr<std::mutex> mutex,
+				std::unique_ptr<Tracer> tracer,
+				double poll_frequency);
+
+		std::vector<std::shared_ptr<rev::CANSparkMax>>           can_spark_maxs_;
+		std::vector<std::shared_ptr<rev::SparkMaxPIDController>> can_spark_max_pid_controllers_;
+
+		// Maintain a separate read thread for each spark_max SRX
+		std::vector<std::shared_ptr<std::mutex>> spark_max_read_state_mutexes_;
+		std::vector<std::shared_ptr<hardware_interface::SparkMaxHWState>> spark_max_read_thread_states_;
+		std::vector<std::thread> spark_max_read_threads_;
+		void spark_max_read_thread(std::shared_ptr<rev::CANSparkMax> spark_max,
+				std::shared_ptr<hardware_interface::SparkMaxHWState> state,
 				std::shared_ptr<std::mutex> mutex,
 				std::unique_ptr<Tracer> tracer,
 				double poll_frequency);
@@ -122,6 +140,7 @@ class FRCRobotHWInterface : public ros_control_boilerplate::FRCRobotInterface
 
 		as726x_convert::AS726xConvert as726x_convert_;
 		canifier_convert::CANifierConvert canifier_convert_;
+		rev_convert::RevConvert rev_convert_;
 
 		bool DSErrorCallback(ros_control_boilerplate::DSError::Request &req, ros_control_boilerplate::DSError::Response &res);
 		ros::ServiceServer ds_error_server_;
