@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   talon_interface
   trajectory_msgs
   urdf
+  spark_max_interface
 )
 
 add_service_files (
@@ -54,6 +55,7 @@ catkin_package(
 	roscpp
 	rosparam_shortcuts
 	sensor_msgs
+	spark_max_interface
 	std_msgs
 	talon_interface
 	trajectory_msgs
@@ -85,6 +87,7 @@ add_library(convert STATIC
 	src/as726x_convert.cpp
 	src/cancoder_convert.cpp
 	src/canifier_convert.cpp
+	src/rev_convert.cpp
 	src/talon_convert.cpp
 )
 
@@ -109,6 +112,7 @@ set (WPI_BASE_LIB_DIR ${WPI_SYSROOT}/lib/wpilib/linux)
 # Rio-only code
 if ("${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi")
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/athena/shared)
+	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/athena/static)
 
 	# Link against wpi user libraries for CAN talon and navX-MXP code and
 	# wpilib for HAL, driver station, and so on
@@ -136,12 +140,15 @@ if ("${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi")
 	)
 elseif ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") # Jetson TK1
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/raspbian/shared)    # Who knows if this will work
+	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/raspbian/static)
 	find_library(LIB_GPIOD libgpiod.a)
 elseif ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu") # Jetson TX1/TX2/Xavier AGX/Xavier NX
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/aarch64bionic/shared)
+	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/aarch64bionic/static)
 	find_library(LIB_GPIOD libgpiod.a)
 else() # x86-64, hopefully. First person to try and build native on a Mac gets kicked off the team
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/x86-64/shared)
+	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/x86-64/static)
 endif()
   
 # All platforms need these, they just live
@@ -152,7 +159,10 @@ set (CTRE_USER_LIBS
 	${CTRE_LIB_DIR}/libCTRE_PhoenixCore.so
 	${CTRE_LIB_DIR}/libCTRE_PhoenixDiagnostics.so
 )
-
+set (REV_USER_LIBS
+	${REV_LIB_DIR}/libSparkMax.a
+	${REV_LIB_DIR}/../shared/libSparkMaxDriver.so
+)
 # Used to find HALInitializer from wpilib internal repo
 include_directories(${ALLWPILIB}/hal/src/main/native/athena)
 include_directories(${ALLWPILIB}/hal/src/main/native/include)
@@ -380,7 +390,6 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi") OR
 	)
 endif()
 
-
 add_executable(frcrobot_hw_main ${FRCROBOT_HW_MAIN_SRCS})
 
 # Link against wpi user libraries for CAN talon and navX-MXP code and
@@ -388,6 +397,7 @@ add_executable(frcrobot_hw_main ${FRCROBOT_HW_MAIN_SRCS})
 target_link_libraries(frcrobot_hw_main
 	${catkin_LIBRARIES}
 	${LIB_GPIOD}
+	${REV_USER_LIBS}
 	frc_robot_interface
 	convert
 	${CTRE_USER_LIBS}
