@@ -319,6 +319,58 @@ void frc::IterativeRobotBase::TestPeriodic()
 	ROS_ERROR("Called IterativeRobotBase::TestPeriodic() on unsupported platform");
 }
 
+#include <frc/InterruptableSensorBase.h>
+void frc::InterruptableSensorBase::RequestInterrupts(HAL_InterruptHandlerFunction, void*)
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::RequestInterrupts(HAL_InterruptHandlerFunction handler, void* param) on unsupported platform");
+}
+void frc::InterruptableSensorBase::RequestInterrupts()
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::RequestInterrupts() on unsupported platform");
+}
+void frc::InterruptableSensorBase::CancelInterrupts()
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::CancelInterrupts() on unsupported platform");
+}
+frc::InterruptableSensorBase::WaitResult frc::InterruptableSensorBase::WaitForInterrupt(double, bool)
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::WaitForInterrupt(double timeout, bool ignorePrevious) on unsupported platform");
+	return frc::InterruptableSensorBase::kTimeout;
+}
+void frc::InterruptableSensorBase::EnableInterrupts()
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::EnableInterrupts() on unsupported platform");
+}
+void frc::InterruptableSensorBase::DisableInterrupts()
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::DisableInterrupts() on unsupported platform");
+}
+double frc::InterruptableSensorBase::ReadRisingTimestamp()
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::ReadRisingTimestamp() on unsupported platform");
+	return std::numeric_limits<double>::max();
+}
+double frc::InterruptableSensorBase::ReadFallingTimestamp()
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::ReadFallingTimestamp() on unsupported platform");
+	return std::numeric_limits<double>::max();
+}
+void frc::InterruptableSensorBase::RequestInterrupts(InterruptableSensorBase::InterruptEventHandler handler)
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::RequestInterrupts(InterruptEventHandler handler) on unsupported platform");
+}
+void frc::InterruptableSensorBase::SetUpSourceEdge(bool, bool)
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::SetUpSourceEdge(bool risingEdge, bool fallingEdge) on unsupported platform");
+}
+void frc::InterruptableSensorBase::AllocateInterrupts(bool)
+{
+	ROS_ERROR("Called frc::InterruptableSensorBase::AllocateInterrupts(bool watcher) on unsupported platform");
+}
+frc::InterruptableSensorBase::~InterruptableSensorBase()
+{
+}
+
 #include <frc/Watchdog.h>
 
 frc::Watchdog::Watchdog(double timeout, std::function<void()> callback)
@@ -655,7 +707,6 @@ HAL_PortHandle HAL_GetPortWithModule(int32_t module, int32_t channel) {
   return hal::createPortHandle(channel, module);
 }
 
-
 const char* HAL_GetErrorMessage(int32_t code) {
   switch (code) {
     case 0:
@@ -782,5 +833,4 @@ const char* HAL_GetErrorMessage(int32_t code) {
 }
 
 } // extern "C"
-
 

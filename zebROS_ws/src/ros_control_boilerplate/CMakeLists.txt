@@ -41,7 +41,7 @@ generate_messages(
   ros_control_boilerplate
 )
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
+#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 catkin_package(
   INCLUDE_DIRS
@@ -206,9 +206,12 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 		${ALLWPILIB}/hal/src/main/native/athena/ctre/PCM.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/ctre/CtreCanNode.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/handles/HandlesInternal.cpp
-		#${ALLWPILIB}/wpiutil/src/main/native/cpp/memory.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/Joystick.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
+		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
+		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Hashing.cpp
+		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ManagedStatic.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/NativeFormatting.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Path.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallVector.cpp
@@ -222,123 +225,145 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 		ntcore_native_src ${ALLWPILIB}/ntcore/src/main/native/cpp/tables/*.cpp
 	)
 
-	if (1)
-	add_executable(frcrobot_phoenixsim_main
-		src/frcrobot_phoenixsim_interface.cpp
-		src/frcrobot_phoenixsim_main.cpp
-		src/frcrobot_hw_interface.cpp
-		src/dummy_wpilib_common.cpp
-		src/dummy_wpilib_phoenixsim.cpp
-		${ALLWPILIB}/hal/src/main/native/cpp/cpp/fpga_clock.cpp
-		${ALLWPILIB}/hal/src/main/native/cpp/handles/HandlesInternal.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/AnalogAccumulator.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/AnalogInput.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/AnalogInternal.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/AnalogOutput.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/AnalogTrigger.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/CAN.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/CANAPI.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Compressor.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Constants.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Counter.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/DigitalInternal.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/DIO.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/DriverStation.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Extensions.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/HAL.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/HALInitializer.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Interrupts.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/MockHooks.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Notifier.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/PDP.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Ports.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Power.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/PWM.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Relay.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Solenoid.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Threads.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/AnalogInData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/AnalogOutData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/AnalogTriggerData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/CanDataInternal.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/DigitalPWMData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/DIOData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/DriverStationData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/PCMData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/PDPData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/PWMData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/RelayData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/RoboRioData.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/AnalogInput.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalInput.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalOutput.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/DriverStation.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/Error.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/ErrorBase.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/IterativeRobotBase.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotState.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/Timer.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/Watchdog.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/Utility.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/commands/Command.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/commands/Scheduler.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/commands/Subsystem.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/livewindow/LiveWindow.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableBase.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableBuilderImpl.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableRegistry.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SmartDashboard.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/leb128.cpp
-		#${ALLWPILIB}/wpiutil/src/main/native/cpp/memory.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_istream.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_istream.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_ostream.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/timestamp.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/Base64.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/SafeThread.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/SocketError.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPAcceptor.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPConnector.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPConnector_parallel.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPStream.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Hashing.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/NativeFormatting.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Path.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallPtrSet.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallVector.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringMap.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Twine.cpp
-		${ntcore_native_src}
-	)
+	if (NOT ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") OR
+			("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu") )
+		add_executable(frcrobot_phoenixsim_main
+			src/frcrobot_phoenixsim_interface.cpp
+			src/frcrobot_phoenixsim_main.cpp
+			src/frcrobot_hw_interface.cpp
+			src/dummy_wpilib_common.cpp
+			src/dummy_wpilib_phoenixsim.cpp
+			${ALLWPILIB}/hal/src/main/native/cpp/cpp/fpga_clock.cpp
+			${ALLWPILIB}/hal/src/main/native/cpp/handles/HandlesInternal.cpp
+			${ALLWPILIB}/hal/src/main/native/cpp/Main.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/AnalogAccumulator.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/AnalogInput.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/AnalogInternal.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/AnalogOutput.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/AnalogTrigger.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/CAN.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/CANAPI.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Compressor.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Constants.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Counter.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/DigitalInternal.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/DIO.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/DriverStation.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Extensions.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/HAL.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/HALInitializer.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Interrupts.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/MockHooks.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Notifier.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/PDP.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Ports.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Power.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/PWM.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Relay.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/SimDevice.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Solenoid.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/Threads.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/AnalogInData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/AnalogOutData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/AnalogTriggerData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/CanDataInternal.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/DigitalPWMData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/DIOData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/DriverStationData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/PCMData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/PDPData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/PWMData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/RelayData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/RoboRioData.cpp
+			${ALLWPILIB}/hal/src/main/native/sim/mockdata/SimDeviceData.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/AnalogInput.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalInput.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalOutput.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/DriverStation.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/Error.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/ErrorBase.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/InterruptableSensorBase.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/IterativeRobotBase.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/Joystick.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotState.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/Timer.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/Watchdog.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/Utility.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/commands/Command.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/commands/Scheduler.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/commands/Subsystem.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/livewindow/LiveWindow.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/ListenerExecutor.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableBase.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableBuilderImpl.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableRegistry.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SmartDashboard.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/ComplexWidget.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/LayoutType.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/RecordingController.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/SendableCameraWrapper.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/Shuffleboard.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/ShuffleboardComponentBase.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/ShuffleboardContainer.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/ShuffleboardInstance.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/ShuffleboardLayout.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/ShuffleboardTab.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/shuffleboard/SimpleWidget.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/leb128.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_istream.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_istream.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_ostream.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/timestamp.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/Base64.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/SafeThread.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/SocketError.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPAcceptor.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPConnector.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPConnector_parallel.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPStream.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Hashing.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ManagedStatic.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/NativeFormatting.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Path.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallPtrSet.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallVector.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringMap.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Twine.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/unix/Demangle.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/unix/StackTrace.cpp
+			${ntcore_native_src}
+		)
 
-	target_link_libraries(frcrobot_phoenixsim_main
-		${catkin_LIBRARIES}
-		${CTRE_LIB_DIR}/libCTRE_Phoenix.a
-		${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.a
-		${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.a
-		${CTRE_LIB_DIR}/../shared/libCTRE_PhoenixPlatform_sim.so
-		frc_robot_interface
-	)
-	## Add cmake target dependencies of the executable
-	## same as for the library above. This is needed to force
-	## talon controller messages to be built before the
-	## talon controller code tries to use them
-	add_dependencies(frcrobot_phoenixsim_main
-		${${PROJECT_NAME}_EXPORTED_TARGETS}
-		${catkin_EXPORTED_TARGETS}
-	)
+		target_link_libraries(frcrobot_phoenixsim_main
+			${catkin_LIBRARIES}
+			${CTRE_LIB_DIR}/libCTRE_Phoenix.a
+			${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.a
+			${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.a
+			${CTRE_LIB_DIR}/../shared/libCTRE_PhoenixPlatform_sim.so
+			frc_robot_interface
+		)
+		## Add cmake target dependencies of the executable
+		## same as for the library above. This is needed to force
+		## talon controller messages to be built before the
+		## talon controller code tries to use them
+		add_dependencies(frcrobot_phoenixsim_main
+			${${PROJECT_NAME}_EXPORTED_TARGETS}
+			${catkin_EXPORTED_TARGETS}
+		)
 
-	# Install executable on the off chance you'd ever
-	# want to run sim on the RoboRIO
-	install(TARGETS
-	  frcrobot_phoenixsim_main
-	  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-	  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-	)
+		# Install executable on the off chance you'd ever
+		# want to run sim on the RoboRIO
+		install(TARGETS
+		  frcrobot_phoenixsim_main
+		  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+		  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+		)
 	endif()
 
 endif()

@@ -63,3 +63,11 @@ void frc::MotorSafety::CheckMotors()
 {
 	ROS_INFO("Called frc::MotorSafety::CheckMotors()");
 }
+
+// Avoid including all of cscore- this is the only function so far that
+// is needed by sim code
+#include <cscore_oo.h>
+std::string cs::GetSourceName(CS_Source source, CS_Status* status) {
+	ROS_ERROR("Called cs::GetSourceName (CS_Sourcesource, CS_Status *status) on unsupported platform");
+	return "Not a CS Source";
+}
