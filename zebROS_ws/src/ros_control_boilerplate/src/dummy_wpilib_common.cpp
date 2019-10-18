@@ -416,10 +416,6 @@ void frc::Joystick::SetThrottleChannel(int)
 {
 	ROS_ERROR("Called frc::Joystick::SetThrottleChannel(int channel) on unsupported platform");
 }
-void frc::Joystick::SetAxisChannel(AxisType, int)
-{
-	ROS_ERROR("Called frc::Joystick::SetAxisChannel(AxisType axis, int channel) on unsupported platform");
-}
 int frc::Joystick::GetXChannel() const
 {
 	ROS_ERROR("Called frc::Joystick::GetXChannel() const on unsupported platform");
@@ -470,11 +466,6 @@ double frc::Joystick::GetThrottle() const
 	ROS_ERROR("Called frc::Joystick::GetThrottle() const on unsupported platform");
 	return std::numeric_limits<double>::max();
 }
-double frc::Joystick::GetAxis(AxisType) const
-{
-	ROS_ERROR("Called frc::Joystick::GetAxis(AxisType axis) const on unsupported platform");
-	return std::numeric_limits<double>::max();
-}
 bool frc::Joystick::GetTrigger() const
 {
 	ROS_ERROR("Called frc::Joystick::GetTrigger() const on unsupported platform");
@@ -503,16 +494,6 @@ bool frc::Joystick::GetTopPressed()
 bool frc::Joystick::GetTopReleased()
 {
 	ROS_ERROR("Called frc::Joystick::GetTopReleased() on unsupported platform");
-	return false;
-}
-Joystick* frc::Joystick::GetStickForPort(int)
-{
-	ROS_ERROR("Called Joystick* frc::Joystick::GetStickForPort(int port) on unsupported platform");
-	return nullptr;
-}
-bool frc::Joystick::GetButton(ButtonType) const
-{
-	ROS_ERROR("Called frc::Joystick::GetButton(ButtonType button) const on unsupported platform");
 	return false;
 }
 double frc::Joystick::GetMagnitude() const

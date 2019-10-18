@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(ros_control_boilerplate)
 
 include ("../cmake_modules/CMakeOpt.cmake")
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules
@@ -111,7 +112,7 @@ set (FRCROBOT_HW_MAIN_SRCS
 	src/frcrobot_hw_interface.cpp
 )
 
-set (WPI_SYSROOT $ENV{HOME}/frc2019/roborio/arm-frc2019-linux-gnueabi)
+set (WPI_SYSROOT $ENV{HOME}/wpilib/2020/roborio/arm-frc2020-linux-gnueabi)
 include_directories(
 	${catkin_INCLUDE_DIRS}
 	${WPI_SYSROOT}/include/wpilib
@@ -123,7 +124,7 @@ include_directories(
 set (WPI_BASE_LIB_DIR ${WPI_SYSROOT}/lib/wpilib/linux)
 
 # Rio-only code
-if ("${ARM_PREFIX}" STREQUAL "arm-frc2019-linux-gnueabi")
+if ("${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/athena/static)
 
 	# Link against wpi user libraries for CAN talon and navX-MXP code and
@@ -137,13 +138,14 @@ if ("${ARM_PREFIX}" STREQUAL "arm-frc2019-linux-gnueabi")
 		${WPI_SHARED_LIB_DIR}/libwpiHald.so
 		${WPI_SHARED_LIB_DIR}/libwpiutild.so
 		${WPI_SHARED_LIB_DIR}/libvisa.so
-		${WPI_SHARED_LIB_DIR}/libFRC_NetworkCommunication.so.19.0.0
-		${WPI_SHARED_LIB_DIR}/libNiFpga.so.18.0.0
-		${WPI_SHARED_LIB_DIR}/libNiFpgaLv.so.18.0.0
-		${WPI_SHARED_LIB_DIR}/libRoboRIO_FRC_ChipObject.so.19.0.0
-		${WPI_SHARED_LIB_DIR}/libNiRioSrv.so.18.0.0
-		${WPI_SHARED_LIB_DIR}/libniriodevenum.so.18.0.0
+		${WPI_SHARED_LIB_DIR}/libFRC_NetworkCommunication.so.20.0.0
+		${WPI_SHARED_LIB_DIR}/libNiFpga.so.19.0.0
+		${WPI_SHARED_LIB_DIR}/libNiFpgaLv.so.19.0.0
+		${WPI_SHARED_LIB_DIR}/libRoboRIO_FRC_ChipObject.so.20.0.0
+		${WPI_SHARED_LIB_DIR}/libNiRioSrv.so.19.0.0
+		${WPI_SHARED_LIB_DIR}/libniriodevenum.so.19.0.0
 		${WPI_SHARED_LIB_DIR}/libniriosession.so.18.0.0
+		${WPI_SHARED_LIB_DIR}/libnirio_emb_can.so.16.0.0
 		${WPI_SHARED_LIB_DIR}/libopencv_calib3dd.so.3.4
 		${WPI_SHARED_LIB_DIR}/libopencv_imgprocd.so.3.4
 		${WPI_SHARED_LIB_DIR}/libopencv_superresd.so.3.4
@@ -185,7 +187,7 @@ include_directories(${ALLWPILIB}/hal/src/main/native/athena)
 # This adds code to use linux CAN sockets to talk to
 # the CAN bus for the Jetson
 # Also add all of the wpilib code needed to talk to PCM and PDP
-if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2019-linux-gnueabi")
+if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 	set (CTRE_USER_LIBS 
 		${CTRE_USER_LIBS}
 		${CTRE_LIB_DIR}/libCTRE_PhoenixPlatform_socketcan.a
@@ -204,7 +206,7 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2019-linux-gnueabi")
 		${ALLWPILIB}/hal/src/main/native/athena/ctre/PCM.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/ctre/CtreCanNode.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/handles/HandlesInternal.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/memory.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/memory.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Hashing.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/NativeFormatting.cpp
@@ -286,9 +288,10 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2019-linux-gnueabi")
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/livewindow/LiveWindow.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableBase.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableBuilderImpl.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableRegistry.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SmartDashboard.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/leb128.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/memory.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/memory.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_istream.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_istream.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_ostream.cpp

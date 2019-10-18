@@ -352,35 +352,31 @@ void frc::LiveWindow::UpdateValues()
 	ROS_ERROR("Called LiveWindow::UpdateValues() on unsupported platform");
 }
 
-
 #include <frc/smartdashboard/SendableBase.h>
 frc::SendableBase::SendableBase(bool)
 {
 	ROS_ERROR("Called SendableBase::SendableBase(bool) on unsupported platform");
 }
-std::string frc::SendableBase::GetName() const
+
+#include <frc/smartdashboard/SendableRegistry.h>
+struct frc::SendableRegistry::Impl {
+};
+frc::SendableRegistry::SendableRegistry()
 {
-	ROS_ERROR("Called string frc::SendableBase::GetName() const on unsupported platform");
-	return std::string();
 }
-void frc::SendableBase::SetName(const wpi::Twine&)
+frc::SendableRegistry& frc::SendableRegistry::GetInstance()
 {
-	ROS_ERROR("Called ::SendableBase::SetName(const wpi::Twine& name) on unsupported platform");
+	ROS_ERROR("Called SendableRegistry::GetInstance() on unsupported platform");
+	static frc::SendableRegistry s;
+	return s;
 }
-std::string frc::SendableBase::GetSubsystem() const
+bool frc::SendableRegistry::Remove(frc::Sendable* sendable)
 {
-	ROS_ERROR("Called string frc::SendableBase::GetSubsystem() const on unsupported platform");
-	return std::string();
-}
-void frc::SendableBase::SetSubsystem(const wpi::Twine&)
-{
-	ROS_ERROR("Called ::SendableBase::SetSubsystem(const wpi::Twine& subsystem) on unsupported platform");
+	(void)sendable;
+	ROS_ERROR("Called SendableRegistry::Remove(Sendable *sendable) on unsupported platform");
+	return false;
 }
 
-frc::SendableBase::~SendableBase()
-{
-	ROS_ERROR("Called SendableBase::~SendableBase() on unsupported platform");
-}
 
 #include <frc/smartdashboard/SmartDashboard.h>
 bool frc::SmartDashboard::PutBoolean(wpi::StringRef, bool)

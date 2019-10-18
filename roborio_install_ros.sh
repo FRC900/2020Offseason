@@ -51,8 +51,8 @@ scp -P 22 ~/2019Offseason/os_detect.py admin@$1:/usr/lib/python2.7/site-packages
 # This will prevent weird bugs were sourcing install_isolated/setup.bash
 #   will overwrite the settings from /opt/ros/melodic/setup.bash leading
 #   to errors finding basic ROS tools
-ssh -p 22 admin@$1 'mkdir -p /home/ubuntu/frc2019/roborio'
-ssh -p 22 admin@$1 'ln -s / /home/ubuntu/frc2019/roborio/arm-frc2019-linux-gnueabi'
+ssh -p 22 admin@$1 'mkdir -p /home/ubuntu/wpilib/2020/roborio'
+ssh -p 22 admin@$1 'ln -s / /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi'
 # TODO -is this needed?
 ssh -p 22 admin@$1 'ln -s /usr/include /include'
 
@@ -85,7 +85,7 @@ ssh -p 22 admin@$1 '/usr/sbin/update-rc.d -f hwclock.sh defaults'
 
 # Copy wpilib to roborio
 ssh -p 22 admin@$1 mkdir wpilib
-cd ~/frc2019/roborio/arm-frc2019-linux-gnueabi/lib/wpilib/linux/athena/shared
+cd ~/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/wpilib/linux/athena/shared
 scp -P 22 *.so *.so.3.? admin@$1:wpilib
 
 # Set up ssh keys
