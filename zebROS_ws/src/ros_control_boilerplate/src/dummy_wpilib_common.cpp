@@ -350,7 +350,7 @@ uint8_t AHRS::GetActualUpdateRateInternal(uint8_t)
 
 #include <frc/DriverStation.h>
 #include <frc/GenericHID.h>
-frc::GenericHID::GenericHID(int) : m_ds(DriverStation::GetInstance())
+frc::GenericHID::GenericHID(int) : m_ds(&DriverStation::GetInstance())
 {
 	ROS_ERROR("Called GenericHID::GenericHID(int) on unsupported platform");
 }

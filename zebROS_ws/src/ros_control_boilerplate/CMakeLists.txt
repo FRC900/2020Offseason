@@ -323,6 +323,7 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 			${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPConnector.cpp
 			${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPConnector_parallel.cpp
 			${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPStream.cpp
+			${ALLWPILIB}/wpilibc/src/main/native/cpp/frc2/Timer.cpp
 			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
 			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
 			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
