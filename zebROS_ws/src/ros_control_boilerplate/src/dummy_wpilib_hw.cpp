@@ -220,6 +220,22 @@ frc::DriverStation & frc::DriverStation::GetInstance()
 	return d;
 }
 
+bool frc::DriverStation::IsDisabled(void) const
+{
+	ROS_ERROR("Called DriverStation::IsDisabled() on unsupported platform");
+	return false;
+}
+bool frc::DriverStation::IsAutonomous(void) const
+{
+	ROS_ERROR("Called DriverStation::IsAutonomous() on unsupported platform");
+	return false;
+}
+bool frc::DriverStation::IsOperatorControl(void) const
+{
+	ROS_ERROR("Called DriverStation::IsOperatorControl() on unsupported platform");
+	return false;
+}
+
 #include <frc/ErrorBase.h>
 frc::ErrorBase::ErrorBase()
 {

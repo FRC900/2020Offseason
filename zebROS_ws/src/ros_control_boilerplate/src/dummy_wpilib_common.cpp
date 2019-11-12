@@ -1,5 +1,13 @@
 #include <ros/ros.h>
 
+#include <WPILibVersion.h>
+const char* GetWPILibVersion(void)
+{
+	ROS_ERROR("Called GetWPILibVersion on unsupported platform");
+	return "900.2020";
+}
+
+
 #include <AHRS.h>
 AHRS::AHRS(SPI::Port)
 {
