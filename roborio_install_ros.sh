@@ -39,6 +39,8 @@ ssh -p 22 admin@$1 'opkg clean'
 ssh -p 22 admin@$1 'opkg install gpgme-dev gpgme libgpg-error-dev libgpg-error0 libassuan-dev libassuan0'
 ssh -p 22 admin@$1 'opkg clean'
 
+ssh -p 22 admin@$1 'ln -sf /usr/bin/python2 /usr/bin/python'
+ssh -p 22 admin@$1 'pip install --upgrade pip'
 ssh -p 22 admin@$1 'pip install catkin_pkg rospkg rosdistro vcstools rosdep wstool rosinstall rosinstall_generator defusedxml empy'
 
 # Copy over ROS tar.bz2 file, extract to / on the Rio
@@ -91,7 +93,7 @@ scp -P 22 *.so *.so.3.? admin@$1:wpilib
 # Set up ssh keys
 scp -P 22 ~/2019Offseason/jetson_setup/roborio_dot_ssh.tar.bz2 admin@$1:.
 ssh -p 22 admin@$1 'mkdir .ssh'
-ssh -p 22 admin@$1 'cd .ssh -p 22 && tar -xjf ../roborio_dot_ssh.tar.bz2'
+ssh -p 22 admin@$1 'cd .ssh && tar -xjf ../roborio_dot_ssh.tar.bz2'
 ssh -p 22 admin@$1 'rm roborio_dot_ssh.tar.bz2'
 
 # Edit /etc/ssh/sshd_config, uncomment Port 22, add Port 5801, 

@@ -309,7 +309,7 @@ mkdir -p /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/include/wpil
 cd /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/include/wpilib 
 find ../../../.. -name \*headers\*zip | xargs -n1 unzip -o 
 rm -rf /home/ubuntu/wpilib/2020/maven /home/ubuntu/wpilib/2020/jdk
-sed -i -e 's/   || defined(__thumb__) \\/   || defined(__thumb__) \\\n   || defined(__aarch64__) \\/' /home/ubuntu/wpilib/2020/roborio/arm-2020-linux-gnueabi/include/wpilib/FRC_FPGA_ChipObject/fpgainterfacecapi/NiFpga.h
+sed -i -e 's/   || defined(__thumb__) \\/   || defined(__thumb__) \\\n   || defined(__aarch64__) \\/' /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/include/wpilib/FRC_FPGA_ChipObject/fpgainterfacecapi/NiFpga.h
 
 # Set up prereqs for deploy script
 mv ~/2019Offseason ~/2019Offseason.orig
