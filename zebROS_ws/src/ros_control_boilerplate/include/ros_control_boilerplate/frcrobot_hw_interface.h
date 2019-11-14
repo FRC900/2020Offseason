@@ -112,6 +112,7 @@ class ROSIterativeRobot : public frc::IterativeRobotBase
 	private:
 		void LoopFunc(bool use_livewindow = false)
 		{
+			m_watchdog.Reset();
 			// Call the appropriate function depending upon the current robot mode
 			if (IsDisabled()) {
 				// Call DisabledInit() if we are now just entering disabled mode from
