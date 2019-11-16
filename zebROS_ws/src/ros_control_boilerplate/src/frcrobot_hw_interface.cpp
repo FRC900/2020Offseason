@@ -1545,6 +1545,7 @@ double FRCRobotHWInterface::getConversionFactor(int encoder_ticks_per_rotation,
 
 bool FRCRobotHWInterface::safeTalonCall(ctre::phoenix::ErrorCode error_code, const std::string &talon_method_name)
 {
+	//ROS_INFO_STREAM("safeTalonCall(" << talon_method_name << ")");
 	std::string error_name;
 	switch (error_code)
 	{
@@ -1707,7 +1708,7 @@ bool FRCRobotHWInterface::safeTalonCall(ctre::phoenix::ErrorCode error_code, con
 	return false;
 }
 
-#define DEBUG_WRITE
+//#define DEBUG_WRITE
 void FRCRobotHWInterface::write(ros::Duration &elapsed_time)
 {
 	// Was the robot enabled last time write was run?

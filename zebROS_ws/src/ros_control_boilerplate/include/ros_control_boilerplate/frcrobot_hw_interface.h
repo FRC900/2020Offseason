@@ -113,7 +113,6 @@ class ROSIterativeRobot
 
 		void OneIteration(void) const
 		{
-			m_watchdog.Reset();
 			// Call the appropriate function depending upon the current robot mode
 			if (m_ds.IsDisabled()) {
 				HAL_ObserveUserProgramDisabled();
