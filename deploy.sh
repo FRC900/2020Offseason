@@ -192,12 +192,12 @@ RIO_BUILD_PROCESS=$!
 JETSON_BUILD_PROCESSES=()
 for i in "${JETSON_ADDR[@]}"
 do
-	(echo "Starting Jetson $i native build" && \
-		ssh $i "cd $JETSON_CLONE_LOCATION/zebROS_ws && \
-		source /opt/ros/melodic/setup.bash && \
-		source /home/ubuntu/2019Offseason/zebROS_ws/ROSJetsonMaster.sh && \
-		catkin_make --use-ninja" && \
-		echo "Jetson $i native build complete") &
+	echo "Starting Jetson $i native build" 
+	(
+		xterm -T "Jetson $i" -e ssh $i "$JETSON_CLONE_LOCATION/zebROS_ws/native_build.sh || \
+		     	                        read -p 'Jetson Build FAILED - press ENTER to close window'" && \
+		echo "Jetson $i native build complete"
+	) &
 	JETSON_BUILD_PROCESSES+=($!)
 done
 
@@ -208,6 +208,12 @@ RIO_RC=$?
 echo " ... RIO_BUILD_PROCESS $RIO_BUILD_PROCESS returned $RIO_RC"
 
 # Capture return code from Jetson build process(es)
+# TODO - this doesn't actually capture the return code from
+# the jetson native build, but instead from the xterm command
+# which returns success if it was able to launch the command
+# Think about how to capture build status on the Jetson and return
+# it back here - maybe echo $? to a file, copy it back, check the
+# value in it, then delete it?
 JETSON_RCS=()
 for i in "${JETSON_BUILD_PROCESSES[@]}"
 do
