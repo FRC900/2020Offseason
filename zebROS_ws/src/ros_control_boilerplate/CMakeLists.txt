@@ -193,13 +193,6 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 		${CTRE_LIB_DIR}/libCTRE_PhoenixPlatform_socketcan.a
 		${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.a
 	)
-	if (NOT (("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") OR
-		      "${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu"))  
-		set (CTRE_USER_LIBS 
-			${CTRE_USER_LIBS}
-			${CTRE_LIB_DIR}/libCTRE_PhoenixDiagnostics.a
-		)
-	endif()
 
 	set (FRCROBOT_HW_MAIN_SRCS ${FRCROBOT_HW_MAIN_SRCS} 
 		src/dummy_wpilib_common.cpp
@@ -379,6 +372,14 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 		)
 	endif()
 
+endif()
+
+if (NOT (("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") OR
+		  "${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu"))  
+	set (CTRE_USER_LIBS 
+		${CTRE_USER_LIBS}
+		${CTRE_LIB_DIR}/libCTRE_PhoenixDiagnostics.a
+	)
 endif()
 
 add_executable(frcrobot_hw_main ${FRCROBOT_HW_MAIN_SRCS})
