@@ -7,9 +7,25 @@ void InitializeAccelerometerData()
 {
 	ROS_INFO("Called InitializeAccelerometerData()");
 }
+void InitializeAddressableLED()
+{
+	ROS_INFO("Called InitializeSAddressableLED()");
+}
+void InitializeAddressableLEDData()
+{
+	ROS_INFO("Called InitializeSAddressableLEDData()");
+}
 void InitializeAnalogGyroData()
 {
 	ROS_INFO("Called InitializeAnalogGyroData()");
+}
+void InitializeDutyCycle()
+{
+	ROS_INFO("Called InitializeSDutyCycle()");
+}
+void InitializeDutyCycleData()
+{
+	ROS_INFO("Called InitializeSDutyCycleData()");
 }
 void InitializeEncoderData()
 {

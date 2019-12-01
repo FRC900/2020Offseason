@@ -193,6 +193,13 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 		${CTRE_LIB_DIR}/libCTRE_PhoenixPlatform_socketcan.a
 		${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.a
 	)
+	if (NOT (("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") OR
+		      "${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu"))  
+		set (CTRE_USER_LIBS 
+			${CTRE_USER_LIBS}
+			${CTRE_LIB_DIR}/libCTRE_PhoenixDiagnostics.a
+		)
+	endif()
 
 	set (FRCROBOT_HW_MAIN_SRCS ${FRCROBOT_HW_MAIN_SRCS} 
 		src/dummy_wpilib_common.cpp
@@ -291,9 +298,6 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/Timer.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/Watchdog.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/Utility.cpp
-			${ALLWPILIB}/wpilibc/src/main/native/cpp/commands/Command.cpp
-			${ALLWPILIB}/wpilibc/src/main/native/cpp/commands/Scheduler.cpp
-			${ALLWPILIB}/wpilibc/src/main/native/cpp/commands/Subsystem.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/livewindow/LiveWindow.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/ListenerExecutor.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/smartdashboard/SendableBase.cpp
@@ -341,12 +345,20 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 			${ntcore_native_src}
 		)
 
+		if (NOT (("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") OR
+				  "${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu"))  
+			set (CTRE_DIAGNOSTIC_LIBS 
+				${CTRE_DIAGNOSTIC_LIBS}
+				${CTRE_LIB_DIR}/libCTRE_PhoenixDiagnostics.a
+			)
+		endif()
 		target_link_libraries(frcrobot_phoenixsim_main
 			${catkin_LIBRARIES}
 			${CTRE_LIB_DIR}/libCTRE_Phoenix.a
 			${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.a
 			${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.a
 			${CTRE_LIB_DIR}/../shared/libCTRE_PhoenixPlatform_sim.so
+			${CTRE_DIAGNOSTIC_LIBS}
 			frc_robot_interface
 		)
 		## Add cmake target dependencies of the executable

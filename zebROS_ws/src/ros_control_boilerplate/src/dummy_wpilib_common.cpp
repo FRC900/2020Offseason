@@ -620,3 +620,8 @@ frc::Notifier::~Notifier()
 	ROS_ERROR("Called frc::Notifier::~Notifier() on unsupported platform");
 }
 
+#include <frc/SpeedController.h>
+void frc::SpeedController::SetVoltage(units::volt_t output)
+{
+	ROS_ERROR("Called frc::SpeedController::Set(volt_t output) on unsupported platform");
+}

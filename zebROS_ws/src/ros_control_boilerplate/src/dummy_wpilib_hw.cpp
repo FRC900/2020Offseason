@@ -194,9 +194,30 @@ void frc::DigitalOutput::Set(bool)
 {
 	ROS_ERROR("Called DigitalOutput::set(bool) on unsupported platform");
 }
-  void frc::DigitalOutput::InitSendable(SendableBuilder&)
+void frc::DigitalOutput::InitSendable(SendableBuilder&)
 {
 	ROS_ERROR("Called frc::DigitalOutput::InitSendable(SendableBuilder& builder) on unsupported platform");
+}
+HAL_Handle frc::DigitalOutput::GetPortHandleForRouting() const
+{
+	ROS_ERROR("Called DigitalOutput::GetPortHandleForRouting() on unsupported platform");
+	return HAL_kInvalidHandle;
+}
+frc::AnalogTriggerType frc::DigitalOutput::GetAnalogTriggerTypeForRouting() const
+{
+	ROS_ERROR("Called DigitalOutput::GetAnalogTriggerTypeForRouting() on unsupported platform");
+	return static_cast<frc::AnalogTriggerType>(-1);
+}
+bool frc::DigitalOutput::IsAnalogTrigger() const
+{
+	ROS_ERROR("Called DigitalOutput::IsAnalogTrigger() on unsupported platform");
+	return false;
+}
+
+int frc::DigitalOutput::GetChannel() const
+{
+	ROS_ERROR("Called DigitalOutput::GetChannel() on unsupported platform");
+	return std::numeric_limits<int>::max();
 }
 
 #include <frc/DriverStation.h>
