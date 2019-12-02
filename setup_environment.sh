@@ -99,7 +99,7 @@ sudo rm -rf tinyxml2
 
 #install zed sdk
 zed_fn="jetson_jp42"
-wget --no-check-certificate https://www.stereolabs.com/download/$zed_fn
+wget --no-check-certificate https://download.stereolabs.com/zedsdk/2.8/$zed_fn
 chmod 755 $zed_fn
 ./$zed_fn
 rm ./$zed_fn
@@ -276,22 +276,22 @@ find /home/ubuntu/devsite.ctr-electronics.com -name \*linux\*zip | xargs -n 1 un
 rm -rf /home/ubuntu/devsite.ctr-electronics.com 
 
 cd /home/ubuntu 
-wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.377/navx-cpp-3.1.377-headers.zip 
+wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.391/navx-cpp-3.1.391-headers.zip 
 mkdir -p /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/include/navx 
 cd /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/include/navx 
-unzip -o /home/ubuntu/navx-cpp-3.1.377-headers.zip 
-rm /home/ubuntu/navx-cpp-3.1.377-headers.zip 
+unzip -o /home/ubuntu/navx-cpp-3.1.391-headers.zip 
+rm /home/ubuntu/navx-cpp-3.1.391-headers.zip 
 cd /home/ubuntu 
-wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.377/navx-cpp-3.1.377-linuxathena.zip 
+wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.391/navx-cpp-3.1.391-linuxathena.zip 
 mkdir -p /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/navx 
 cd /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/navx 
-unzip -o /home/ubuntu/navx-cpp-3.1.377-linuxathena.zip 
-rm /home/ubuntu/navx-cpp-3.1.377-linuxathena.zip 
+unzip -o /home/ubuntu/navx-cpp-3.1.391-linuxathena.zip 
+rm /home/ubuntu/navx-cpp-3.1.391-linuxathena.zip 
 cd /home/ubuntu 
-wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.377/navx-cpp-3.1.377-linuxathenastatic.zip 
+wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.391/navx-cpp-3.1.391-linuxathenastatic.zip 
 cd /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/navx 
-unzip -o /home/ubuntu/navx-cpp-3.1.377-linuxathenastatic.zip 
-rm /home/ubuntu/navx-cpp-3.1.377-linuxathenastatic.zip 
+unzip -o /home/ubuntu/navx-cpp-3.1.391-linuxathenastatic.zip 
+rm /home/ubuntu/navx-cpp-3.1.391-linuxathenastatic.zip 
 
 # Install wpilib headers by copying them from the local maven dir
 cd /home/ubuntu 
