@@ -2,6 +2,9 @@
 
 # Run me with IP address of Rio as argument
 #   Rio must be hooked up to the internet to grab packages correctly
+# Must be run from inside docker container - this script copies wpilib
+#   libraries to the Rio, and those only exist inside the container
+#   matching the version of wpilib expected on the Rio
 
 # Set time and date on Rio to match the system
 # we're installing from.  This should be close enough
@@ -30,7 +33,7 @@ ssh -p 22 admin@$1 'opkg install libeigen libbz2 libxml2 libgnutls-bin libgnutls
 ssh -p 22 admin@$1 'opkg clean'
 ssh -p 22 admin@$1 'opkg install libgnutls30 libgnutlsxx28 nettle libgmp10 libgmpxx4 libz1 cmake make'
 ssh -p 22 admin@$1 'opkg clean'
-ssh -p 22 admin@$1 'opkg install python-pip coreutils gdb i2c-tools'
+ssh -p 22 admin@$1 'opkg install python-pip coreutils i2c-tools'
 ssh -p 22 admin@$1 'opkg clean'
 ssh -p 22 admin@$1 'opkg install ntp ntp-tickadj ntp-utils ntpdate rsync htop curl libusb-1.0-dev'
 ssh -p 22 admin@$1 'opkg clean'
@@ -39,10 +42,13 @@ ssh -p 22 admin@$1 'opkg clean'
 ssh -p 22 admin@$1 'opkg install gpgme-dev gpgme libgpg-error-dev libgpg-error0 libassuan-dev libassuan0'
 ssh -p 22 admin@$1 'opkg clean'
 
-ssh -p 22 admin@$1 'opkg remove --autoremove python3*'
+# This installs python3 which takes up a lot of space - avoid installing it if possible
+#ssh -p 22 admin@$1 'opkg install gdb'
+
+#ssh -p 22 admin@$1 'opkg remove --autoremove python3*'
 ssh -p 22 admin@$1 'ln -sf /usr/bin/python2 /usr/bin/python'
 
-ssh -p 22 admin@$1 'pip install --upgrade pip'
+#ssh -p 22 admin@$1 'pip install --upgrade pip'
 ssh -p 22 admin@$1 'pip install catkin_pkg rospkg rosdistro vcstools rosdep wstool rosinstall rosinstall_generator defusedxml empy python-gnupg'
 
 # Copy over ROS tar.bz2 file, extract to / on the Rio
@@ -58,7 +64,7 @@ ssh -p 22 admin@$1 'rm ~/roscore_roborio.tar.bz2'
 #scp -P 22 ~/2019Offseason/os_detect.py admin@$1:/usr/lib/python3.5/site-packages/rospkg/
 
 # Try to simulate what the cross-build environment looks like 
-# This will prevent weird bugs were sourcing install_isolated/setup.bash
+# This will prevent weird bugs where sourcing install_isolated/setup.bash
 #   will overwrite the settings from /opt/ros/melodic/setup.bash leading
 #   to errors finding basic ROS tools
 ssh -p 22 admin@$1 'mkdir -p /home/ubuntu/wpilib/2020/roborio'
