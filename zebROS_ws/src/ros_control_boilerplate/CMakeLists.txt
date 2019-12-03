@@ -76,35 +76,40 @@ add_library(frc_robot_interface STATIC
 	src/frc_robot_interface.cpp
 	src/generic_hw_control_loop.cpp)
 
-# Sim version of main control
-# executable.  For now this just prints debugging
-# info for testing code which doens't actually hit
-# RoboRIO or CAN hardware. Eventually expand into
-# controlling some sort of sim?
-add_executable(frcrobot_sim_main 
-	src/frcrobot_sim_main.cpp
-	src/frcrobot_sim_interface.cpp
-)
+# Don't build sim code for the Rio or Jetson -
+# saves time and space for something which will
+# never be run
+if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi") OR
+	     ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") OR
+		 ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu") )) 
+    # Sim version of main control
+    # executable.  For now this just prints debugging
+    # info for testing code which doens't actually hit
+    # RoboRIO or CAN hardware. Eventually expand into
+    # controlling some sort of sim?
+	add_executable(frcrobot_sim_main 
+		src/frcrobot_sim_main.cpp
+		src/frcrobot_sim_interface.cpp
+	)
 
-target_link_libraries(frcrobot_sim_main
-	${catkin_LIBRARIES}
-	frc_robot_interface
-)
+	target_link_libraries(frcrobot_sim_main
+		${catkin_LIBRARIES}
+		frc_robot_interface
+	)
 
-# Forces messages to be generated before
-# the target which uses them
-add_dependencies(frcrobot_sim_main
-	${${PROJECT_NAME}_EXPORTED_TARGETS}
-	${catkin_EXPORTED_TARGETS}
-)
+    # Forces messages to be generated before
+    # the target which uses them
+	add_dependencies(frcrobot_sim_main
+		${${PROJECT_NAME}_EXPORTED_TARGETS}
+		${catkin_EXPORTED_TARGETS}
+	)
 
-# Install executable on the off chance you'd ever
-# want to run sim on the RoboRIO
-install(TARGETS
-  frcrobot_sim_main
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+	install(TARGETS
+	  frcrobot_sim_main
+	  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+	  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+	)
+endif()
 
 # Main control executable
 set (FRCROBOT_HW_MAIN_SRCS 

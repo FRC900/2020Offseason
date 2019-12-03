@@ -294,6 +294,7 @@ unzip -o /home/ubuntu/navx-cpp-3.1.391-linuxathenastatic.zip
 rm /home/ubuntu/navx-cpp-3.1.391-linuxathenastatic.zip 
 
 # Install wpilib headers by copying them from the local maven dir
+# TODO - need to update to acutal 2020 filenames once they are released
 cd /home/ubuntu 
 wget https://github.com/wpilibsuite/allwpilib/releases/download/v2020.4.1/WPILib_Linux-2019.4.1.tar.gz 
 mkdir -p /home/ubuntu/wpilib/2020 
