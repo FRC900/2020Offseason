@@ -136,12 +136,10 @@ if ("${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 	# wpilib for HAL, driver station, and so on
 	set (WPI_SHARED_LIB_DIR ${WPI_BASE_LIB_DIR}/athena/shared)
 	set (PLATFORM_SPECIFIC_LIBS
-		${WPI_SHARED_LIB_DIR}/libcameraserverd.so
-		${WPI_SHARED_LIB_DIR}/libntcored.so
-		${WPI_SHARED_LIB_DIR}/libwpilibcd.so
-		${WPI_SHARED_LIB_DIR}/libcscored.so
-		${WPI_SHARED_LIB_DIR}/libwpiHald.so
-		${WPI_SHARED_LIB_DIR}/libwpiutild.so
+		${WPI_SHARED_LIB_DIR}/libntcore.so
+		${WPI_SHARED_LIB_DIR}/libwpilibc.so
+		${WPI_SHARED_LIB_DIR}/libwpiHal.so
+		${WPI_SHARED_LIB_DIR}/libwpiutil.so
 		${WPI_SHARED_LIB_DIR}/libvisa.so
 		${WPI_SHARED_LIB_DIR}/libFRC_NetworkCommunication.so.20.0.0
 		${WPI_SHARED_LIB_DIR}/libNiFpga.so.19.0.0
@@ -150,23 +148,9 @@ if ("${ARM_PREFIX}" STREQUAL "arm-frc2020-linux-gnueabi")
 		${WPI_SHARED_LIB_DIR}/libNiRioSrv.so.19.0.0
 		${WPI_SHARED_LIB_DIR}/libniriodevenum.so.19.0.0
 		${WPI_SHARED_LIB_DIR}/libniriosession.so.18.0.0
+		${WPI_SHARED_LIB_DIR}/libni_emb.so.12.0.0
 		${WPI_SHARED_LIB_DIR}/libnirio_emb_can.so.16.0.0
-		${WPI_SHARED_LIB_DIR}/libopencv_calib3dd.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_imgprocd.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_superresd.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_cored.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_mld.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_videoiod.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_features2dd.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_objdetectd.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_videod.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_flannd.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_photod.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_videostabd.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_highguid.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_shaped.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_imgcodecsd.so.3.4
-		${WPI_SHARED_LIB_DIR}/libopencv_stitchingd.so.3.4
+		${WPI_SHARED_LIB_DIR}/libni_rtlog.so.2.8.0
 		${WPI_SYSROOT}/lib/navx/linux/athena/static/libnavx_frc.a
 	)
 elseif ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") # Jetson TK1
