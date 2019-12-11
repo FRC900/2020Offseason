@@ -104,7 +104,7 @@ ssh -p 22 admin@$1 mkdir wpilib
 cd ~/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/wpilib/linux/athena/shared
 scp -P 22 *.so admin@$1:wpilib
 # Remove debugging versions of libraries to save space
-ssh -p 22 admin@$1 rm wpilib/*d.so
+ssh -p 22 admin@$1 rm wpilib/*d.so wpilib/*jni.so
 
 # Set up ssh keys
 scp -P 22 ~/2019Offseason/jetson_setup/roborio_dot_ssh.tar.bz2 admin@$1:.
