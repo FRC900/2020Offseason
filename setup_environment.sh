@@ -28,6 +28,7 @@ sudo apt install -y \
 	libflann-dev \
 	libgflags-dev \
 	libgoogle-glog-dev \
+	libgoogle-perftools-dev \
 	libgtk2.0-dev \
 	libhdf5-dev \
 	libhdf5-serial-dev \

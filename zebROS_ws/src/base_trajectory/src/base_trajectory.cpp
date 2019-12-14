@@ -610,7 +610,7 @@ double pointToLineSegmentDistance(const std::vector<double> &v, const std::vecto
 	if (l2 == 0.0)
 		return sqrt(distSquared(px, py, v));   // v == w case, distance to single point
 	// Consider the line extending the segment, parameterized as v + t (w - v).
-	// We find projection of point p onto the line. 
+	// We find projection of point p onto the line.
 	// It falls where t = [(p-v) . (w-v)] / |w-v|^2
 	// We clamp t from [0,1] to handle points outside the segment vw.
 	const double t = std::max(0.0, std::min(1.0, ((px - v[0]) * (w[0] - v[0]) + (py - v[1]) * (w[1] - v[1])) / l2));
@@ -819,9 +819,9 @@ bool subdivideLength(std::vector<double> &equalLengthTimes,
 		// Use starting "midpoint" guess of of start time plus
 		// the previous time jump, plus a little bit extra to
 		// make sure we don't undershoot. Undershooting would require a
-		// binary seh of basically the entire distance between
+		// binary search of basically the entire distance between
 		// mid and end, and since mid is very close to the start,
-		// it is basically a binary seh of the entire range.
+		// it is basically a binary search of the entire range.
 		prevTimeDelta = (start - prevStart) * midTimeInflation;
 		prevStart = start;
 	}
@@ -1319,6 +1319,7 @@ bool RPROP(
 bool callback(base_trajectory::GenerateSpline::Request &msg,
 			  base_trajectory::GenerateSpline::Response &out_msg)
 {
+	const auto startTime = ros::Time::now();
 	// Hold current position if trajectory is empty
 	if (msg.points.empty())
 	{
@@ -1438,6 +1439,9 @@ bool callback(base_trajectory::GenerateSpline::Request &msg,
 	trajectoryToSplineResponseMsg(out_msg, trajectory, jointNames);
 	writeMatlabCode(out_msg);
 	fflush(stdout);
+	ROS_INFO_STREAM("base_trajectory_callback took " <<
+			(ros::Time::now() - startTime).toSec() <<
+			" seconds");
 	return true;
 }
 

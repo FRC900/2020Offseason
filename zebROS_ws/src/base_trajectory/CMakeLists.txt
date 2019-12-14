@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(base_trajectory)
 
 include ("../cmake_modules/CMakeOpt.cmake")
-
+#Append Gperftools_DIR 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -22,6 +22,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+LIST(APPEND CMAKE_MODULE_PATH "/home/ubuntu/2019Offseason/zebROS_ws/src/cmake_modules")
+find_package(Gperftools REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -142,6 +144,7 @@ add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
+  ${GPERFTOOLS_LIBRARIES}
 )
 
 add_executable(driver_node src/driver.cpp)

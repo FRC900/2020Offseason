@@ -200,3 +200,5 @@ install_package("openssl-misc");
 install_package("gpgme-dev");
 install_package("libgpg-error-dev");
 install_package("libassuan-dev");
+
+install_package("gperftools-dev");
