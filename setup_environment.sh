@@ -277,22 +277,22 @@ find /home/ubuntu/devsite.ctr-electronics.com -name \*linux\*zip | xargs -n 1 un
 rm -rf /home/ubuntu/devsite.ctr-electronics.com 
 
 cd /home/ubuntu 
-wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.391/navx-cpp-3.1.391-headers.zip 
+wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.400/navx-cpp-3.1.400-headers.zip 
 mkdir -p /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/include/navx 
 cd /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/include/navx 
-unzip -o /home/ubuntu/navx-cpp-3.1.391-headers.zip 
-rm /home/ubuntu/navx-cpp-3.1.391-headers.zip 
+unzip -o /home/ubuntu/navx-cpp-3.1.400-headers.zip 
+rm /home/ubuntu/navx-cpp-3.1.400-headers.zip 
 cd /home/ubuntu 
-wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.391/navx-cpp-3.1.391-linuxathena.zip 
+wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.400/navx-cpp-3.1.400-linuxathena.zip 
 mkdir -p /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/navx 
 cd /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/navx 
-unzip -o /home/ubuntu/navx-cpp-3.1.391-linuxathena.zip 
-rm /home/ubuntu/navx-cpp-3.1.391-linuxathena.zip 
+unzip -o /home/ubuntu/navx-cpp-3.1.400-linuxathena.zip 
+rm /home/ubuntu/navx-cpp-3.1.400-linuxathena.zip 
 cd /home/ubuntu 
-wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.391/navx-cpp-3.1.391-linuxathenastatic.zip 
+wget http://www.kauailabs.com/maven2/com/kauailabs/navx/frc/navx-cpp/3.1.400/navx-cpp-3.1.400-linuxathenastatic.zip 
 cd /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/navx 
-unzip -o /home/ubuntu/navx-cpp-3.1.391-linuxathenastatic.zip 
-rm /home/ubuntu/navx-cpp-3.1.391-linuxathenastatic.zip 
+unzip -o /home/ubuntu/navx-cpp-3.1.400-linuxathenastatic.zip 
+rm /home/ubuntu/navx-cpp-3.1.400-linuxathenastatic.zip 
 
 # Install wpilib headers by copying them from the local maven dir
 # TODO - need to update to acutal 2020 filenames once they are released
