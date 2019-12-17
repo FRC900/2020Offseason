@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(robot_characterization)
 
 include ("../cmake_modules/CMakeOpt.cmake")
+set(CMAKE_CXX_STANDARD 17)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -66,10 +67,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
-)
+#generate_messages(
+#DEPENDENCIES
+#std_msgs  # Or other packages containing msgs
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -113,7 +114,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-set (WPI_SYSROOT $ENV{HOME}/frc2019/roborio/arm-frc2019-linux-gnueabi)
+set (WPI_SYSROOT $ENV{HOME}/wpilib/2020/roborio/arm-frc2020-linux-gnueabi)
 
 include_directories(
 # include
@@ -148,7 +149,6 @@ add_executable(robot_characterization
 	src/robot_characterization.cpp
 	${ntcore_native_src}
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/leb128.cpp
-	${ALLWPILIB}/wpiutil/src/main/native/cpp/memory.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_istream.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_istream.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_ostream.cpp
@@ -161,9 +161,13 @@ add_executable(robot_characterization
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPConnector_parallel.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/TCPStream.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
+	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
+	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Hashing.cpp
+	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ManagedStatic.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/NativeFormatting.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Path.cpp
+	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallPtrSet.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallVector.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringMap.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp

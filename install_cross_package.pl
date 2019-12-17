@@ -14,7 +14,7 @@ my %package_size       = {};
 my $total_bytes        = 0;
 
 #my $base_url = "http://download.ni.com/ni-linux-rt/feeds/2019/arm/cortexa9-vfpv3/";
-#my $install_dir = "~/frc2019/roborio/arm-frc2020-linux-gnueabi";
+#my $install_dir = "~/wpilib/2020/roborio/arm-frc2020-linux-gnueabi";
 my $base_url = $ARGV[0];
 my $install_dir = $ARGV[1];
 sub install_package
