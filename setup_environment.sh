@@ -3,6 +3,7 @@
 # with slight modifications on other Jetson hardware
 
 #install basic dependencies
+sudo apt-add-repository ppa:ubuntu-toolchain-r/test -y 
 sudo apt update
 sudo apt -y upgrade
 
@@ -17,6 +18,7 @@ sudo apt install -y \
 	cowsay \
 	exfat-fuse \
 	exfat-utils \
+	g++-9 \
 	gdb \
 	gfortran \
 	git \
