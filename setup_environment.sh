@@ -16,6 +16,7 @@ sudo apt install -y \
 	chromium-browser \
 	cmake \
 	cowsay \
+	dbus-x11 \
 	exfat-fuse \
 	exfat-utils \
 	g++-9 \
@@ -26,6 +27,8 @@ sudo apt install -y \
 	htop \
 	libatlas-base-dev \
 	libboost-all-dev \
+	libcanberra-gtk-module \
+	libcanberra-gtk3-module \
 	libeigen3-dev \
 	libflann-dev \
 	libgflags-dev \
