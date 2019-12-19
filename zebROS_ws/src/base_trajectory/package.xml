@@ -52,7 +52,6 @@
   <depend>ddynamic_reconfigure</depend>
   <depend>joint_trajectory_controller</depend>
   <depend>roscpp</depend>
-  <depend>trajectory_interface</depend>
   <depend>trajectory_msgs</depend>
   <build_depend>message_generation</build_depend>
   <exec_depend>message_runtime</exec_depend>
