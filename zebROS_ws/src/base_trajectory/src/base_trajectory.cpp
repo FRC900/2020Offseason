@@ -133,7 +133,7 @@ typedef trajectory_msgs::JointTrajectory::ConstPtr JointTrajectoryConstPtr;
 ros::Duration period;
 
 // For printing out matlab code for testing
-void printCoefs(std::stringstream &s, const std::string &name, const std::vector<swerve_point_generator::Coefs> &coefs)
+void printCoefs(std::stringstream &s, const std::string &name, const std::vector<base_trajectory::Coefs> &coefs)
 {
 	for (size_t i = 0; i < coefs.size(); i++)
 	{
@@ -1314,7 +1314,7 @@ bool RPROP(
 
 
 // input should be JointTrajectory[] custom message
-// Output wil be array of spline coefficents swerve_point_generator/Coefs[] for x, y, orientation,
+// Output wil be array of spline coefficents base_trajectory/Coefs[] for x, y, orientation,
 // along with a path consisting of waypoints evenly spaced along the spline
 bool callback(base_trajectory::GenerateSpline::Request &msg,
 			  base_trajectory::GenerateSpline::Response &out_msg)

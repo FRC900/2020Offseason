@@ -7,17 +7,15 @@ include ("../cmake_modules/CMakeOpt.cmake")
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  roscpp
   angles
+  cmake_modules
+  ddynamic_reconfigure
   joint_trajectory_controller
-  swerve_point_generator
-  std_msgs
   nav_msgs
   message_generation
+  roscpp
+  std_msgs
   trajectory_msgs
-  talon_swerve_drive_controller
-  ddynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -56,11 +54,10 @@ find_package(Gperftools REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  Coefs.msg
+)
 
 ## Generate services in the 'srv' folder
 add_service_files(
@@ -81,7 +78,6 @@ generate_messages(
    std_msgs  # Or other packages containing msgs
    nav_msgs
    trajectory_msgs
-   swerve_point_generator
    base_trajectory
 )
 
@@ -117,7 +113,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 	LIBRARIES ${PROJECT_NAME}
-	CATKIN_DEPENDS joint_trajectory_controller roscpp swerve_point_generator
+	CATKIN_DEPENDS joint_trajectory_controller roscpp
 #  DEPENDS system_lib
 )
 
