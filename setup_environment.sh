@@ -74,6 +74,8 @@ sudo apt install -y \
 	wget \
 	xfonts-scalable
 
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+
 #install caffe
 # cd
 # git clone https://github.com/BVLC/caffe.git
