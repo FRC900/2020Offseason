@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   swerve_point_generator
+  talon_state_controller
   talon_swerve_drive_controller
   tf2_ros
   teraranger_array

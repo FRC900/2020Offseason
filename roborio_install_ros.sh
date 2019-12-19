@@ -49,7 +49,7 @@ ssh -p 22 admin@$1 'opkg clean'
 ssh -p 22 admin@$1 'ln -sf /usr/bin/python2 /usr/bin/python'
 
 #ssh -p 22 admin@$1 'pip install --upgrade pip'
-ssh -p 22 admin@$1 'pip install catkin_pkg rospkg rosdistro vcstools rosdep wstool rosinstall rosinstall_generator defusedxml empy python-gnupg'
+ssh -p 22 admin@$1 'pip install catkin_pkg catkin_tools rospkg rosdistro vcstools rosdep wstool rosinstall rosinstall_generator defusedxml empy python-gnupg'
 
 # Copy over ROS tar.bz2 file, extract to / on the Rio
 scp -P 22 ~/2019Offseason/roscore_roborio.tar.bz2 admin@$1:.

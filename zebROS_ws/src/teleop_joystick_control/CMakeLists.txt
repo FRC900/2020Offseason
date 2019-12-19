@@ -6,17 +6,18 @@ include ("../cmake_modules/CMakeOpt.cmake")
 if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 
 	find_package(catkin REQUIRED COMPONENTS
-		cmake_modules
-		roscpp
-		behaviors
-		control_msgs
 		actionlib
-		std_srvs
-		talon_state_controller
-		robot_visualizer
-		frc_msgs
+		behaviors
+		cmake_modules
+		control_msgs
+		controllers_2019
 		dynamic_reconfigure
 		dynamic_reconfigure_wrapper
+		frc_msgs
+		robot_visualizer
+		roscpp
+		std_srvs
+		talon_state_controller
 		)
 
 	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)

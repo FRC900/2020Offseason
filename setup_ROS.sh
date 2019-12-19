@@ -54,6 +54,7 @@ sudo apt install -y \
 	liblua5.3-dev \
 	libsuitesparse-dev \
 	ninja-build \
+	python-catkin-tools \
 	python-pyqtgraph \
 	python-rosdep \
 	python-rosinstall \
