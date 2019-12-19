@@ -3,8 +3,6 @@ project(rosbag_scripts)
 
 include("../cmake_modules/CMakeOpt.cmake")
 
-if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
@@ -211,7 +209,6 @@ install(PROGRAMS
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_rosbag_scripts.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)

@@ -3,8 +3,6 @@ project(behaviors)
 
 include ("../cmake_modules/CMakeOpt.cmake")
 
-if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -21,7 +19,6 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   std_srvs
-  swerve_point_generator
   talon_state_controller
   talon_swerve_drive_controller
   tf2_ros
@@ -286,11 +283,11 @@ install(DIRECTORY
 )
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+  PATTERN ".svn" EXCLUDE
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
@@ -310,5 +307,4 @@ install(DIRECTORY
 # endif()
 
 ## Add folders to be run by python nosetests
-endif()
 # catkin_add_nosetests(test)

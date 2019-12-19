@@ -13,4 +13,4 @@ elif [[ ! $ROS_ROOT = "/opt/ros/melodic/share/ros" ]]; then
 	exit 1
 fi
 
-catkin_make --use-ninja -DCATKIN_ENABLE_TESTING=OFF "$@"
+catkin build -DCATKIN_ENABLE_TESTING=OFF "$@"

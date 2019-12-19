@@ -11,4 +11,19 @@ elif [[ ! $ROS_ROOT = "$HOME/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/opt/r
 	exit 1
 fi
 
-catkin_make_isolated --install --use-ninja -DCMAKE_TOOLCHAIN_FILE=`pwd`/rostoolchain.cmake -DCATKIN_ENABLE_TESTING=OFF "$@"
+catkin config --profile cross -x _isolated --install --blacklist \
+	realsense2_camera \
+	realsense2_description \
+	rosbag_scripts \
+	rospy_message_converter \
+	zed_ar_track_alvar_example \
+	zed_display_rviz \
+	zed_depth_sub_tutorial \
+	zed_nodelet_example \
+	zed_ros \
+	zed_rtab_map_example \
+	zed_tracking_sub_tutorial \
+	zed_video_sub_tutorial \
+	zed_wrapper \
+	zms_writer
+catkin build --profile cross -DCMAKE_TOOLCHAIN_FILE=`pwd`/rostoolchain.cmake -DCATKIN_ENABLE_TESTING=OFF "$@"
