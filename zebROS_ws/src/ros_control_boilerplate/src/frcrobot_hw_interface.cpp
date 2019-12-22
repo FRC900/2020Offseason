@@ -342,7 +342,7 @@ void FRCRobotHWInterface::init(void)
 		else
 			digital_outputs_.push_back(nullptr);
 	}
-	for (size_t i = 0; i < num_pwm_; i++)
+	for (size_t i = 0; i < num_pwms_; i++)
 	{
 		ROS_INFO_STREAM_NAMED("frcrobot_hw_interface",
 							  "Loading joint " << i << "=" << pwm_names_[i] <<
@@ -1382,7 +1382,7 @@ void FRCRobotHWInterface::read(ros::Duration &/*elapsed_time*/)
 		if (!digital_output_local_updates_[i])
 			digital_output_state_[i] = digital_output_command_[i];
 	}
-	for (size_t i = 0; i < num_pwm_; i++)
+	for (size_t i = 0; i < num_pwms_; i++)
 	{
 		// Just reflect state of output in status
 		if (!pwm_local_updates_[i])
@@ -2556,7 +2556,7 @@ void FRCRobotHWInterface::write(ros::Duration &elapsed_time)
 		}
 	}
 
-	for (size_t i = 0; i < num_pwm_; i++)
+	for (size_t i = 0; i < num_pwms_; i++)
 	{
 		const int setpoint = pwm_command_[i] * ((pwm_inverts_[i] & pwm_local_updates_[i]) ? -1 : 1);
 		if (pwm_state_[i] != setpoint)
