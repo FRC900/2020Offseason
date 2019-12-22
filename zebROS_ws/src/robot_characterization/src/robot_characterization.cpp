@@ -205,6 +205,8 @@ int main(int argc, char **argv)
         telemetry[8] = rightRate;
 		telemetryEntry.SetDoubleArray(telemetry);
 
+		ntInst.Flush();
+
 		// Loop at 100hz
 		ros::spinOnce();
 		r.sleep();
