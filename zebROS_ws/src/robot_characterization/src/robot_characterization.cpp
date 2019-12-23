@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
 	std::vector<double> telemetry(9);
 
-	ros::Rate r(100);
+	ros::Rate r(90);
 
 	double autospeed = 0;
 	auto modeClient = nh.serviceClient<std_srvs::SetBool>("/frcrobot_jetson/swerve_drive_controller/percent_out_drive_mode");
