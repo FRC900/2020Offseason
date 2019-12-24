@@ -20,7 +20,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   talon_state_controller
-  talon_swerve_drive_controller
   tf2_ros
   teraranger_array
 )
