@@ -11,10 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   actionlib_msgs
   controllers_2019
+  frc_msgs
   nav_msgs
   message_generation
   message_filters
-  ros_control_boilerplate
   roscpp
   rospy
   std_msgs

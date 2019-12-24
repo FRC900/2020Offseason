@@ -49,8 +49,8 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>ros_control_boilerplate</depend>
   <depend>message_filters</depend>
+  <depend>frc_msgs</depend>
   <depend>std_srvs</depend>
   <depend>talon_state_msgs</depend>
   <build_depend>message_generation</build_depend>
