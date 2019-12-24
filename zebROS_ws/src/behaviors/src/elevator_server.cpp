@@ -1,11 +1,11 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <actionlib/server/simple_action_server.h>
-#include <behaviors/ElevatorAction.h>
+#include <behavior_actions/ElevatorAction.h>
 #include <controllers_2019/ElevatorSrv.h>
 #include <talon_state_msgs/TalonState.h>
 #include <controllers_2019/ElevatorSrv.h>
-#include "behaviors/enumerated_elevator_indices.h"
+#include "behavior_actions/enumerated_elevator_indices.h"
 #include "std_srvs/SetBool.h"
 #include "std_msgs/Bool.h"
 #include <atomic>
@@ -19,7 +19,7 @@ constexpr size_t min_climb_idx = ELEVATOR_DEPLOY; //reference to minimum index i
 class ElevatorAction {
     protected:
         ros::NodeHandle nh_;
-        actionlib::SimpleActionServer<behaviors::ElevatorAction> as_;
+        actionlib::SimpleActionServer<behavior_actions::ElevatorAction> as_;
         std::string action_name_;
 
 
@@ -37,12 +37,12 @@ class ElevatorAction {
 		std::thread publishLvlThread_;
 		std::atomic<bool> stopped_;
 
-        void executeCB(const behaviors::ElevatorGoalConstPtr &goal)
+        void executeCB(const behavior_actions::ElevatorGoalConstPtr &goal)
         {
             ROS_INFO_STREAM("%s: Running callback " << action_name_.c_str());
             ros::Rate r(10);
 
-			behaviors::ElevatorFeedback feedback;
+			behavior_actions::ElevatorFeedback feedback;
             feedback.running = true;
             as_.publishFeedback(feedback);
 
@@ -144,7 +144,7 @@ class ElevatorAction {
 			}
 
 			//log state of action and set result of action
-			behaviors::ElevatorResult result;
+			behavior_actions::ElevatorResult result;
 			result.timed_out = timed_out;//timed_out refers to last controller call, but applies for whole action
 
 			if(timed_out)

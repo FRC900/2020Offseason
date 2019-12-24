@@ -2,8 +2,8 @@
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
 #include <controllers_2019/PanelIntakeSrv.h>
-#include <behaviors/PlaceAction.h>
-#include <behaviors/ElevatorAction.h>
+#include <behavior_actions/PlaceAction.h>
+#include <behavior_actions/ElevatorAction.h>
 #include <thread>
 #include <geometry_msgs/Twist.h>
 #include <atomic>
@@ -22,12 +22,12 @@ class OuttakeHatchPanelAction
 {
 	protected:
 		ros::NodeHandle nh_;
-		actionlib::SimpleActionServer<behaviors::PlaceAction> as_;
+		actionlib::SimpleActionServer<behavior_actions::PlaceAction> as_;
 		std::string action_name_;
 
 		std::atomic<bool> continue_outtake;
 
-		actionlib::SimpleActionClient<behaviors::ElevatorAction> ac_elevator_;
+		actionlib::SimpleActionClient<behavior_actions::ElevatorAction> ac_elevator_;
 
 		ros::ServiceClient panel_controller_client_;
 		ros::ServiceServer continue_outtake_server_;
@@ -94,7 +94,7 @@ class OuttakeHatchPanelAction
 			}
 		}
 
-		void executeCB(const behaviors::PlaceGoalConstPtr &goal)
+		void executeCB(const behavior_actions::PlaceGoalConstPtr &goal)
 		{
 			ROS_WARN("hatch panel outtake server running");
 
@@ -123,7 +123,7 @@ class OuttakeHatchPanelAction
 			bool timed_out = false;
 
 			//move elevator to outtake location
-			behaviors::ElevatorGoal elev_goal;
+			behavior_actions::ElevatorGoal elev_goal;
 			elev_goal.setpoint_index = goal->setpoint_index;
 			elev_goal.place_cargo = false;
 			ac_elevator_.sendGoal(elev_goal);
@@ -190,7 +190,6 @@ class OuttakeHatchPanelAction
 				}
 				ros::spinOnce(); //update everything
 
-
 				//pause for a bit
 				ros::Duration(pause_time_after_release).sleep();
 
@@ -204,8 +203,7 @@ class OuttakeHatchPanelAction
 					preempted = true;
 				}
 				ros::spinOnce(); //update everything
-                                
-                                ros::Duration(pause_time_after_drawback).sleep();
+				ros::Duration(pause_time_after_drawback).sleep();
 			}
 
 			ros::Duration(1).sleep();
@@ -245,7 +243,7 @@ class OuttakeHatchPanelAction
 			ros::spinOnce(); //update everything
 
 			//log state of action and set result of action
-			behaviors::PlaceResult result;
+			behavior_actions::PlaceResult result;
 			result.timed_out = timed_out;
 
 			if(timed_out)

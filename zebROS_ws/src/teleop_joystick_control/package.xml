@@ -12,9 +12,10 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>actionlib</depend>
-  <depend>behaviors</depend>
+  <depend>behavior_actions</depend>
   <depend>cmake_modules</depend>
   <depend>control_msgs</depend>
+  <depend>controllers_2019</depend>
   <depend>frc_msgs</depend>
   <depend>std_srvs</depend>
   <depend>roscpp</depend>

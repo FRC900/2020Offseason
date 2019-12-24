@@ -5,7 +5,7 @@ include ("../cmake_modules/CMakeOpt.cmake")
 
 find_package(catkin REQUIRED COMPONENTS
 	actionlib
-	behaviors
+	behavior_actions
 	cmake_modules
 	control_msgs
 	controllers_2019
@@ -45,6 +45,7 @@ catkin_package(
 	include
 	CATKIN_DEPENDS
 	roscpp
+	behavior_actions
 	control_msgs
 	frc_msgs
 	LIBRARIES

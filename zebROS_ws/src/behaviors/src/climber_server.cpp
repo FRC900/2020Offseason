@@ -1,13 +1,13 @@
 #include "ros/ros.h"
 #include "actionlib/server/simple_action_server.h"
 #include "actionlib/client/simple_action_client.h"
-#include "behaviors/ClimbAction.h"
-#include "behaviors/ElevatorAction.h"
-#include "behaviors/ElevatorGoal.h"
+#include "behavior_actions/ClimbAction.h"
+#include "behavior_actions/ElevatorAction.h"
+#include "behavior_actions/ElevatorGoal.h"
 #include "std_srvs/SetBool.h" //for the climber controller
 #include "geometry_msgs/Twist.h" //for the drivebase
 #include <atomic>
-#include "behaviors/enumerated_elevator_indices.h"
+#include "behavior_actions/enumerated_elevator_indices.h"
 #include "frc_msgs/MatchSpecificData.h"
 #include <thread>
 #include "sensor_msgs/Imu.h"
@@ -42,11 +42,11 @@ class ClimbAction {
 	protected:
 		ros::NodeHandle nh_;
 
-		actionlib::SimpleActionServer<behaviors::ClimbAction> as_; //create the actionlib server
+		actionlib::SimpleActionServer<behavior_actions::ClimbAction> as_; //create the actionlib server
 		std::string action_name_;
 
 		//create clients to call other actionlib servers
-		actionlib::SimpleActionClient<behaviors::ElevatorAction> ae_; //to call the elevator
+		actionlib::SimpleActionClient<behavior_actions::ElevatorAction> ae_; //to call the elevator
 
 		//create clients/subscribers to activate controllers
 		ros::ServiceClient climber_controller_client_; //create a ros client to send requests to the climber controller (piston in the leg)
@@ -55,7 +55,7 @@ class ClimbAction {
 
 	    std::atomic<int> linebreak_true_count; //counts how many times in a row the linebreak reported there's a cargo since we started trying to intake/outtake
 	    std::atomic<int> linebreak_false_count; //same, but how many times in a row no cargo
-		behaviors::ClimbResult result_; //variable to store result of the actionlib action
+		behavior_actions::ClimbResult result_; //variable to store result of the actionlib action
 
 		//create subscribers to get data
 		ros::Subscriber match_data_sub_;
@@ -151,7 +151,7 @@ class ClimbAction {
 		}
 
 		//define the function to be executed when the actionlib server is called
-		void executeCB(const behaviors::ClimbGoalConstPtr &goal) {
+		void executeCB(const behavior_actions::ClimbGoalConstPtr &goal) {
 			if(match_time_remaining_ > match_time_lock)
 			{
 				ROS_ERROR_STREAM("can not climb, too much time remaining in match");
@@ -227,7 +227,7 @@ class ClimbAction {
 					ROS_INFO("climber server step 0: raising elevator before climber is engaged");
 					//call the elevator actionlib server
 					//define the goal to send
-					behaviors::ElevatorGoal elevator_goal;
+					behavior_actions::ElevatorGoal elevator_goal;
 					elevator_goal.setpoint_index = ELEVATOR_DEPLOY;
 					elevator_goal.place_cargo = 0; //doesn't actually do anything
 					//send the elevator_goal
@@ -287,7 +287,7 @@ class ClimbAction {
 				{
 					ROS_INFO("climber server step 1: lowering elevator to make robot climb");
 
-					behaviors::ElevatorGoal elevator_goal;
+					behavior_actions::ElevatorGoal elevator_goal;
 					elevator_goal.setpoint_index = ELEVATOR_CLIMB;
 					elevator_goal.place_cargo = 0; //doesn't actually do anything
 					//send the elevator_goal
@@ -362,7 +362,7 @@ class ClimbAction {
 					}
 
 					//pull the climber leg up a bit
-					behaviors::ElevatorGoal elevator_goal;
+					behavior_actions::ElevatorGoal elevator_goal;
 					elevator_goal.setpoint_index = ELEVATOR_CLIMB_LOW;
 					elevator_goal.place_cargo = 0; //doesn't actually do anything
 					//send the elevator_goal
@@ -391,7 +391,7 @@ class ClimbAction {
 					ROS_INFO("climber server step 2: raising elevator to pull climber all the way back up");
 					//call the elevator actionlib server
 					//define the goal to send
-					behaviors::ElevatorGoal elevator_goal;
+					behavior_actions::ElevatorGoal elevator_goal;
 					elevator_goal.setpoint_index = ELEVATOR_RAISE;
 					elevator_goal.place_cargo = 0; //doesn't actually do anything
 					//send the elevator_goal
@@ -429,7 +429,7 @@ class ClimbAction {
 				ROS_WARN("climber server step 3: raising elevator to pull climber all the way back up");
 				//call the elevator actionlib server
 				//define the goal to send
-				behaviors::ElevatorGoal elevator_goal;
+				behavior_actions::ElevatorGoal elevator_goal;
 				elevator_goal.setpoint_index = ELEVATOR_RAISE;
 				elevator_goal.place_cargo = 0; //doesn't actually do anything
 				//send the elevator_goal
@@ -455,7 +455,7 @@ class ClimbAction {
 			//log state of action and set result of action
 
 			// TODO : timed_out is never set
-			behaviors::ClimbResult result; //variable to store result of the actionlib action
+			behavior_actions::ClimbResult result; //variable to store result of the actionlib action
 			if(timed_out)
 			{
 				result.timed_out = true;

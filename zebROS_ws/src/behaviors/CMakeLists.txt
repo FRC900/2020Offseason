@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   actionlib
   actionlib_msgs
+  behavior_actions
   controllers_2019
   frc_msgs
   nav_msgs
@@ -77,17 +78,17 @@ include_directories(
 # )
 
 ## Generate actions in the 'action' folder
-add_action_files(
-    DIRECTORY
-    action
-    FILES
-    Path.action
-	Intake.action
-	Place.action
-	Climb.action
-	Elevator.action
-	Align.action
-)
+#add_action_files(
+#DIRECTORY
+#action
+#FILES
+#Path.action
+#Intake.action
+#Place.action
+#Climb.action
+#Elevator.action
+#Align.action
+#)
 
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
@@ -128,12 +129,12 @@ add_action_files(
 # ACTIONLIB STUFF
 
 #find_package(catkin REQUIRED genmsg actionlib_msgs actionlib)
-generate_messages(DEPENDENCIES actionlib_msgs std_msgs)
+#generate_messages(DEPENDENCIES actionlib_msgs std_msgs)
 
 catkin_package(
    INCLUDE_DIRS include
    #LIBRARIES behaviors
-   CATKIN_DEPENDS actionlib_msgs actionlib nav_msgs roscpp rospy std_msgs teraranger_array tf2_ros
+   CATKIN_DEPENDS actionlib_msgs actionlib behavior_actions nav_msgs roscpp rospy std_msgs teraranger_array tf2_ros
    DEPENDS 
 )
 
