@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 #include <networktables/NetworkTableInstance.h>
-#include <talon_state_controller/TalonState.h>
+#include <talon_state_msgs/TalonState.h>
 #include <std_srvs/SetBool.h>
 #include <geometry_msgs/Twist.h>
 
@@ -20,7 +20,7 @@ double leftRate = 0;
 double rightRate = 0;
 
 // Find the index in the array of talon data for the given talon_name
-void getTalonIndex(const talon_state_controller::TalonState &talon_state,
+void getTalonIndex(const talon_state_msgs::TalonState &talon_state,
 		const std::string &talon_name,
 		size_t &talon_idx)
 {
@@ -37,7 +37,7 @@ void getTalonIndex(const talon_state_controller::TalonState &talon_state,
 	}
 }
 
-bool getTalonData(const talon_state_controller::TalonState &talon_state, const size_t talon_idx,
+bool getTalonData(const talon_state_msgs::TalonState &talon_state, const size_t talon_idx,
 		double &volts, double &position, double &rate, double &busVolts)
 {
 	if (talon_idx < talon_state.name.size())
@@ -55,7 +55,7 @@ bool getTalonData(const talon_state_controller::TalonState &talon_state, const s
 	return false;
 }
 
-void talonStateCallback(const talon_state_controller::TalonState &talon_state)
+void talonStateCallback(const talon_state_msgs::TalonState &talon_state)
 {
 	static size_t bl_talon_idx = std::numeric_limits<size_t>::max();
 	static size_t br_talon_idx = std::numeric_limits<size_t>::max();

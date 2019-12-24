@@ -62,7 +62,6 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <tf/tfMessage.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <talon_state_controller/TalonState.h>
 
 #include <realtime_tools/realtime_buffer.h>
 #include <realtime_tools/realtime_publisher.h>

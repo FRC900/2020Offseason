@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  talon_state_controller
+  talon_state_msgs
 )
 
 ## System dependencies are found with CMake's conventions

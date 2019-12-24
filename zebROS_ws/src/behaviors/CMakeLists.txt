@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   std_srvs
-  talon_state_controller
+  talon_state_msgs
   tf2_ros
   teraranger_array
 )

@@ -12,9 +12,10 @@ find_package(catkin REQUIRED COMPONENTS
     std_msgs
 	std_srvs
     realtime_tools
+	roscpp
     talon_controllers
     talon_interface
-    talon_state_controller 
+	talon_state_msgs
     tf
     trajectory_msgs
     urdf

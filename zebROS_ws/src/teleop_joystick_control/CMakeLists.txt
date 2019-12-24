@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 	robot_visualizer
 	roscpp
 	std_srvs
-	talon_state_controller
+	talon_state_msgs
 	)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)

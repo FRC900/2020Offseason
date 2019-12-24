@@ -15,7 +15,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include "controllers_2019/CargoIntakeSrv.h"
-#include <talon_state_controller/TalonState.h>
+#include <talon_state_msgs/TalonState.h>
 
 //define global variables that will be defined based on config values
 
@@ -550,7 +550,7 @@ class ClimbAction {
 			}
 		}
 
-		void talonStateCallback(const talon_state_controller::TalonState &talon_state)
+		void talonStateCallback(const talon_state_msgs::TalonState &talon_state)
 		{
 			static size_t elevator_master_idx = std::numeric_limits<size_t>::max();
 			if (elevator_master_idx >= talon_state.name.size())

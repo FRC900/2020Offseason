@@ -3,7 +3,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <behaviors/ElevatorAction.h>
 #include <controllers_2019/ElevatorSrv.h>
-#include <talon_state_controller/TalonState.h>
+#include <talon_state_msgs/TalonState.h>
 #include <controllers_2019/ElevatorSrv.h>
 #include "behaviors/enumerated_elevator_indices.h"
 #include "std_srvs/SetBool.h"
@@ -172,7 +172,7 @@ class ElevatorAction {
 			return;
 		}
 
-		void talonStateCallback(const talon_state_controller::TalonState &talon_state)
+		void talonStateCallback(const talon_state_msgs::TalonState &talon_state)
 		{
 			static size_t elevator_master_idx = std::numeric_limits<size_t>::max();
 			if (elevator_master_idx >= talon_state.name.size())
