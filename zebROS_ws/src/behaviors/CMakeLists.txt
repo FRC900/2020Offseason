@@ -20,8 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   talon_state_msgs
-  tf2_ros
   teraranger_array
+  tf2_ros
 )
 
 include_directories(
