@@ -14,14 +14,18 @@ fi
 catkin config --profile cross -x _isolated --install --blacklist \
 	realsense2_camera \
 	realsense2_description \
+	robot_visualizer \
 	rosbag_scripts \
 	rospy_message_converter \
+	rqt_driver_station_sim \
+	velocity_controllers \
+	visualize_profile \
 	zed_ar_track_alvar_example \
 	zed_display_rviz \
 	zed_depth_sub_tutorial \
 	zed_nodelet_example \
 	zed_ros \
-	zed_rtab_map_example \
+	zed_rtabmap_example \
 	zed_tracking_sub_tutorial \
 	zed_video_sub_tutorial \
 	zed_wrapper \
