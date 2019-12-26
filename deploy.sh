@@ -194,7 +194,7 @@ for i in "${JETSON_ADDR[@]}"
 do
 	echo "Starting Jetson $i native build" 
 	(
-		terminator -T "Jetson $i" -e ssh $i "$JETSON_CLONE_LOCATION/zebROS_ws/native_build.sh || \
+		terminator -T "Jetson $i" -x ssh $i "$JETSON_CLONE_LOCATION/zebROS_ws/native_build.sh || \
 		     	                        read -p 'Jetson Build FAILED - press ENTER to close window'" && \
 		echo "Jetson $i native build complete"
 	) &
