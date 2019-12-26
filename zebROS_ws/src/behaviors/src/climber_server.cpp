@@ -14,7 +14,7 @@
 #include "sensor_msgs/JointState.h"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
-#include "controllers_2019/CargoIntakeSrv.h"
+#include "controllers_2019_msgs/CargoIntakeSrv.h"
 #include <talon_state_msgs/TalonState.h>
 
 //define global variables that will be defined based on config values
@@ -211,7 +211,7 @@ class ClimbAction {
 				if(!preempted && !timed_out && ros::ok())
 				{
 					ROS_INFO("climber server step 0: raising cargo mech up");
-					controllers_2019::CargoIntakeSrv cargo_srv;
+					controllers_2019_msgs::CargoIntakeSrv cargo_srv;
 					cargo_srv.request.power = 0;
 					cargo_srv.request.intake_arm = false;
 					//send request to controller
@@ -351,7 +351,7 @@ class ClimbAction {
 				{
 					ROS_INFO("climber server step 2: raising climber leg up a bit, ensure cargo intake is out");
 
-					controllers_2019::CargoIntakeSrv srv;
+					controllers_2019_msgs::CargoIntakeSrv srv;
 					srv.request.power = 0;
 					srv.request.intake_arm = true;
 					//send request to controller
@@ -598,7 +598,7 @@ class ClimbAction {
 		navX_sub_ = nh_.subscribe("/frcrobot_rio/navx_mxp", 1, &ClimbAction::navXCallback, this);
 		talon_states_sub_ = nh_.subscribe("/frcrobot_jetson/talon_states",1,&ClimbAction::talonStateCallback, this);
 
-		cargo_intake_controller_client_ = nh_.serviceClient<controllers_2019::CargoIntakeSrv>("/frcrobot_jetson/cargo_intake_controller/cargo_intake_command", false, service_connection_header);
+		cargo_intake_controller_client_ = nh_.serviceClient<controllers_2019_msgs::CargoIntakeSrv>("/frcrobot_jetson/cargo_intake_controller/cargo_intake_command", false, service_connection_header);
 
 		//initialize the publisher used to send messages to the drive base
 		cmd_vel_publisher_ = nh_.advertise<geometry_msgs::Twist>("swerve_drive_controller/cmd_vel", 1);

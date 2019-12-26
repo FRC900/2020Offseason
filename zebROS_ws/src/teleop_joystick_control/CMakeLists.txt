@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
 	behavior_actions
 	cmake_modules
 	control_msgs
-	controllers_2019
+	controllers_2019_msgs
 	dynamic_reconfigure
 	dynamic_reconfigure_wrapper
 	frc_msgs

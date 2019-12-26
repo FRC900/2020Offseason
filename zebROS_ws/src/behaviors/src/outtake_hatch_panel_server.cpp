@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
-#include <controllers_2019/PanelIntakeSrv.h>
+#include <controllers_2019_msgs/PanelIntakeSrv.h>
 #include <behavior_actions/PlaceAction.h>
 #include <behavior_actions/ElevatorAction.h>
 #include <thread>
@@ -56,7 +56,7 @@ class OuttakeHatchPanelAction
 		service_connection_header["tcp_nodelay"] = "1";
 
 		//initialize the client being used to call the controller
-		panel_controller_client_ = nh_.serviceClient<controllers_2019::PanelIntakeSrv>("/frcrobot_jetson/panel_intake_controller/panel_command", false, service_connection_header);
+		panel_controller_client_ = nh_.serviceClient<controllers_2019_msgs::PanelIntakeSrv>("/frcrobot_jetson/panel_intake_controller/panel_command", false, service_connection_header);
 		bool continueOuttakeCB(std_srvs::Empty::Request &req, std_srvs::Empty::Response &response);
 		continue_outtake_server_ = nh_.advertiseService("continue_outtake_panel", &OuttakeHatchPanelAction::continueOuttakeCB, this);
 		continue_outtake = false;
@@ -164,7 +164,7 @@ class OuttakeHatchPanelAction
 			if(!preempted && ros::ok())
 			{
 				//extend panel mechanism
-				controllers_2019::PanelIntakeSrv srv;
+				controllers_2019_msgs::PanelIntakeSrv srv;
 				srv.request.claw_release = false;
 				srv.request.push_extend = true;
 				//send request to controller
@@ -231,7 +231,7 @@ class OuttakeHatchPanelAction
 			//set final state of mechanism - pulled in, clamped (to stay within frame perimeter)
 			//it doesn't matter if timed out or preempted, do anyways
 			//extend panel mechanism
-			controllers_2019::PanelIntakeSrv srv;
+			controllers_2019_msgs::PanelIntakeSrv srv;
 			srv.request.claw_release = true;
 			srv.request.push_extend = false;
 			//send request to controller

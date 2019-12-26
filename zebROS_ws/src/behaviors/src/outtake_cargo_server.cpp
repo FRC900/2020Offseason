@@ -3,7 +3,7 @@
 #include "actionlib/client/simple_action_client.h"
 #include "behavior_actions/ElevatorAction.h"
 #include "behavior_actions/PlaceAction.h"
-#include "controllers_2019/CargoIntakeSrv.h"
+#include "controllers_2019_msgs/CargoIntakeSrv.h"
 #include "sensor_msgs/JointState.h"
 #include "behavior_actions/enumerated_elevator_indices.h"
 
@@ -49,7 +49,7 @@ int linebreak_false_count = 0;
 			service_connection_header["tcp_nodelay"] = "1";
 
 			//initialize the client being used to call the controller
-			cargo_intake_controller_client_ = nh_.serviceClient<controllers_2019::CargoIntakeSrv>("/frcrobot_jetson/cargo_intake_controller/cargo_intake_command", false, service_connection_header);
+			cargo_intake_controller_client_ = nh_.serviceClient<controllers_2019_msgs::CargoIntakeSrv>("/frcrobot_jetson/cargo_intake_controller/cargo_intake_command", false, service_connection_header);
 	}
 
 		~CargoOuttakeAction(void)
@@ -92,7 +92,7 @@ int linebreak_false_count = 0;
 			//make sure cargo mech is in the up position
 			//define request
 			ROS_WARN_STREAM("Setting initial state to cargo mech in outtake server");
-			controllers_2019::CargoIntakeSrv srv;
+			controllers_2019_msgs::CargoIntakeSrv srv;
 			srv.request.power = holding_power;
 			srv.request.intake_arm = false;
 			//send request to controller
