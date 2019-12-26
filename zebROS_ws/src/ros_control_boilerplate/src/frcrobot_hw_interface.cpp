@@ -718,10 +718,10 @@ void FRCRobotHWInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::mot
 		const double output_voltage = victor->GetMotorOutputVoltage();
 		safeTalonCall(victor->GetLastError(), "GetMotorOutputVoltage");
 
-		double closed_loop_error;
-		double integral_accumulator;
-		double error_derivative;
-		double closed_loop_target;
+		double closed_loop_error = 0;
+		double integral_accumulator = 0;
+		double error_derivative = 0;
+		double closed_loop_target = 0;
 
 		if ((talon_mode == hardware_interface::TalonMode_Position) ||
 			(talon_mode == hardware_interface::TalonMode_Velocity) ||
@@ -762,9 +762,9 @@ void FRCRobotHWInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::mot
 		}
 
 		// Targets Status 10 - 160 mSec default
-		double active_trajectory_position;
-		double active_trajectory_velocity;
-		double active_trajectory_heading;
+		double active_trajectory_position = 0.0;
+		double active_trajectory_velocity = 0.0;
+		double active_trajectory_heading = 0.0;
 		if ((talon_mode == hardware_interface::TalonMode_MotionProfile) ||
 			(talon_mode == hardware_interface::TalonMode_MotionMagic)   ||
 			(talon_mode == hardware_interface::TalonMode_MotionProfileArc))
@@ -780,13 +780,9 @@ void FRCRobotHWInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::mot
 				active_trajectory_heading = victor->GetActiveTrajectoryPosition(1) * 2. * M_PI / 360.; //returns in degrees
 				safeTalonCall(victor->GetLastError(), "GetActiveTrajectoryHeading");
 			}
-			else
-			{
-				active_trajectory_heading = 0.0;
-			}
 		}
 
-		int mp_top_level_buffer_count;
+		int mp_top_level_buffer_count = 0;
 		hardware_interface::MotionProfileStatus internal_status;
 		if (talon_mode == hardware_interface::TalonMode_MotionProfile)
 		{
