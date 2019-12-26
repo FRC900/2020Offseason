@@ -151,10 +151,12 @@ if [ ${#RSYNC_OPTIONS} -eq 0 ] ; then
 	for i in "${JETSON_ADDR[@]}"
 	do
 		rsync -avzru --ignore-times --exclude '.git' --exclude 'zebROS_ws/build*' \
-			--exclude 'zebROS_ws/devel*' --exclude 'zebROS_ws/install*' \
+			--exclude 'zebROS_ws/devel*' --exclude 'zebROS_ws/install*' --exclude 'zebROS_ws/logs*' \
 			--exclude '*~' --exclude '*.sw[op]'  --exclude '*CMakeFiles*' \
 			--exclude '*.avi' --exclude '*.exe'  --exclude 'pixy2/documents' --exclude 'build' \
-			--exclude '*.zms' --exclude '*.stl' --exclude '*.dae' \
+			--exclude '*.zms' --exclude '*.stl' --exclude '*.dae' --exclude 'roscore_roborio.tar.bz2' \
+			--exclude 'j120_hardware_dtb_l4t32-2-3-1.tbz2' --exclude 'zebROS_ws/.catkin_tools' \
+			--exclude 'desmos_js' \
 			$i:$JETSON_ENV_LOCATION/ $LOCAL_CLONE_LOCATION/
 		if [ $? -ne 0 ]; then
 			echo "Failed to synchronize source code FROM $INSTALL_ENV on Jetson!"
@@ -171,10 +173,12 @@ fi
 for i in "${JETSON_ADDR[@]}"
 do
 	rsync -avzr $RSYNC_OPTIONS --ignore-times --exclude '.git' --exclude 'zebROS_ws/build*' \
-		--exclude 'zebROS_ws/devel*' --exclude 'zebROS_ws/install*' \
+		--exclude 'zebROS_ws/devel*' --exclude 'zebROS_ws/install*' --exclude 'zebROS_ws/logs*' \
 		--exclude '*~' --exclude '*.sw[op]' --exclude '*CMakeFiles*' \
 		--exclude '*.avi' --exclude '*.exe'  --exclude 'pixy2/documents' --exclude 'build' \
-		--exclude '*.zms' --exclude '*.stl' --exclude '*.dae' \
+		--exclude '*.zms' --exclude '*.stl' --exclude '*.dae' --exclude 'roscore_roborio.tar.bz2' \
+		--exclude 'j120_hardware_dtb_l4t32-2-3-1.tbz2' --exclude 'zebROS_ws/.catkin_tools' \
+		--exclude 'desmos_js' \
 		$LOCAL_CLONE_LOCATION/ $i:$JETSON_ENV_LOCATION/
 	if [ $? -ne 0 ]; then
 		echo "Failed to synchronize source code TO $INSTALL_ENV on Jetson $i!"
@@ -194,7 +198,7 @@ for i in "${JETSON_ADDR[@]}"
 do
 	echo "Starting Jetson $i native build" 
 	(
-		terminator -T "Jetson $i" -x ssh $i "$JETSON_CLONE_LOCATION/zebROS_ws/native_build.sh || \
+		terminator -T "Jetson $i" -x ssh -XC $i "$JETSON_CLONE_LOCATION/zebROS_ws/native_build.sh || \
 		     	                        read -p 'Jetson Build FAILED - press ENTER to close window'" && \
 		echo "Jetson $i native build complete"
 	) &
