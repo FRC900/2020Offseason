@@ -3,7 +3,7 @@
 # with slight modifications on other Jetson hardware
 
 #install basic dependencies
-sudo apt-add-repository ppa:ubuntu-toolchain-r/test -y 
+#sudo apt-add-repository ppa:ubuntu-toolchain-r/test -y 
 sudo apt update
 sudo apt -y upgrade
 
@@ -19,7 +19,7 @@ sudo apt install -y \
 	dbus-x11 \
 	exfat-fuse \
 	exfat-utils \
-	g++-9 \
+	#g++-9 \
 	gdb \
 	gfortran \
 	git \
@@ -74,7 +74,8 @@ sudo apt install -y \
 	wget \
 	xfonts-scalable
 
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+#sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 30 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+#sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 90 --slave /usr/bin/g++ g++ /usr/bin/g++-7
 
 #install caffe
 # cd
