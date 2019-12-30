@@ -19,7 +19,6 @@ sudo apt install -y \
 	dbus-x11 \
 	exfat-fuse \
 	exfat-utils \
-	#g++-9 \
 	gdb \
 	gfortran \
 	git \
