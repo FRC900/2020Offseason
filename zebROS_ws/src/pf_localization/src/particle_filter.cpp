@@ -58,9 +58,13 @@ void ParticleFilter::noise() {
   std::normal_distribution<double> pos_dist(0, noise_stdev_);
   std::normal_distribution<double> rot_dist(0, rot_noise_stdev_);
   for (Particle& p : particles_) {
-    p.x += pos_dist(rng_);
-    p.y += pos_dist(rng_);
-    p.rot += rot_dist(rng_);
+    double x_noise = pos_dist(rng_);
+    double y_noise = pos_dist(rng_);
+    double rot_noise = rot_dist(rng_);
+    p.x += x_noise;
+    p.y += y_noise;
+    p.rot += rot_noise;
+    // std::cout << x_noise << '\t' << y_noise << '\t' << rot_noise << '\n';
   }
 }
 
@@ -98,11 +102,12 @@ Particle ParticleFilter::predict() {
   return res;
 }
 
-void ParticleFilter::motion_update(double delta_x, double delta_y, double delta_rot) {
+void ParticleFilter::motion_update(double delta_x, double delta_y, double rot) { // double delta_rot) {
   for (Particle& p : particles_) {
     p.x += delta_x;
     p.y += delta_y;
-    p.rot += delta_rot;
+    p.rot = rot;
+    // p.rot += delta_rot;
   }
   noise();
   constrain_particles();

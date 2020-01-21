@@ -267,7 +267,7 @@ int main(int argc, char const *argv[]) {
   WorldModel world(beacons, 0, 16, 0, 16);
   ParticleFilter pf(world,
                     0, 16, 0, 16,
-                    0.1, 0.1, 0.01,
+                    0.1, 0.1, 0.1,
                     200);
 
   double theta = 0;
@@ -286,7 +286,7 @@ int main(int argc, char const *argv[]) {
     // }
     pf.assign_weights(measurement);
     pf.resample();
-    pf.motion_update(pos.first - last_pos.first, pos.second - last_pos.second, 0);
+    pf.motion_update(pos.first - last_pos.first, pos.second - last_pos.second, 0.5);
     // pf.set_rotation(0.5);
     std::cout << pos.first << ", " << pos.second << ", ";
     print_particle(pf.predict());
@@ -319,7 +319,45 @@ int main(int argc, char const *argv[]) {
   for (size_t i = 0; i < rel.size(); i++) {
     std::cout << rel[i].first << '\t' << rel[i].second << '\n';
   }
+  #endif
 
+  #if 0
+  std::mt19937 rng(0);
+  // linear random movement
+  // single particle
+  // debug rotation update
+  std::vector<std::pair<double, double> > beacons;
+  for (int i = 0; i < 10; i++) {
+    beacons.push_back(std::make_pair(
+      ((double) rng() - rng.min()) / (rng.max() - rng.min()),
+      ((double) rng() - rng.min()) / (rng.max() - rng.min())
+    ));
+  }
+  WorldModel world(beacons, 0, 8, 0, 16);
+  ParticleFilter pf(world,
+                    0, 8, 0, 16,
+                    0.1, 0.1, 0.1,
+                    20);
+
+  std::pair<double, double> pos = std::make_pair(1, 2);
+  for (int i = 0; i < 200; i++) {
+    double x_rate = ((double) rng() - rng.min()) / (rng.max() - rng.min()) * 0.01;
+    double y_rate = ((double) rng() - rng.min()) / (rng.max() - rng.min()) * 0.01;
+    std::vector<std::pair<double, double> > measurement;
+    for (std::pair<double, double> b : beacons) {
+      measurement.push_back(std::make_pair(b.first - pos.first, b.second - pos.second));
+    }
+    pf.assign_weights(measurement);
+    pf.resample();
+    pf.motion_update(x_rate, y_rate, 0);
+    // pf.set_rotation(0);
+    std::cout << pos.first << ", " << pos.second << "\n";
+    // print_all_particles(pf);
+    print_particle(pf.predict());
+    std::cout << "\n";
+    pos.first += x_rate;
+    pos.second += y_rate;
+  }
   #endif
 
   return 0;
