@@ -3,6 +3,7 @@
 #include <random>
 #include <vector>
 #include <utility>
+#include <cmath>
 
 #include <iostream>
 
@@ -63,7 +64,7 @@ void ParticleFilter::noise() {
     double rot_noise = rot_dist(rng_);
     p.x += x_noise;
     p.y += y_noise;
-    p.rot += rot_noise;
+    // p.rot += rot_noise;
     // std::cout << x_noise << '\t' << y_noise << '\t' << rot_noise << '\n';
   }
 }
@@ -102,12 +103,15 @@ Particle ParticleFilter::predict() {
   return res;
 }
 
-void ParticleFilter::motion_update(double delta_x, double delta_y, double rot) { // double delta_rot) {
+void ParticleFilter::motion_update(double delta_x, double delta_y, double delta_rot) {
   for (Particle& p : particles_) {
-    p.x += delta_x;
-    p.y += delta_y;
-    p.rot = rot;
-    // p.rot += delta_rot;
+    // p.x += delta_x;
+    // p.y += delta_y;
+    // p.rot = rot;
+    p.rot += delta_rot;
+
+    p.x += delta_x * cos(p.rot) + delta_y * sin(p.rot);
+    p.y += delta_x * sin(p.rot) + delta_y * cos(p.rot);
   }
   noise();
   constrain_particles();
