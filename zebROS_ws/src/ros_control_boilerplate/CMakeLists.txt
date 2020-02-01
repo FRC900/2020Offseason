@@ -33,6 +33,7 @@ add_service_files (
   FILES
   set_limit_switch.srv
   LineBreakSensors.srv
+  CAN_Error_Msg.srv
 )
 
 generate_messages(

@@ -1,0 +1,16 @@
+HAL_Bool isError
+int_32t errorCode
+HAL_Bool isLVCode
+const char * details
+const char * location
+const char * callStack
+HAL_Bool printMsg
+---
+HAL_Bool isError
+int_32t errorCode
+HAL_Bool isLVCode
+const char * details
+const char * location
+const char * callStack
+HAL_Bool printMsg
+
