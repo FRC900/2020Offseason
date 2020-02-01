@@ -56,7 +56,6 @@ class RotatePanelAction {
 			//define variables that will be re-used for each call to a controller
 			double start_time;
 			bool success; //if controller call succeeded
-			feedback_.success = true;
 			result_.success = true;
 			//define variables that will be set true if the actionlib action is to be ended
 			//this will cause subsequent controller calls to be skipped, if the template below is copy-pasted
@@ -64,7 +63,7 @@ class RotatePanelAction {
 			preempted = false;
 			timed_out = false;
 
-			ROS_INFO("%s: Executing, rotating panel %i times.", action_name_.c_str(), goal->rotations);
+			//ROS_INFO("%s: Executing, rotating panel %i times.", action_name_.c_str(), goal->rotations);
 
 			//send something to a controller (cargo intake in this case), copy-paste to send something else to a controller ---------------------------------------
 			if(!preempted && !timed_out)
@@ -98,7 +97,7 @@ class RotatePanelAction {
 					if (!preempted) {
 						r.sleep();
 						ros::spinOnce();
-						timed_out = (ros::Time::now().toSec()-start_time) > goal->timeout;
+						timed_out = (ros::Time::now().toSec()-start_time) > timeout;
 					}
 				}
 			}
@@ -121,7 +120,6 @@ class RotatePanelAction {
 
 			result_.timed_out = timed_out; //timed_out refers to last controller call, but applies for whole action
 			result_.success = success; //success refers to last controller call, but applies for whole action
-			feedback_.success = success;
 			as_.setSucceeded(result_); //pretend it succeeded no matter what, but tell what actually happened with the result - helps with SMACH
 			return;
 		}
@@ -148,6 +146,11 @@ int main(int argc, char** argv) {
 	RotatePanelAction rotate_panel_action("rotate_panel_server");
 	ros::NodeHandle n;
 	ros::NodeHandle n_params(n, "teleop_params");
+	ros::NodeHandle n_params(n, "rotateHatchPanelParams");
+	if(!n_params.getParam("rotations", rotations))
+        ROS_ERROR_STREAM("Could not read rotations in rotateHatchPanel");
+	if(!n_params.getParam("timeout", timeout))
+        ROS_ERROR_STREAM("Could not read timeout in rotateHatchPanel");
 	ros::spin();
 	return 0;
 }
