@@ -1,7 +1,4 @@
-int32 rotations
-float64 timeout
 ---
 bool success
 bool timed_out
 ---
-bool success
