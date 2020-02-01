@@ -1,41 +1,32 @@
 #include "ros/ros.h"
 #include "actionlib/server/simple_action_server.h"
-#include "behaviors/IntakeAction.h"
-#include "cargo_intake_controller/CargoIntakeSrv.h"
+#include "behavior_actions/RotatePanelAction.h"
 #include "sensor_msgs/JointState.h"
-#include <atomic>
-#include <ros/console.h>
-
-//define global variables that will be defined based on config values
-
-double intake_power;
-double intake_hold_power;
-double linebreak_debounce_iterations;
-double spit_out_time;
 
 
 class RotatePanelAction {
-	protected:
-		ros::NodeHandle nh_;
 
-		actionlib::SimpleActionServer<behaviors::RotateAction> as_; //create the actionlib server
+	protected:
+
+		ros::NodeHandle nh_;
+		actionlib::SimpleActionServer<behaviors::RotatePanelAction> as_; //create the actionlib server
 		std::string action_name_;
 		ros::ServiceClient controller_client_; //create a ros client to send requests to the controller
-		std::atomic<int> linebreak_true_count; //counts how many times in a row the linebreak reported there's a cube since we started trying to intake/outtake
-		std::atomic<int> linebreak_false_count; //same, but how many times in a row no cube
-		behaviors::RotateResult result_; //variable to store result of the actionlib action
+		behavior_actions::RotatePanelFeedback feedback_;
+		behavior_actions::RotatePanelResult result_;
 
 		//create subscribers to get data
 		ros::Subscriber joint_states_sub_;
-		ros::Subscriber proceed_;
-		bool proceed;
 
 	public:
+
 		//make the executeCB function run every time the actionlib server is called
 		RotatePanelAction(const std::string &name) :
 			as_(nh_, name, boost::bind(&RotatePanelAction::executeCB, this, _1), false),
 			action_name_(name)
+
 	{
+
 		as_.start(); //start the actionlib server
 
 		//do networking stuff?
@@ -43,52 +34,54 @@ class RotatePanelAction {
 		service_connection_header["tcp_nodelay"] = "1";
 
 		//initialize the client being used to call the controller
-		controller_client_ = nh_.serviceClient<cargo_intake_
-			controller::CargoIntakeSrv>("/frcrobot/control_panel_controller/cargo_intake_command", false, service_connection_header);
+		controller_client_ = nh_.serviceClient<control_panel_controller::ControlPanelSrv>("/frcrobot/control_panel_controller/cargo_intake_command", false, service_connection_header);
 
 		//start subscribers subscribing
-		joint_states_sub_ = nh_.subscribe("/frcrobot/joint_states", 1, &RotatePanelAction::jointStateCallback, this);
+		joint_states_sub_ = nh_.subscribe("/frcrobot_jetson/joint_states", 1, &RotatePanelAction::jointStateCallback, this);
 
-		//proceed_ = nh_.subscribe("/frcrobot/auto_interpreter_server/proceed", 1, &CargoIntakeAction::proceedCallback, this);
 	}
 
-		~RotatePanelAction(void) 
+		~RotatePanelAction(void)
 		{
 		}
 
 		//define the function to be executed when the actionlib server is called
-		void executeCB(const behaviors::IntakeGoalConstPtr &goal) {
+		void executeCB(const behaviors::RotatePanelGoalConstPtr &goal) {
 			ros::Rate r(10);
 			//define variables that will be re-used for each call to a controller
 			double start_time;
 			bool success; //if controller call succeeded
-
+			feedback_.success = true;
+			feedback_.override = false;
+			result_.override = false;
 			//define variables that will be set true if the actionlib action is to be ended
 			//this will cause subsequent controller calls to be skipped, if the template below is copy-pasted
 			//if both of these are false, we assume the action succeeded
 			bool preempted = false;
 			bool timed_out = false;
 
+			ROS_INFO("%s: Executing, rotating panel %i times, success is %b, DS override is %b.", action_name_.c_str(), goal->rotations, feedback_.success, feedback_.override);
+
 			//send something to a controller (cargo intake in this case), copy-paste to send something else to a controller ---------------------------------------
 			if(!preempted && !timed_out)
 			{
-				ROS_ERROR("cargo intake server: intaking cargo");
+				ROS_INFO("Rotate Panel Server: Rotating Panel");
 
 				//reset variables
-				linebreak_true_count = 0; //when this gets higher than linebreak_debounce_iterations, we'll consider the gamepiece intaked
 				start_time = ros::Time::now().toSec();
 				success = false;
 
 				//define request to send to cargo intake controller
-				cargo_intake_controller::CargoIntakeSrv srv;
-				srv.request.power = intake_power;
-				srv.request.intake_arm = false;
+				cargo_intake_controller::RotatePanelSrv srv;
+				srv.request.rotations = goal->rotations;
+
 				//send request to controller
 				if(!controller_client_.call(srv)) //note: the call won't happen if preempted was true, because of how && operator works
 				{
 					ROS_ERROR("Srv intake call failed in auto interpreter server intake");
 				}
 				//update everything by doing spinny stuff
+
 				ros::spinOnce();
 
 				//run a loop to wait for the controller to do its work. Stop if the action succeeded, if it timed out, or if the action was preempted
@@ -106,16 +99,7 @@ class RotatePanelAction {
 					}
 				}
 			}
-			//end of code for sending something to a controller --------------------------------------------------------------------------------
-
-			/* COPY PASTE ADDITIONAL CONTROLLER CALLS HERE */
-
-			//call another actionlib server
-			/*
-			   behaviors::ThingGoal goal;
-			   goal.property = value;
-			   thing_actionlib_client_.sendGoal(goal);
-			   */
+			//end of code for sending something to a controller. Other controller calls and as servers go here
 
 			//log state of action and set result of action
 			if(timed_out)
@@ -133,6 +117,7 @@ class RotatePanelAction {
 
 			result_.timed_out = timed_out; //timed_out refers to last controller call, but applies for whole action
 			result_.success = success; //success refers to last controller call, but applies for whole action
+			feedback_.success = success;
 			as_.setSucceeded(result_); //pretend it succeeded no matter what, but tell what actually happened with the result - helps with SMACH
 			return;
 		}
