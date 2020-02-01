@@ -1,15 +1,16 @@
 #include "ros/ros.h"
 #include "actionlib/server/simple_action_server.h"
 #include "behavior_actions/RotatePanelAction.h"
+#include "behavior_actions/rotate_panel_override.h"
 #include "sensor_msgs/JointState.h"
-
 
 class RotatePanelAction {
 
 	protected:
 
+
 		ros::NodeHandle nh_;
-		actionlib::SimpleActionServer<behaviors::RotatePanelAction> as_; //create the actionlib server
+		actionlib::SimpleActionServer<behavior_actions::RotatePanelAction> as_; //create the actionlib server
 		std::string action_name_;
 		ros::ServiceClient controller_client_; //create a ros client to send requests to the controller
 		behavior_actions::RotatePanelFeedback feedback_;
@@ -19,6 +20,10 @@ class RotatePanelAction {
 		ros::Subscriber joint_states_sub_;
 
 	public:
+
+
+		bool preempted;
+		bool timed_out;
 
 		//make the executeCB function run every time the actionlib server is called
 		RotatePanelAction(const std::string &name) :
@@ -34,10 +39,10 @@ class RotatePanelAction {
 		service_connection_header["tcp_nodelay"] = "1";
 
 		//initialize the client being used to call the controller
-		controller_client_ = nh_.serviceClient<control_panel_controller::ControlPanelSrv>("/frcrobot/control_panel_controller/cargo_intake_command", false, service_connection_header);
+		//ASK ADAM controller_client_ = nh_.serviceClient<control_panel_controller::ControlPanelSrv>("/frcrobot/controllers_2020/control_panel_controller", false, service_connection_header);
 
 		//start subscribers subscribing
-		joint_states_sub_ = nh_.subscribe("/frcrobot_jetson/joint_states", 1, &RotatePanelAction::jointStateCallback, this);
+		//ASK ADAM joint_states_sub_ = nh_.subscribe("/frcrobot_jetson/joint_states", 1, &RotatePanelAction::jointStateCallback, this);
 
 	}
 
@@ -46,21 +51,20 @@ class RotatePanelAction {
 		}
 
 		//define the function to be executed when the actionlib server is called
-		void executeCB(const behaviors::RotatePanelGoalConstPtr &goal) {
+		void executeCB(const behavior_actions::RotatePanelGoalConstPtr &goal) {
 			ros::Rate r(10);
 			//define variables that will be re-used for each call to a controller
 			double start_time;
 			bool success; //if controller call succeeded
 			feedback_.success = true;
-			feedback_.override = false;
-			result_.override = false;
+			result_.success = true;
 			//define variables that will be set true if the actionlib action is to be ended
 			//this will cause subsequent controller calls to be skipped, if the template below is copy-pasted
 			//if both of these are false, we assume the action succeeded
-			bool preempted = false;
-			bool timed_out = false;
+			preempted = false;
+			timed_out = false;
 
-			ROS_INFO("%s: Executing, rotating panel %i times, success is %b, DS override is %b.", action_name_.c_str(), goal->rotations, feedback_.success, feedback_.override);
+			ROS_INFO("%s: Executing, rotating panel %i times.", action_name_.c_str(), goal->rotations);
 
 			//send something to a controller (cargo intake in this case), copy-paste to send something else to a controller ---------------------------------------
 			if(!preempted && !timed_out)
@@ -72,21 +76,20 @@ class RotatePanelAction {
 				success = false;
 
 				//define request to send to cargo intake controller
-				cargo_intake_controller::RotatePanelSrv srv;
-				srv.request.rotations = goal->rotations;
+				//HELP rotate_panel_controller::RotatePanelSrv srv;
+				//HELP srv.request.rotations = goal->rotations;
 
 				//send request to controller
-				if(!controller_client_.call(srv)) //note: the call won't happen if preempted was true, because of how && operator works
-				{
-					ROS_ERROR("Srv intake call failed in auto interpreter server intake");
-				}
+				/* ASK ADAM if(!controller_client_.call(srv)) //note: the call won't happen if preempted was true, because of how && operator works
+				   {
+				   ROS_ERROR("Srv intake call failed in auto interpreter server intake");
+				   }*/
 				//update everything by doing spinny stuff
 
 				ros::spinOnce();
 
 				//run a loop to wait for the controller to do its work. Stop if the action succeeded, if it timed out, or if the action was preempted
 				while(!success && !timed_out && !preempted) {
-					success = linebreak_true_count > linebreak_debounce_iterations;
 					if(as_.isPreemptRequested() || !ros::ok()) {
 						ROS_WARN("%s: Preempted", action_name_.c_str());
 						as_.setPreempted();
@@ -100,6 +103,7 @@ class RotatePanelAction {
 				}
 			}
 			//end of code for sending something to a controller. Other controller calls and as servers go here
+
 
 			//log state of action and set result of action
 			if(timed_out)
@@ -122,70 +126,28 @@ class RotatePanelAction {
 			return;
 		}
 
-		// Function to be called whenever the subscriber for the joint states topic receives a message
-		// Grabs various info from hw_interface using
-		// dummy joint position values
-		void jointStateCallback(const sensor_msgs::JointState &joint_state)
+		bool DS_Override(behavior_actions::rotate_panel_override::Request &req,
+				behavior_actions::rotate_panel_override::Response &res)
 		{
-			//get index of linebreak sensor for this actionlib server
-			static size_t linebreak_idx = std::numeric_limits<size_t>::max();
-			if ((linebreak_idx >= joint_state.name.size()))
+			if (req.override == true)
 			{
-				for (size_t i = 0; i < joint_state.name.size(); i++)
-				{
-					if (joint_state.name[i] == "intake_line_break")
-						linebreak_idx = i;
-				}
+				preempted = true;
+				res.success = true;
+				res.override = true;
+				return true;
 			}
 
-			//update linebreak counts based on the value of the linebreak sensor
-			if (linebreak_idx < joint_state.position.size())
-			{
-				bool linebreak_true = (joint_state.position[linebreak_idx] != 0);
-				if(linebreak_true)
-				{
-					linebreak_true_count += 1;
-					linebreak_false_count = 0;
-				}
-				else
-				{
-					linebreak_true_count = 0;
-					linebreak_false_count += 1;
-				}
-			}
 			else
 			{
-				static int count = 0;
-				if(count % 100 == 0)
-				{
-					ROS_WARN("intake line break sensor not found in joint_states");
-				}
-				count++;
-				linebreak_true_count = 0;
-				linebreak_false_count += 1;
+				return false;
 			}
 		}
 };
-
 int main(int argc, char** argv) {
-	ros::init(argc, argv, "cargo_intake_server");
-	CargoIntakeAction cargo_intake_action("cargo_intake_server");
-
+	ros::init(argc, argv, "rotate_panel_server");
+	RotatePanelAction rotate_panel_action("rotate_panel_server");
 	ros::NodeHandle n;
 	ros::NodeHandle n_params(n, "teleop_params");
-	ros::NodeHandle n_actionlib_intake_params(n, "actionlib_intake_params");
-
-	if (!n_params.getParam("intake_power", intake_power))
-		ROS_ERROR("Could not read intake_power in intake_server");
-
-	if (!n_params.getParam("intake_hold_power", intake_hold_power))
-		ROS_ERROR("Could not read intake_hold_power in intake_server");
-
-	if (!n_actionlib_intake_params.getParam("linebreak_debounce_iterations", linebreak_debounce_iterations))
-		ROS_ERROR("Could not read linebreak_debounce_iterations in intake_sever");
-	if (!n_actionlib_intake_params.getParam("spit_out_time", spit_out_time))
-		ROS_ERROR("Could not read spit_out_time in intake_sever");
-
 	ros::spin();
 	return 0;
 }

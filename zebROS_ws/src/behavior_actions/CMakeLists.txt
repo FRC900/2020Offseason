@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   actionlib_msgs
   roscpp
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -54,11 +55,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
+ add_service_files(
+  FILES
+  rotate_panel_override.srv
 #   Service2.srv
-# )
+ )
 
 ## Generate actions in the 'action' folder
 add_action_files(
@@ -71,6 +72,7 @@ add_action_files(
 	Climb.action
 	Elevator.action
 	Align.action
+	RotatePanel.action
 )
 
 generate_messages(DEPENDENCIES actionlib_msgs std_msgs)

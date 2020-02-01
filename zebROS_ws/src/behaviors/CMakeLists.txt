@@ -165,6 +165,11 @@ add_dependencies(outtake_hatch_panel_server ${behaviors_EXPORTED_TARGETS} ${catk
 add_executable(test_actionlib src/test_actionlib.cpp)
 target_link_libraries(test_actionlib ${catkin_LIBRARIES})
 add_dependencies(test_actionlib ${behaviors_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(rotate_control_panel src/rotate_control_panel.cpp)
+target_link_libraries(rotate_control_panel ${catkin_LIBRARIES})
+add_dependencies(rotate_control_panel ${behaviors_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 #add_executable(dummy src/dummy.cpp)
 #target_link_libraries(
 #    dummy
