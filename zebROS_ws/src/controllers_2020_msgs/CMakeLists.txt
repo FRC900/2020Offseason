@@ -60,6 +60,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
    FILES
    ClimberSrv.srv
+   IndexerSrv.srv
 )
 
 ## Generate actions in the 'action' folder
