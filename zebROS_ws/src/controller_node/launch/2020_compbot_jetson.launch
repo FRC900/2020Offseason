@@ -42,6 +42,12 @@
 			<arg name="poll_period" value="1"/>
 		</include>
 	</group>
+	
+	<group ns="elevator">
+        <rosparam file="$(find behaviors)/config/rotation_control_server.yaml" command="load"/>
+		<node name="rotation_control_server" pkg="behaviors" type="rotation_control_server" output="screen" />
+	</group>
+
 
 	<group ns="teleop">
 		<rosparam file="$(find teleop_joystick_control)/config/teleop_joystick_comp.yaml" command="load"/>
