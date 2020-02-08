@@ -28,6 +28,8 @@ sudo apt install -y \
 	libboost-all-dev \
 	libcanberra-gtk-module \
 	libcanberra-gtk3-module \
+	libclang-9-dev \
+    libclang1-9 \ 
 	libeigen3-dev \
 	libflann-dev \
 	libgflags-dev \
@@ -270,13 +272,15 @@ fi
 # Clean up Jetson
 sudo rm -rf /home/nvidia/cudnn /home/nvidia/OpenCV /home/nvidia/TensorRT /home/nvidia/libvisionworkd*
 # Save ~400MB
-sudo apt remove --purge -y thunderbird libreoffice-* unattended-upgrade
+sudo apt remove --purge -y thunderbird libreoffice-*
+# Disable automatic updates
+sudo sed -i -e 's/APT::Periodic::Update-Package-Lists "1"/APT::Periodic::Update-Package-Lists "0"/' /etc/apt/apt.conf.d/10periodic
 
 # Install CTRE & navX libs
 mkdir -p /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/include 
 mkdir -p /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/ctre 
 cd /home/ubuntu
-wget -e robots=off -U mozilla -r -np http://devsite.ctr-electronics.com/maven/release/com/ctre/phoenix/ -A "*5.18*,firmware-sim*zip" -R "md5,sha1,pom,jar,*windows*"
+wget -e robots=off -U mozilla -r -np http://devsite.ctr-electronics.com/maven/release/com/ctre/phoenix/ -A "*5.18.1*,firmware-sim*zip" -R "md5,sha1,pom,jar,*windows*"
 cd /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/include 
 find /home/ubuntu/devsite.ctr-electronics.com -name \*headers\*zip | grep -v debug | xargs -n 1 unzip -o 
 cd /home/ubuntu/wpilib/2020/roborio/arm-frc2020-linux-gnueabi/lib/ctre 
@@ -371,3 +375,20 @@ echo "source /home/ubuntu/2020RobotCode/zebROS_ws/command_aliases.sh" >> /home/u
 
 # Give the ubuntu user dialout permission, which is used by the ADI IMU 
 sudo adduser ubuntu dialout
+
+git clone https://github.com/VundleVim/Vundle.vim.git /home/ubuntu/.vim/bundle/Vundle.vim
+vim +PluginInstall +qall
+ln -sf /home/ubuntu/.vim/bundle/vim-ros-ycm/.ycm_extra_conf.py /home/ubuntu/.vim/bundle/vim-ros-ycm/ycm_extra_conf.py
+mkdir /home/ubuntuycm_build
+cd /home/ubuntuycm_build
+cmake -G Ninja -DUSE_SYSTEM_LIBCLANG=ON . /home/ubuntu/.vim/bundle/YouCompleteMe/third_party/ycmd/cpp
+cmake --build . --target ycm_core --config Release
+cd /home/ubuntu
+rm -rf ycm_build
+mkdir regex_build
+cd regex_build
+cmake -G Ninja . /home/ubuntu/.vim/bundle/YouCompleteMe/third_party/ycmd/third_party/cregex
+cmake --build . --target _regex --config Release
+cd /home/ubuntu
+rm -rf regex_build
+

@@ -1,4 +1,5 @@
 #include "controllers_2020/control_panel_controller.h"
+#include <pluginlib/class_list_macros.h> //to compile as a controller
 
 namespace control_panel_controller
 {
@@ -37,7 +38,10 @@ namespace control_panel_controller
 		}
 
 		control_panel_service_ = controller_nh.advertiseService("control_panel_command", &ControlPanelController::cmdService, this);
+<<<<<<< HEAD
 		talon_state_sub_ = controller_nh.subscribe("/frcrobot_jetson/talon_states", 1, &ControlPanelController::talonStateCallback, this);
+=======
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 
 		return true;
 	}
@@ -76,7 +80,11 @@ namespace control_panel_controller
 		{
 			//assign request value to command buffer(s)
 			double rotation_ratio = (control_panel_diameter_/wheel_diameter_);
+<<<<<<< HEAD
 			double set_point = (req.control_panel_rotations * rotation_ratio) + cur_motor_position_;
+=======
+			double set_point = (req.control_panel_rotations * rotation_ratio) + control_panel_joint_.getPosition();
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 
 			control_panel_cmd_.writeFromNonRT(ControlPanelCommand(set_point , req.panel_arm_extend));
 		}
@@ -87,6 +95,7 @@ namespace control_panel_controller
 		}
 		return true;
 	}
+<<<<<<< HEAD
 
 
 	void ControlPanelController::talonStateCallback(const talon_state_msgs::TalonState &talon_state)
@@ -107,6 +116,8 @@ namespace control_panel_controller
 			cur_motor_position_ = talon_state.position[control_panel_motor_idx];
 		}
 	}
+=======
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 }//namespace
 
 //DON'T FORGET TO EXPORT THE CLASS SO CONTROLLER_MANAGER RECOGNIZES THIS AS A TYPE

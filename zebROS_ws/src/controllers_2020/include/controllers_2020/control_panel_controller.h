@@ -8,10 +8,12 @@
 #include <hardware_interface/joint_command_interface.h>
 #include <talon_controllers/talon_controller_interface.h>
 
-#include <pluginlib/class_list_macros.h> //to compile as a controller
 
 #include <controllers_2020_msgs/ControlPanelSrv.h>
+<<<<<<< HEAD
 #include <talon_state_msgs/TalonState.h>
+=======
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 
 namespace control_panel_controller
 {
@@ -55,7 +57,10 @@ namespace control_panel_controller
 			virtual void update(const ros::Time & time, const ros::Duration& period) override;
 			virtual void stopping(const ros::Time &time) override;
 			bool cmdService (controllers_2020_msgs::ControlPanelSrv::Request &req, controllers_2020_msgs::ControlPanelSrv::Response &/*response*/);
+<<<<<<< HEAD
 			void talonStateCallback(const talon_state_msgs::TalonState &talon_state);
+=======
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 
 		private:
 			talon_controllers::TalonMotionMagicCloseLoopControllerInterface control_panel_joint_;//interface for the control panel turning motor
@@ -65,7 +70,10 @@ namespace control_panel_controller
 			double control_panel_diameter_;
 			double wheel_diameter_;
 
+<<<<<<< HEAD
 			ros::Subscriber talon_state_sub_;
+=======
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 			double cur_motor_position_;
 
 	}; //class

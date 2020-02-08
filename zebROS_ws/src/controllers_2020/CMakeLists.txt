@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(controllers_2020)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+include("../cmake_modules/CMakeOpt.cmake")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -16,12 +16,18 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   talon_controllers
   talon_interface
+<<<<<<< HEAD
   talon_state_msgs
+=======
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
   std_msgs
   std_srvs
   controller_interface
   controllers_2020_msgs
+<<<<<<< HEAD
 
+=======
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 )
 
 ## System dependencies are found with CMake's conventions
@@ -141,8 +147,13 @@ include_directories(
    src/indexer_test_controller.cpp
    src/shooter_controller.cpp
    src/climber_controller.cpp
+   src/intake_controller.cpp 
    src/control_panel_controller.cpp
+<<<<<<< HEAD
 
+=======
+   src/turret_controller.cpp
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 )
 
 ## Add cmake target dependencies of the library

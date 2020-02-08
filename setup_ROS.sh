@@ -25,9 +25,9 @@ sudo apt install -y git libssl-dev libusb-1.0-0-dev pkg-config libgtk-3-dev libg
 cd
 mkdir realsense_src
 cd realsense_src
-wget https://github.com/IntelRealSense/librealsense/archive/v2.31.0.zip
-unzip v2.31.0.zip
-cd librealsense-2.31.0
+wget https://github.com/IntelRealSense/librealsense/archive/v2.32.1.zip
+unzip v2.32.1.zip
+cd librealsense-2.32.1
 sudo cp config/99-realsense-libusb.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && udevadm trigger
 mkdir build
@@ -36,6 +36,10 @@ cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=true  -GNinja ..
 sudo ninja uninstall && sudo ninja clean && sudo ninja install
 cd 
 rm -rf realsense_src
+
+sudo ccache -C
+sudo ccache -c
+sudo rm -rf /home/ubuntu/.cache /home/ubuntu/.ccach
 
 # Add Individual Packages here
 # You can install a specific ROS package (replace underscores with dashes of the package name):

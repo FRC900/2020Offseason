@@ -59,7 +59,15 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
+<<<<<<< HEAD
    ControlPanelSrv.srv
+=======
+   IntakeSrv.srv
+   ClimberSrv.srv
+   ControlPanelSrv.srv
+   TurretSrv.srv
+   ShooterSrv.srv
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 )
 
 ## Generate actions in the 'action' folder
@@ -186,6 +194,14 @@ include_directories(
 # FILES_MATCHING PATTERN "*.h"
 # PATTERN ".svn" EXCLUDE
 #)
+<<<<<<< HEAD
+=======
+install(DIRECTORY include/${PROJECT_NAME}/
+ DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+ FILES_MATCHING PATTERN "*.h"
+ PATTERN ".svn" EXCLUDE
+)
+>>>>>>> fa6749c2bf6f609d1f7c09f5e806e9be842f986d
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES

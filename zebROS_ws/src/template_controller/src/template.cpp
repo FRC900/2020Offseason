@@ -4,6 +4,7 @@
 //replace "package" with the name of the controllers package
 
 #include "package/mech_controller.h"
+#include <pluginlib/class_list_macros.h> //to compile as a controller
 
 namespace mech_controller
 {
@@ -16,7 +17,7 @@ namespace mech_controller
 		hardware_interface::TalonCommandInterface *const talon_command_iface = hw->get<hardware_interface::TalonCommandInterface>();
 		//Initialize piston joints
 		/* Ex:
-		push_joint_ = pos_joint_iface->getHandle("joint_name"); //joint_name comes from ros_control_boilerplate/config/[insert_year]_compbot_base_jetson.yaml
+		push_joint_ = pos_joint_iface->getHandle("joint_name"); //joint name comes from ros_control_boilerplate/config/[insert_year]_compbot_base_jetson.yaml
 		*/
 
 		//Initialize motor joints
@@ -30,7 +31,7 @@ namespace mech_controller
 			return false;
 		}
 		//initialize motor joint using those config values
-		if ( !motor_name_joint_.initWithNode(talon_command_iface, nullptr, controller_nh, intake_motor_params) {
+		if ( !motor_name_joint_.initWithNode(talon_command_iface, nullptr, controller_nh, intake_motor_params) ) {
 			ROS_ERROR("Cannot initialize ______ joint!");
 			return false;
 		}
