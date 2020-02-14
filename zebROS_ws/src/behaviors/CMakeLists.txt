@@ -26,6 +26,8 @@ find_package(catkin REQUIRED COMPONENTS
   teraranger_array
   tf2_ros
   path_follower
+  field_obj
+  sensor_msgs
 )
 
 include_directories(
@@ -145,6 +147,9 @@ add_executable(auto_node src/auto_node.cpp)
 target_link_libraries(auto_node ${catkin_LIBRARIES})
 add_dependencies(auto_node ${behaviors_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_executable(align_to_shoot_server src/align_to_shoot_server.cpp)
+target_link_libraries(align_to_shoot_server ${catkin_LIBRARIES})
+add_dependencies(align_to_shoot_server ${behaviors_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(intake_cargo_server src/intake_cargo_server.cpp)
 target_link_libraries(intake_cargo_server ${catkin_LIBRARIES})
