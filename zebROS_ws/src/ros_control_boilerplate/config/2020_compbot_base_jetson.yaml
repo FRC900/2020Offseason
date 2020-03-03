@@ -38,11 +38,6 @@ hardware_interface:
 
        - {name: control_panel_joint, type: can_talon_srx, can_id: 34, local: true}
        
-       - {name: elevator_master, type: can_talon_srx, can_id: 41, local: true}
-       - {name: elevator_follower1, type: can_talon_srx, can_id: 42, local: true}
-       - {name: elevator_follower2, type: can_talon_srx, can_id: 43, local: true}
-       - {name: elevator_follower3, type: can_talon_srx, can_id: 44, local: true}
-
        - {name: fl_drive, type: can_talon_srx, can_id: 21, local: true}
        - {name: fl_angle, type: can_talon_srx, can_id: 11, local: true}
        - {name: fr_drive, type: can_talon_srx, can_id: 22, local: true}
@@ -54,18 +49,10 @@ hardware_interface:
        - {name: pdp, type: pdp}
        - {name: compressor, type: compressor, pcm_id: 0}
 
-         # - {name: panel_intake_limit_switch_1, type: digital_input, local: false}
-         # - {name: panel_intake_limit_switch_2, type: digital_input, local: false}
-         # - {name: panel_intake_limit_switch_3, type: digital_input, local: false}
-         # - {name: panel_intake_limit_switch_4, type: digital_input, local: false}
-
        - {name: intake_linebreak, type: digital_input, local: false}
        - {name: indexer_front_linebreak, type: digital_input, local: false}
        - {name: indexer_linebreak, type: digital_input, local: false}
        - {name: shooter_linebreak, type: digital_input, local: false}
-
-         # - {name: climber_linebreak_1, type: digital_input, local: false}
-         # - {name: climber_linebreak_2, type: digital_input, local: false}
 
        - {name: robot_code_ready_jetson, local: true, type: ready}
        - {name: robot_code_ready_rio, local: false, type: ready} # Probably not really needed?
