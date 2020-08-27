@@ -41,12 +41,10 @@
 
 #include <talon_swerve_drive_controller/swerve_drive_controller.h>
 
-//TODO: include swerve stuff from C-Control
 using Eigen::Vector2d;
 using std::array;
 using Eigen::Affine2d;
 using Eigen::Matrix2d;
-using Eigen::Vector2d;
 
 using ros::Time;
 using geometry_msgs::TwistConstPtr;
@@ -421,7 +419,7 @@ bool TalonSwerveDriveController::init(hardware_interface::TalonCommandInterface 
 	swerveVar::encoderUnits units({1,1,1,1,1,1});
 	*/
 
-	swerveC_ = std::make_shared<swerve>(wheel_coords_, offsets, driveRatios_, units_, model_);
+	swerveC_ = std::make_unique<swerve<WHEELCOUNT>>(wheel_coords_, offsets, driveRatios_, units_, model_);
 	for (size_t i = 0; i < wheel_joints_size_; ++i)
 	{
 		ROS_INFO_STREAM_NAMED(name_,
