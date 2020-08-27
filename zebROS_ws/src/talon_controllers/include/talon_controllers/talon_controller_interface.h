@@ -118,8 +118,6 @@ class TalonCIParams
 			absolute_sensor_range_(hardware_interface::Unsigned_0_to_360),
 			sensor_initialization_strategy_(hardware_interface::BootToZero),
 
-			custom_profile_hz_(20.0),
-
 			enable_read_thread_(true)
 		{
 			status_frame_periods_[hardware_interface::Status_1_General] = hardware_interface::status_1_general_default;
@@ -287,7 +285,6 @@ class TalonCIParams
 			absolute_sensor_range_ = static_cast<hardware_interface::AbsoluteSensorRange>(config.absolute_sensor_range);
 			sensor_initialization_strategy_ = static_cast<hardware_interface::SensorInitializationStrategy>(config.sensor_initialization_strategy);
 
-			custom_profile_hz_ = config.custom_profile_hz;
 		}
 
 		// Copy from internal state to TalonConfigConfig state
@@ -419,7 +416,6 @@ class TalonCIParams
 			config.motor_commutation = static_cast<int>(motor_commutation_);
 			config.absolute_sensor_range = absolute_sensor_range_;
 			config.sensor_initialization_strategy = sensor_initialization_strategy_;
-			config.custom_profile_hz = custom_profile_hz_;
 			return config;
 		}
 
@@ -882,12 +878,6 @@ class TalonCIParams
 			return true;
 		}
 
-		bool readCustomProfile(ros::NodeHandle &n)
-		{
-			n.getParam("custom_profile_hz", custom_profile_hz_);
-			return true;
-		}
-
 		bool readTalonThread(ros::NodeHandle &n)
 		{
 			n.getParam("enable_read_thread", enable_read_thread_);
@@ -976,8 +966,6 @@ class TalonCIParams
 		hardware_interface::MotorCommutation motor_commutation_;
 		hardware_interface::AbsoluteSensorRange absolute_sensor_range_;
 		hardware_interface::SensorInitializationStrategy sensor_initialization_strategy_;
-
-		double custom_profile_hz_;
 
 		bool enable_read_thread_;
 
@@ -1197,7 +1185,6 @@ class TalonControllerInterface
 				   params.readMotionControl(n) &&
 				   params.readStatusFramePeriods(n) &&
 				   params.readControlFramePeriods(n) &&
-				   params.readCustomProfile(n) &&
 				   params.readTalonThread(n) &&
 				   params.readTalonFXSensorConfig(n);
 		}
@@ -1234,7 +1221,6 @@ class TalonControllerInterface
 					return false;
 				follower_talons_[i-1]->setMode(hardware_interface::TalonMode_Follower);
 				follower_talons_[i-1]->set(follow_can_id);
-				follower_talons_[i-1]->setCustomProfileDisable(true);
 				ROS_INFO_STREAM("Set up talon " << follower_talons_[i-1].getName() << " to follow CAN ID " << follow_can_id << " (" << talon_.getName() << ")");
 			}
 
@@ -1682,79 +1668,6 @@ class TalonControllerInterface
 			talon_->setDemand1Value(demand1_value);
 		}
 
-		virtual void setCustomProfileHz(const double &hz)
-		{
-			if (fabs(hz - params_.custom_profile_hz_) < double_value_epsilon)
-                return;
-            params_.custom_profile_hz_ = hz;
-
-            syncDynamicReconfigure();
-			talon_->setCustomProfileHz(params_.custom_profile_hz_);
-		}
-
-		double getCustomProfileHz(void) const
-		{
-			return params_.custom_profile_hz_;
-		}
-
-		virtual void setCustomProfileRun(const bool &run)
-        {
-			talon_->setCustomProfileRun(run);
-        }
-
-        bool getCustomProfileRun(void)
-        {
-			return talon_->getCustomProfileRun();
-        }
-
-        virtual void setCustomProfileNextSlot(const std::vector<int> &next_slot)
-        {
-            talon_->setCustomProfileNextSlot(next_slot);
-        }
-
-        std::vector<int> getCustomProfileNextSlot(void)
-        {
-			return talon_->getCustomProfileNextSlot();
-        }
-
-        virtual void setCustomProfileSlot(const int &slot)
-        {
-            talon_->setCustomProfileSlot(slot);
-        }
-
-        int getCustomProfileSlot(void)
-        {
-			return talon_->getCustomProfileSlot();
-        }
-
-        void pushCustomProfilePoint(const hardware_interface::CustomProfilePoint &point, int slot)
-        {
-            talon_->pushCustomProfilePoint(point, slot);
-        }
-
-        void pushCustomProfilePoints(const std::vector<hardware_interface::CustomProfilePoint> &points, int slot)
-        {
-            talon_->pushCustomProfilePoints(points, slot);
-        }
-
-        void overwriteCustomProfilePoints(const std::vector<hardware_interface::CustomProfilePoint> &points, int slot)
-        {
-            talon_->overwriteCustomProfilePoints(points, slot);
-        }
-
-		hardware_interface::CustomProfileStatus getCustomProfileStatus(void)
-		{
-			return talon_.state()->getCustomProfileStatus();
-		}
-
-		//Does the below function need to be accessable?
-		//#if 0
-        std::vector<hardware_interface::CustomProfilePoint> getCustomProfilePoints(int slot) /*const*/ //TODO, can be const?
-        {
-            return talon_->getCustomProfilePoints(slot);
-        }
-		//#endif
-
 	protected:
 		TalonCIParams                                        params_;
 		hardware_interface::TalonCommandHandle               talon_;
@@ -1991,8 +1904,6 @@ class TalonControllerInterface
 			talon->setAbsoluteSensorRange(params.absolute_sensor_range_);
 			talon->setSensorInitializationStrategy(params.sensor_initialization_strategy_);
 
-			talon->setCustomProfileHz(params.custom_profile_hz_);
-
 			talon->setEnableReadThread(params.enable_read_thread_);
 
 			// Save copy of params written to HW
@@ -2025,7 +1936,6 @@ class TalonPercentOutputControllerInterface : public TalonFixedModeControllerInt
 			// class is derived from the FixedMode class
 			// it can't be reset
 			talon_->setMode(hardware_interface::TalonMode_PercentOutput);
-			talon_->setCustomProfileDisable(true);
 			ROS_INFO_STREAM("Set up talon " << talon_.getName() << " in Percent Output mode");
 			return true;
 		}
@@ -2070,7 +1980,6 @@ class TalonFollowerControllerInterface : public TalonFixedModeControllerInterfac
 			// Talon it is following during a match?
 			talon_->setMode(hardware_interface::TalonMode_Follower);
 			talon_->set(follow_can_id);
-			talon_->setCustomProfileDisable(true);
 
 			ROS_INFO_STREAM("Launching follower " << params_.joint_name_ << " to follow CAN ID " << follow_can_id << " (" << follow_handle.getName() << ")");
 			return true;
@@ -2148,7 +2057,6 @@ class TalonMotionProfileControllerInterface : public TalonCloseLoopControllerInt
 			// it can't be reset
 			talon_->setMode(hardware_interface::TalonMode_MotionProfile);
 			ROS_INFO_STREAM("Set up talon " << talon_.getName() << " in MotionProfile mode");
-			talon_->setCustomProfileDisable(true);
 			return true;
 		}
 };
@@ -2168,7 +2076,6 @@ class TalonMotionMagicCloseLoopControllerInterface : public TalonCloseLoopContro
 			// it can't be reset
 			talon_->setMode(hardware_interface::TalonMode_MotionMagic);
 			ROS_INFO_STREAM("Set up talon " << talon_.getName() << " in MotionMagic mode");
-			talon_->setCustomProfileDisable(true);
 			return true;
 		}
 };

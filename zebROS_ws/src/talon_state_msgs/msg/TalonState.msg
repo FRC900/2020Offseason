@@ -45,4 +45,3 @@ int32[]   motion_profile_time_dur_ms
 string[]  faults
 string[]  sticky_faults
 float64[] conversion_factor
-talon_state_msgs/CustomProfileStatus[] custom_profile_status

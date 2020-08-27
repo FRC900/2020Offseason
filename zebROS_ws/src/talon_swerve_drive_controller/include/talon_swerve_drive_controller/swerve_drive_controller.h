@@ -46,7 +46,6 @@
 #include <string>
 #include <controller_interface/controller.h>
 #include <talon_controllers/talon_controller_interface.h>
-#include <pluginlib/class_list_macros.h>
 
 #include <talon_swerve_drive_controller/MotionProfile.h>
 #include <talon_swerve_drive_controller/speed_limiter.h>
@@ -80,6 +79,7 @@ namespace talon_swerve_drive_controller
  *  - a wheel collision geometry is a cylinder or sphere in the urdf
  *  - a wheel joint frame center's vertical projection on the floor must lie within the contact patch
 */
+template <size_t WHEELCOUNT>
 class TalonSwerveDriveController
 	: public controller_interface::Controller<hardware_interface::TalonCommandInterface>
 {
@@ -94,29 +94,28 @@ class TalonSwerveDriveController
 		 */
 		bool init(hardware_interface::TalonCommandInterface *hw,
 				  ros::NodeHandle &root_nh,
-				  ros::NodeHandle &controller_nh);
+				  ros::NodeHandle &controller_nh) override;
 
 		/**
 		 * \brief Updates controller, i.e. computes the odometry and sets the new velocity commands
 		 * \param time   Current time
 		 * \param period Time since the last called to update
 		 */
-		void update(const ros::Time &time, const ros::Duration &period);
+		void update(const ros::Time &time, const ros::Duration &period) override;
 
 		/**
 		 * \brief Starts controller
 		 * \param time Current time
 		 */
-		void starting(const ros::Time &time);
+		void starting(const ros::Time &time) override;
 
 		/**
 		 * \brief Stops controller
 		 * \param time Current time
 		 */
-		void stopping(const ros::Time & /*time*/);
+		void stopping(const ros::Time & /*time*/) override;
 
 	private:
-		int num_profile_slots_;
 
 		bool comp_odom_;
 		Eigen::Matrix2Xd wheel_pos_;
@@ -127,7 +126,7 @@ class TalonSwerveDriveController
 
 		std::string name_;
 
-		std::shared_ptr<swerve> swerveC_;
+		std::unique_ptr<swerve<WHEELCOUNT>> swerveC_;
 
 		/// Hardware handles:
 		std::array<talon_controllers::TalonControllerInterface, WHEELCOUNT> speed_joints_;
@@ -148,81 +147,18 @@ class TalonSwerveDriveController
 
 		void compOdometry(const ros::Time &time, const double inv_delta_t, const std::array<double, WHEELCOUNT> &steer_angles);
 
-		struct cmd_points
-		{
-			std::vector<std::vector<double>> drive_pos;
-			std::vector<std::vector<double>> drive_f;
-			std::vector<std::vector<double>> steer_pos;
-			std::vector<std::vector<double>> steer_f;
-			std::vector<std::vector<bool>> hold;
-			double dt;
-			int slot;
-
-			cmd_points() : dt(0.0), slot(0) {}
-			void Print(void) const
-			{
-				ROS_INFO_STREAM("dt : " << (int)dt);
-				ROS_INFO_STREAM("slot : " << (int)slot);
-				for (size_t i = 0; i < drive_pos.size(); i++)
-				{
-					ROS_INFO_STREAM("cmd_point[" << i << "]");
-					for (size_t j = 0; j < drive_pos[i].size(); j++)
-						ROS_INFO_STREAM("  drive_pos[" << j << "] = " << drive_pos[i][j]);
-					for (size_t j = 0; j < steer_pos[i].size(); j++)
-						ROS_INFO_STREAM("  steer_pos[" << j << "] = " << steer_pos[i][j]);
-					for (size_t j = 0; j < drive_f[i].size(); j++)
-						ROS_INFO_STREAM("  drive_f[" << j << "] = " << drive_f[i][j]);
-					for (size_t j = 0; j < steer_f[i].size(); j++)
-						ROS_INFO_STREAM("  steer_f[" << j << "] = " <<steer_f[i][j]);
-				}
-			}
-		};
-		struct full_profile_cmd
-		{
-			std::vector<cmd_points> profiles;
-			bool wipe_all;
-			bool buffer;
-			bool run;
-			bool brake;
-			int run_slot;
-			bool change_queue;
-			std::vector<int> new_queue;
-			bool newly_set;
-			int id_counter;
-			full_profile_cmd() : wipe_all(false), buffer(false), run(false), brake(false),  run_slot(0), change_queue(false), newly_set(false), id_counter(0) {}
-			void Print(void) const
-			{
-				for (const auto & p: profiles)
-					p.Print();
-				ROS_INFO_STREAM("wipe_all : " << (int)wipe_all);
-				ROS_INFO_STREAM("buffer : " << (int)buffer);
-				ROS_INFO_STREAM("run : " << (int)run);
-				ROS_INFO_STREAM("brake : " << (int)brake);
-				ROS_INFO_STREAM("run_slot : " << (int)run_slot);
-				ROS_INFO_STREAM("change_queue : " << (int)change_queue);
-				ROS_INFO_STREAM("newly_set : " << (int)newly_set);
-				ROS_INFO_STREAM("id_counter : " << (int)id_counter);
-				for (size_t i = 0; i < new_queue.size(); i++)
-					ROS_INFO_STREAM("new_queue[" << i << "] = " << new_queue[i]);
-			}
-		};
-
-		std::deque<full_profile_cmd> full_profile_buffer_;
-
 		// True if running cmd_vel, false if running profile
-		std::atomic<bool> cmd_vel_mode_;
 		std::atomic<bool> dont_set_angle_mode_;
 		std::atomic<bool> percent_out_drive_mode_;
 
-		std::mutex profile_mutex_;
-
-		//realtime_tools::RealtimeBuffer<bool> wipe_all_; //TODO, add this functionality
 		realtime_tools::RealtimeBuffer<Commands> command_;
+		double brake_last_{ros::Time::now().toSec()};
+		double time_before_brake_{0};
+		double parking_config_time_delay_{0.1};
+		double drive_speed_time_delay_{0.1};
 
 		ros::Subscriber sub_command_;
-		ros::Subscriber talon_states_sub_;
 
-		ros::ServiceServer motion_profile_serv_;
 		ros::ServiceServer change_center_of_rotation_serv_;
 		realtime_tools::RealtimeBuffer<Eigen::Vector2d> center_of_rotation_;
 		ros::ServiceServer brake_serv_;
@@ -232,17 +168,11 @@ class TalonSwerveDriveController
 		ros::ServiceServer reset_odom_serv_;
 		realtime_tools::RealtimeBuffer<bool> reset_odom_;
 
-		std::array<std::array<hardware_interface::CustomProfilePoint, 2>, WHEELCOUNT> holder_points_;
-		std::array<std::array<std::vector<hardware_interface::CustomProfilePoint>, 2>, WHEELCOUNT> full_profile_;
-
-		realtime_tools::RealtimeBuffer<bool> run_;
-		realtime_tools::RealtimeBuffer<int> slot_;
-
 		/// Publish executed commands
 		std::shared_ptr<realtime_tools::RealtimePublisher<geometry_msgs::TwistStamped> > cmd_vel_pub_;
 
 		/// Wheel radius (assuming it's the same for the left and right wheels):
-		double wheel_radius_;
+		double wheel_radius_{};
 
 		swerveVar::driveModel model_;
 
@@ -258,42 +188,31 @@ class TalonSwerveDriveController
 		double f_s_s_;
 
 		/// Timeout to consider cmd_vel commands old:
-		double cmd_vel_timeout_;
+		double cmd_vel_timeout_{0.5};
 
 		/// Whether to allow multiple publishers on cmd_vel topic or not:
-		bool allow_multiple_cmd_vel_publishers_;
-
-		/// Frame to use for the robot base:
-		std::string base_frame_id_;
-
-		/// Frame to use for odometry and odom tf:
-		std::string odom_frame_id_;
+		bool allow_multiple_cmd_vel_publishers_{true};
 
 		/// Whether to publish odometry to tf or not:
 		//bool enable_odom_tf_;
 
-		/// Speed limiters:
-		//Commands last1_cmd_;
-		//Commands last0_cmd_;
+		/// Number of wheel joints:
+		size_t wheel_joints_size_{0};
 
 		/// Publish limited velocity:
-		bool publish_cmd_;
+		bool publish_cmd_{true};
 
 		/**
 		 * \brief Brakes the wheels, i.e. sets the velocity to 0
 		 * RG: also sets to parking config
 		 */
-		void brake();
-
-		std::array<double, WHEELCOUNT> steer_angles_;
-		std::mutex steer_angles_mutex_;
+		void brake(const std::array<double, WHEELCOUNT> &steer_angles);
 
 		/**
 		 * \brief Velocity command callback
 		 * \param command Velocity command message (twist)
 		 */
 		void cmdVelCallback(const geometry_msgs::Twist &command);
-		bool motionProfileService(talon_swerve_drive_controller::MotionProfile::Request &req, talon_swerve_drive_controller::MotionProfile::Response &res);
 		bool changeCenterOfRotationService(talon_swerve_drive_controller::SetXY::Request &req, talon_swerve_drive_controller::SetXY::Response &res);
 		bool brakeService(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 		bool dontSetAngleModeService(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res);
@@ -326,40 +245,33 @@ class TalonSwerveDriveController
 		                            bool lookup_wheel_radius);
 
 		 */
-		/**
-		* \brief Sets the odometry publishing fields
-		* \param root_nh Root node handle
-		* \param controller_nh Node handle inside the controller namespace
-		*/
-		/*
-		void setOdomPubFields(ros::NodeHandle& root_nh, ros::NodeHandle& controller_nh);
-		*/
-		static const double DEF_ODOM_PUB_FREQ;
-		static const bool DEF_PUB_ODOM_TO_BASE;
+		static constexpr double DEF_ODOM_PUB_FREQ{100.};
 		static const std::string DEF_ODOM_FRAME;
 		static const std::string DEF_BASE_FRAME;
-		static const double DEF_INIT_X;
-		static const double DEF_INIT_Y;
-		static const double DEF_INIT_YAW;
-		static const double DEF_SD;
+		static constexpr double DEF_INIT_X{0};
+		static constexpr double DEF_INIT_Y{0};
+		static constexpr double DEF_INIT_YAW{0};
+		static constexpr double DEF_SD{0.01};
 
 		std::array<Eigen::Vector2d, WHEELCOUNT> wheel_coords_;
 
-		bool pub_odom_to_base_;       // Publish the odometry to base frame transform
+		bool pub_odom_to_base_{false};       // Publish the odometry to base frame transform
 		ros::Duration odom_pub_period_;    // Odometry publishing period
 		Eigen::Affine2d init_odom_to_base_;  // Initial odometry to base frame transform
 		Eigen::Affine2d odom_to_base_;       // Odometry to base frame transform
 		Eigen::Affine2d odom_rigid_transf_;
-
-		realtime_tools::RealtimePublisher<std_msgs::UInt16> profile_queue_num_;
 
 		realtime_tools::RealtimePublisher<nav_msgs::Odometry> odom_pub_;
 		tf2_ros::TransformBroadcaster odom_tf_;
 		realtime_tools::RealtimePublisher<tf::tfMessage> odom_tf_pub_;
 		ros::Time last_odom_pub_time_;
 		ros::Time last_odom_tf_pub_time_;
+
+		// Attempt to limit speed of wheels which are pointing further from
+		// their target angle. Should help to reduce the robot being pulled
+		// off course coming out of parking config or when making quick direction changes?
+		bool use_cos_scaling_{false};
 };
 
-PLUGINLIB_EXPORT_CLASS(talon_swerve_drive_controller::TalonSwerveDriveController, controller_interface::ControllerBase)
 
-} // namespace diff_drive_controller
+} // namespace talon_swerve_drive_controller

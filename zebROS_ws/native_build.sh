@@ -26,6 +26,7 @@ fi
 catkin config --blacklist \
 	realsense2_camera \
 	realsense2_description \
+	robot_visualizer \
 	velocity_controllers \
 	zed_ros \
 	$EXTRA_BLACKLIST_PACKAGES
