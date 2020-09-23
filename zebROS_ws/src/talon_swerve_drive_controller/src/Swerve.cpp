@@ -65,13 +65,13 @@ array<Vector2d, WHEELCOUNT> swerve<WHEELCOUNT>::motorOutputs(Vector2d velocityVe
 		// offset they are at.  Add hystersis here to prevent the oscillation
 		if(lastCommandValid_[i] && reverse != lastReverse_[i] && (fabs(currpos - nearestangle) > 85 * M_PI / 180))
 		{
-			ROS_ERROR_STREAM("setting to last command = " << lastCommand_[i]);
+			//ROS_ERROR_STREAM("setting to last command = " << lastCommand_[i]);
 			nearestangle = lastCommand_[i];
 			reverse = lastReverse_[i];
 		}
 		else
 		{
-			ROS_INFO_STREAM("setting to actual command; currpos - nearest angle = " << currpos - nearestangle << " and reverse changed is " << (reverse != lastReverse_[i]));
+			//ROS_INFO_STREAM("setting to actual command; currpos - nearest angle = " << currpos - nearestangle << " and reverse changed is " << (reverse != lastReverse_[i]));
 			lastReverse_[i] = reverse;
 			lastCommand_[i] = nearestangle;
 			lastCommandValid_[i] = true;
@@ -79,11 +79,11 @@ array<Vector2d, WHEELCOUNT> swerve<WHEELCOUNT>::motorOutputs(Vector2d velocityVe
 		// Reset the cached parking command either way
 		lastParkingCommandValid_[i] = false;
 
-		 ROS_INFO_STREAM("wheel " << i << " currpos: " << currpos << " nearestangle: " << nearestangle << " reverse: " << reverse);
+		// ROS_INFO_STREAM("wheel " << i << " currpos: " << currpos << " nearestangle: " << nearestangle << " reverse: " << reverse);
 
 		speedsAndAngles[i][0] *= ((drive_.maxSpeed / drive_.wheelRadius) / ratio_.encodertoRotations) * units_.rotationSetV * (reverse ? -1 : 1);
 		speedsAndAngles[i][1] = nearestangle * units_.steeringSet + offsets_[i];
-		ROS_INFO_STREAM("pos/vel in direc: " << speedsAndAngles[i][0] << " rot: " << speedsAndAngles[i][1] << " offset: " << offsets_[i] << " steeringSet: " << units_.steeringSet << " reverse: " << reverse);
+		//ROS_INFO_STREAM("pos/vel in direc: " << speedsAndAngles[i][0] << " rot: " << speedsAndAngles[i][1] << " offset: " << offsets_[i] << " steeringSet: " << units_.steeringSet << " reverse: " << reverse);
 	}
 	return speedsAndAngles;
 }
@@ -99,12 +99,12 @@ array<double, WHEELCOUNT> swerve<WHEELCOUNT>::parkingAngles(const array<double, 
 		double nearestanglep = leastDistantAngleWithinHalfPi(currpos, swerveMath_.getParkingAngle(i), reverse);
 		if(lastParkingCommandValid_[i] && reverse != lastReverse_[i] && (fabs(currpos - nearestanglep) > 85 * M_PI / 180))
 		{
-			ROS_ERROR_STREAM("setting to last command = " << lastCommand_[i]);
+			//ROS_ERROR_STREAM("setting to last command = " << lastCommand_[i]);
 			nearestanglep = lastCommand_[i];
 		}
 		else
 		{
-			ROS_INFO_STREAM("setting to actual command; currpos - nearest angle = " << currpos - nearestanglep << " and reverse changed is " << (reverse != lastReverse_[i]));
+			//ROS_INFO_STREAM("setting to actual command; currpos - nearest angle = " << currpos - nearestanglep << " and reverse changed is " << (reverse != lastReverse_[i]));
 			lastParkingReverse_[i] = reverse;
 			lastParkingCommand_[i] = nearestanglep;
 			lastParkingCommandValid_[i] = true;
