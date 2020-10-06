@@ -9,19 +9,17 @@ using namespace Eigen;
 
 template<size_t WHEELCOUNT>
 swerve<WHEELCOUNT>::swerve(const array<Vector2d, WHEELCOUNT> &wheelCoordinates,
-			   const std::vector<double> &offsets,
+			   const std::array<double, WHEELCOUNT> &offsets,
 			   const swerveVar::ratios &ratio,
 			   const swerveVar::encoderUnits &units,
 			   const swerveVar::driveModel &drive)
 	: wheelCoordinates_(wheelCoordinates)
 	, swerveMath_(swerveDriveMath(wheelCoordinates_))
+	, offsets_(offsets)
 	, ratio_(ratio)
 	, units_(units)
 	, drive_(drive)
 {
-	assert(offsets.size() == WHEELCOUNT);
-	for (size_t i = 0; i < offsets.size(); i++)
-		offsets_[i] = offsets[i];
 }
 
 template<size_t WHEELCOUNT>
@@ -63,21 +61,19 @@ array<Vector2d, WHEELCOUNT> swerve<WHEELCOUNT>::motorOutputs(Vector2d velocityVe
 		// noise from the encoder will have them jump back and forth trying to go
 		// one direction then then next as the noise changes which side of the 90 degree
 		// offset they are at.  Add hystersis here to prevent the oscillation
-		if(lastCommandValid_[i] && reverse != lastReverse_[i] && (fabs(currpos - nearestangle) > 85 * M_PI / 180))
+		if ((lastCommandState_[i] == COMMAND_DRIVING) && (reverse != lastReverse_[i]) && (fabs(currpos - nearestangle) > 85 * M_PI / 180))
 		{
 			//ROS_ERROR_STREAM("setting to last command = " << lastCommand_[i]);
-			nearestangle = lastCommand_[i];
 			reverse = lastReverse_[i];
+			nearestangle = lastCommand_[i];
 		}
 		else
 		{
 			//ROS_INFO_STREAM("setting to actual command; currpos - nearest angle = " << currpos - nearestangle << " and reverse changed is " << (reverse != lastReverse_[i]));
 			lastReverse_[i] = reverse;
 			lastCommand_[i] = nearestangle;
-			lastCommandValid_[i] = true;
+			lastCommandState_[i] = COMMAND_DRIVING;
 		}
-		// Reset the cached parking command either way
-		lastParkingCommandValid_[i] = false;
 
 		// ROS_INFO_STREAM("wheel " << i << " currpos: " << currpos << " nearestangle: " << nearestangle << " reverse: " << reverse);
 
@@ -95,9 +91,9 @@ array<double, WHEELCOUNT> swerve<WHEELCOUNT>::parkingAngles(const array<double, 
 	for (size_t i = 0; i < WHEELCOUNT; i++)
 	{
 		const double currpos = getWheelAngle(i, positionsNew[i]);
-		bool reverse; // TODO : not used for anything?
+		bool reverse;
 		double nearestanglep = leastDistantAngleWithinHalfPi(currpos, swerveMath_.getParkingAngle(i), reverse);
-		if(lastParkingCommandValid_[i] && reverse != lastReverse_[i] && (fabs(currpos - nearestanglep) > 85 * M_PI / 180))
+		if ((lastCommandState_[i] == COMMAND_PARKING) && (reverse != lastReverse_[i]) && (fabs(currpos - nearestanglep) > 85 * M_PI / 180))
 		{
 			//ROS_ERROR_STREAM("setting to last command = " << lastCommand_[i]);
 			nearestanglep = lastCommand_[i];
@@ -105,12 +101,10 @@ array<double, WHEELCOUNT> swerve<WHEELCOUNT>::parkingAngles(const array<double, 
 		else
 		{
 			//ROS_INFO_STREAM("setting to actual command; currpos - nearest angle = " << currpos - nearestanglep << " and reverse changed is " << (reverse != lastReverse_[i]));
-			lastParkingReverse_[i] = reverse;
-			lastParkingCommand_[i] = nearestanglep;
-			lastParkingCommandValid_[i] = true;
+			lastReverse_[i] = reverse;
+			lastCommand_[i] = nearestanglep;
+			lastCommandState_[i] = COMMAND_PARKING;
 		}
-		// Reset the cached non-parking command either way
-		lastCommandValid_[i] = false;
 
 		retAngles[i] = nearestanglep * units_.steeringSet + offsets_[i];
 		//ROS_INFO_STREAM(" id: " << i << " currpos: " << currpos << " target: " << nearestanglep);
@@ -119,6 +113,8 @@ array<double, WHEELCOUNT> swerve<WHEELCOUNT>::parkingAngles(const array<double, 
 	return retAngles;
 }
 
+// Apply encoder offset and steering ratio to calculate desired
+// measured wheel angle from a wheel angle setpoint
 template<size_t WHEELCOUNT>
 double swerve<WHEELCOUNT>::getWheelAngle(int index, double pos) const
 {

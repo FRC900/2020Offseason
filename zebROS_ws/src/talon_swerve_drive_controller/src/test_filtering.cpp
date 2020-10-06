@@ -5,12 +5,11 @@ int main(void)
 {
 	constexpr size_t WHEELCOUNT = 4;
 	std::array<Eigen::Vector2d, WHEELCOUNT> wheel_coords_;
-	std::vector<double> offsets;
+	std::array<double, WHEELCOUNT> offsets{0};
 	for (auto &w: wheel_coords_)
 	{
 		w[0] = 1;
 		w[1] = 1;
-		offsets.push_back(0);
 	}
 	swerveVar::ratios ratios;
 	ratios.encodertoRotations = 1;

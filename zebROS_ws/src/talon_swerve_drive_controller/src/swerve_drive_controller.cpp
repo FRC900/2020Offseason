@@ -199,6 +199,13 @@ bool TalonSwerveDriveController::init(hardware_interface::TalonCommandInterface 
 							   "#steering (" << steering_names.size() << ").");
 		return false;
 	}
+	else if (speed_names.size() != WHEELCOUNT)
+	{
+		ROS_ERROR_STREAM_NAMED(name_,
+							   "#speed (" << speed_names.size() << ") != " <<
+							   "WHEELCOUNT (" << WHEELCOUNT << ").");
+		return false;
+	}
 	else
 	{
 		wheel_joints_size_ = speed_names.size();
@@ -341,6 +348,11 @@ bool TalonSwerveDriveController::init(hardware_interface::TalonCommandInterface 
 	    ROS_ERROR("talon_swerve_drive_controller : param 'wheel_coords' is not a list");
 		return false;
 	}
+	if (wheel_coords.size() != WHEELCOUNT)
+	{
+	    ROS_ERROR_STREAM("talon_swerve_drive_controller : param 'wheel_coords' is not correct length (expecting WHEELCOUNT = " << WHEELCOUNT << ")");
+		return false;
+	}
 	for(int i=0; i < wheel_coords.size(); ++i)
 	{
 		if(wheel_coords[i].getType() != XmlRpc::XmlRpcValue::TypeArray )
@@ -364,17 +376,18 @@ bool TalonSwerveDriveController::init(hardware_interface::TalonCommandInterface 
 	}
 
 	ROS_INFO_STREAM("Coords: " << wheel_coords_[0] << "   " << wheel_coords_[1] << "   " << wheel_coords_[2] << "   " << wheel_coords_[3]);
-	std::vector<double> offsets;
+	std::array<double, WHEELCOUNT> offsets;
+	for (size_t i = 0; i < WHEELCOUNT; i++)
 	for (auto it = steering_names.cbegin(); it != steering_names.cend(); ++it)
 	{
-		ros::NodeHandle nh(controller_nh, *it);
+		ros::NodeHandle nh(controller_nh, steering_names[i]) ;
 		double dbl_val = 0;
 		if (!nh.getParam("offset", dbl_val))
 		{
 			ROS_ERROR_STREAM("Can not read offset for " << *it);
 			return false;
 		}
-		offsets.push_back(dbl_val);
+		offsets[i] = dbl_val;
 	}
 
 	profile_queue_num_.init(controller_nh, "profile_queue_num", 1);

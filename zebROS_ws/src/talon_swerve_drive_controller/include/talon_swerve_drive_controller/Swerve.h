@@ -68,7 +68,7 @@ class swerve
 {
 	public:
 		swerve(const std::array<Eigen::Vector2d, WHEELCOUNT> &wheelCoordinates,
-			   const std::vector<double> &offsets,
+			   const std::array<double, WHEELCOUNT> &offsets,
 			   const swerveVar::ratios &ratio,
 			   const swerveVar::encoderUnits &units,
 			   const swerveVar::driveModel &drive);
@@ -92,14 +92,17 @@ class swerve
 
 		std::array<double, WHEELCOUNT> offsets_;
 
+		enum COMMAND_STATE
+		{
+			COMMAND_INVALID,
+			COMMAND_DRIVING,
+			COMMAND_PARKING
+		};
+
 		// Used for filtering bad encoder values
 		mutable std::array<bool, WHEELCOUNT> lastReverse_{false};
 		mutable std::array<double, WHEELCOUNT> lastCommand_{0};
-		mutable std::array<bool, WHEELCOUNT> lastCommandValid_{false};
-
-		mutable std::array<bool, WHEELCOUNT> lastParkingReverse_{false};
-		mutable std::array<double, WHEELCOUNT> lastParkingCommand_{0};
-		mutable std::array<bool, WHEELCOUNT> lastParkingCommandValid_{false};
+		mutable std::array<COMMAND_STATE, WHEELCOUNT> lastCommandState_{COMMAND_INVALID};
 
 		//Second piece of data is here just for physics/modeling
 
