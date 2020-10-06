@@ -75,7 +75,7 @@ array<Vector2d, WHEELCOUNT> swerve<WHEELCOUNT>::motorOutputs(Vector2d velocityVe
 			lastCommandState_[i] = COMMAND_DRIVING;
 		}
 
-		// ROS_INFO_STREAM("wheel " << i << " currpos: " << currpos << " nearestangle: " << nearestangle << " reverse: " << reverse);
+		//ROS_INFO_STREAM("wheel " << i << " currpos: " << currpos << " nearestangle: " << nearestangle << " reverse: " << reverse);
 
 		speedsAndAngles[i][0] *= ((drive_.maxSpeed / drive_.wheelRadius) / ratio_.encodertoRotations) * units_.rotationSetV * (reverse ? -1 : 1);
 		speedsAndAngles[i][1] = nearestangle * units_.steeringSet + offsets_[i];
@@ -108,7 +108,7 @@ array<double, WHEELCOUNT> swerve<WHEELCOUNT>::parkingAngles(const array<double, 
 
 		retAngles[i] = nearestanglep * units_.steeringSet + offsets_[i];
 		//ROS_INFO_STREAM(" id: " << i << " currpos: " << currpos << " target: " << nearestanglep);
-		//ROS_INFO_STREAM("park[i]: " << swerveMath_.parkingAngle_[i] << " " << retAngles[i]);
+		//ROS_INFO_STREAM("park[i]: " << swerveMath_.getParkingAngle(i) << " " << retAngles[i]);
 	}
 	return retAngles;
 }

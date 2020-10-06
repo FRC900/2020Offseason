@@ -47,4 +47,8 @@ int main(void)
 	speedsAngles = swerveC.motorOutputs(linearV, rotation, angle, positions, true);
 	auto angles = swerveC.parkingAngles(positions);
 	speedsAngles = swerveC.motorOutputs(linearV, rotation, angle, positions, true);
+
+	angles = swerveC.parkingAngles(positions);
+	angles[0] += M_PI / 2 + 0.01;
+	angles = swerveC.parkingAngles(angles);
 }
