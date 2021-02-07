@@ -225,6 +225,41 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 	}
 	hal::init::InitializeDriverStationData();
 
+
+	// Update the Talon FX interfaces to use SRX to allow for simulation.
+	for (size_t i = 0; i < num_can_ctre_mcs_; i++)
+	{
+		if (!can_ctre_mc_is_talon_fx_[i])
+		{
+			continue;  // Utilize early continue to avoid super-nesting
+		}
+
+		// To prevent weird threading issues, we'll first stop the read thread 
+		// associated to this talon. We can do this by disabling the read thread,
+		// then joining it.
+		{
+			std::lock_guard<std::mutex> l(*ctre_mc_read_state_mutexes_[i]);
+			ctre_mc_read_thread_states_[i]->setEnableReadThread(false);
+		}
+		ctre_mc_read_threads_[i].join();
+
+		// After thread dies, we want to re-enable the read thread so it doesn't
+		// immediately exit when we restart it.
+		{
+			std::lock_guard<std::mutex> l(*ctre_mc_read_state_mutexes_[i]);
+			ctre_mc_read_thread_states_[i]->setEnableReadThread(true);
+		}
+
+		// Update the interface to a Talon SRX and re-create the read thread.
+		ctre_mcs_[i] = std::make_shared<ctre::phoenix::motorcontrol::can::WPI_TalonSRX>(can_ctre_mc_can_ids_[i]);
+		ctre_mc_read_threads_[i] = std::thread(&FRCRobotInterface::ctre_mc_read_thread, this,
+											   ctre_mcs_[i], ctre_mc_read_thread_states_[i],
+											   ctre_mc_read_state_mutexes_[i],
+											   std::make_unique<Tracer>("ctre_mc_read_" + can_ctre_mc_names_[i] + " " + root_nh.getNamespace()));
+
+	}
+
+
     //TODO fix joystick topic
 	for (size_t i = 0; i < HAL_kMaxJoysticks; i++)
 	{
@@ -827,6 +862,3 @@ void FRCRobotSimInterface::write(const ros::Time& time, const ros::Duration& per
 }
 
 }  // namespace
-
-
-
