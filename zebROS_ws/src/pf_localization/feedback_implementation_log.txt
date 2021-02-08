@@ -1,0 +1,6 @@
+Newly found bugs:
+- motion_update in cmdCallback currently assumes no rotation change
+
+Fixes made:
+- delta_x,y now local and only track change since last motion update
+- unique_ptr for pf in pf_localization_node
