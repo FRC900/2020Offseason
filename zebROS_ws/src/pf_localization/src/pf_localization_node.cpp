@@ -35,8 +35,6 @@ tf2_ros::Buffer tf_buffer_;
 
 ros::Time last_time;
 ros::Time last_measurement;
-double delta_x = 0;
-double delta_y = 0;
 double rot = 0;
 double noise_delta_t = 0;  // if the time since the last measurement is greater than this, positional noise will not be applied
 // std::vector<Beacon > measurement;
@@ -112,8 +110,8 @@ void cmdCallback(const geometry_msgs::TwistStamped::ConstPtr& msg){
   double x_vel = msg->twist.linear.x;
   double y_vel = msg->twist.linear.y;
 
-  delta_x += x_vel * timestep;
-  delta_y += y_vel * timestep;
+  double delta_x = x_vel * timestep;
+  double delta_y = y_vel * timestep;
 
   last_time = msg->header.stamp;
 
@@ -260,8 +258,6 @@ int main(int argc, char **argv) {
       pub_debug.publish(debug);
     }
 
-    delta_x = 0;
-    delta_y = 0;
     rate.sleep();
     ros::spinOnce();
   }
