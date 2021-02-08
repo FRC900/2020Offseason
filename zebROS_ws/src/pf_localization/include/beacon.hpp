@@ -6,13 +6,13 @@ struct Beacon {
   const double x_;
   const double y_;
   const std::string type_;
-  Beacon(double x, double y, std::string type) : x_(x), y_(y), type_(type) {}
+  Beacon(double x, double y, const std::string& type) : x_(x), y_(y), type_(type) {}
 };
 
 struct BearingBeacon {
   const double angle_;
   const std::string type_;
-  BearingBeacon(double angle, std::string type) : angle_(angle), type_(type) {}
+  BearingBeacon(double angle, const std::string& type) : angle_(angle), type_(type) {}
 };
 
 #endif

@@ -8,3 +8,4 @@ Fixes made:
 - delta_x,y now local and only track change since last motion update
 - unique_ptr for pf in pf_localization_node
 - M_PI in ParticleFilter init
+- const reference in beacon constructor args
