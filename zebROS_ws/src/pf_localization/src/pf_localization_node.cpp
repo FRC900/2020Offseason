@@ -17,6 +17,7 @@
 #include <utility>
 #include <XmlRpcValue.h>
 #include <cmath>
+#include <memory>
 
 #define USE_MATH_DEFINES_
 
@@ -40,7 +41,7 @@ double noise_delta_t = 0;  // if the time since the last measurement is greater 
 // std::vector<Beacon > measurement;
 // test bearing only
 std::vector<BearingBeacon> measurement;
-ParticleFilter* pf = nullptr;
+std::unique_ptr<ParticleFilter> pf;
 
 double degToRad(double deg) {
   double rad = (deg / 180) * M_PI;
@@ -212,10 +213,10 @@ int main(int argc, char **argv) {
   }
 
   WorldModel world(beacons, f_x_min, f_x_max, f_y_min, f_y_max);
-  pf = new ParticleFilter(world,
-                          i_x_min, i_x_max, i_y_min, i_y_max,
-                          p_stdev, r_stdev,
-                          num_particles);
+  pf = std::make_unique<ParticleFilter>(world,
+                                        i_x_min, i_x_max, i_y_min, i_y_max,
+                                        p_stdev, r_stdev,
+                                        num_particles);
 
   #ifdef VERBOSE
   for (Particle p : pf->get_particles()) {
@@ -261,8 +262,6 @@ int main(int argc, char **argv) {
     rate.sleep();
     ros::spinOnce();
   }
-
-  delete pf;
 
   return 0;
 }
