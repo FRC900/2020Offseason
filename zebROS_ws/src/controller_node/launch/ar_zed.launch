@@ -5,28 +5,29 @@
 	<arg name="camera_model"  default="zed2" />
 
 	<include file="$(find zed_wrapper)/launch/include/zed_camera.launch.xml">
-		<!--<arg name="zed_name" value="$(arg name)" />-->
-		<param name="common_params_file"   value="$(find controller_node)/config/zed_ar/common.yaml" />
-		<param name="camera_params_file"   value="$(find controller_node)/config/zed_ar/$(arg camera_model).yaml" />
-		<param name="node_name"            value="$(arg zed_node_name)" />
-		<param name="publish_urdf"         value="true" />
-		<param name="camera_name"          value="$(arg zed_name)" />
-		<param name="camera_model"         value="$(arg camera_model)" />
+		<arg name="common_params_file"   value="$(find controller_node)/config/zed_ar/common.yaml" />
+		<arg name="camera_params_file"   value="$(find controller_node)/config/zed_ar/$(arg camera_model).yaml" />
+		<arg name="node_name"            value="$(arg zed_node_name)" />
+		<arg name="publish_urdf"         value="true" />
+		<arg name="camera_name"          value="$(arg zed_name)" />
+		<arg name="camera_model"         value="$(arg camera_model)" />
 	</include>
 
-	<arg name="marker_size" default="20.2" />
+	<arg name="marker_size" default="20.16" />
 	<arg name="max_new_marker_error" default="0.08" />
 	<arg name="max_track_error" default="0.2" />
 
 	<!--
 	<arg name="cam_image_topic" default="/zed_ar/left/image_rect_color" />
 	<arg name="output_frame" default="/zed_left_camera_optical_frame" />
-	-->
 	<arg name="cam_image_topic" default="/zed_ar/point_cloud/cloud_registered" />
 	<arg name="cam_info_topic" default="/zed_ar/left/camera_info" />
-	<arg name="output_frame" default="/zed_left_camera_frame" />
+	-->
+	<arg name="cam_image_topic" default="/zed_ar/left/image_rect_color" />
+	<arg name="cam_info_topic" default="/zed_ar/left/camera_info" />
+	<arg name="output_frame" default="/zed_ar_left_camera_frame" />
 
-	<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkers" respawn="false" output="screen">
+	<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen">
 		<param name="marker_size"           type="double" value="$(arg marker_size)" />
 		<param name="max_new_marker_error"  type="double" value="$(arg max_new_marker_error)" />
 		<param name="max_track_error"       type="double" value="$(arg max_track_error)" />
@@ -36,9 +37,9 @@
 		<remap from="camera_info"   to="$(arg cam_info_topic)" />
 	</node>
 
-	<node pkg="tf2_ros" type="static_transform_publisher" name="link_cameratobase" args="0 0 0 0 0 0 1 zed_camera_center base_link" />
-	<node pkg="tf2_ros" type="static_transform_publisher" name="link_cameratobase" args="0 0 0 0 0 0 1 odom map" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="link_odomtomap" args="0 0 0 0 0 0 1 map odom" />
 	<!--
+	<node pkg="tf2_ros" type="static_transform_publisher" name="link_cameratobase" args="0 0 0 0 0 0 1 zed_camera_center base_link" />
 	<node pkg="tf2_ros" type="static_transform_publisher" name="link_cameratobase" args="0 0 0 0 0 0 1 odom map" />
 
 	<node pkg="tf2_ros" type="static_transform_publisher" name="link_basetoarmfront" args="0 0 0.8 0 0 0 1 base_frame arm_frame" />
