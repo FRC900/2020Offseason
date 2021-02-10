@@ -1,16 +1,19 @@
 #include <iostream>
 
+//checks input against nonexistant points on the grid
 bool user_friendly(char x, double y) {
   double a_and_e[] = {2, 5, 11};
   double row_c[] = {1, 2, 4, 5, 6, 7, 8, 10, 11};
   bool answer = false;
+  //checks for A2, A5, A11, E2, E5, and E11
   for (int i = 0; i<3; i++) {
-    if ((x == 65||x == 69) && (y == a_and_e[i])) {
+    if ((x == 'A'||x == 'E') && (y == a_and_e[i])) {
       answer = true;
     }
   }
+  //Checks for C1, C2, C4, C5, C6, C7, C8, C10, and C11
   for (int i = 0; i<9; i++) {
-    if (x == 67 && y == row_c[i]) {
+    if (x == 'C' && y == row_c[i]) {
       answer = true;
     }
   }
@@ -18,22 +21,29 @@ bool user_friendly(char x, double y) {
 }
 void metric_coords(char x,double y){
   double coords[2] = {0,0};
+  double grid_dist = 76.2;
+  double max_y_dist = 381;
+  //Capitalizes first character with ASCII
   if (x>70){
     x-=32;
   }
-  for (int i = 65; i < 70; i++){
+  //Translates letter into y-coordinate (vertical)
+  for (int i = 'A'; i < 'F'; i++){
     if (i == x) {
-      coords[1] = (150-((i-65)*30))*2.54;
+      coords[1] = (max_y_dist-(i-'A')*grid_dist);
     }
   }
+  //Translates number into x-coordinate (horizontal)
   for (int i = 1; i < 12;i++){
     if (i == y) {
-      coords[0] = (i*76.2);
+      coords[0] = (i*grid_dist);
     }
   }
-  if (((coords[0] == 0 ) or (coords[1] == 0)) || user_friendly(x,y))
+  //Validates input, effectively checks for anything not an a-e or 1-11
+  if (((coords[0] == 0 ) || (coords[1] == 0)) || user_friendly(x,y))
   {
-    std::cout<<"Invalid input. Please retry with the format: <letter a-e> <number 1-11>"<<std::endl<<"Points A2, A5, A11, C1, C2, C4, C5, C6, C7, C8, C10, C11, E2, E5, and E11 are not accepted."<<std::endl;
+    //Error message
+    std::cout<<"Invalid input. Please retry with the format: <letter a-e> <number 1-11>"<<std::endl<<"Points A2, A5, A11, C1, C2, C4, C5, C6, C7, C8, C10, C11, E2, E5, and E11 do not exist."<<std::endl;
   }
   else
   {
@@ -42,6 +52,7 @@ void metric_coords(char x,double y){
 }
 
 int main(int argc, char const *argv[]){
+  //Plugs user input into metric_coords 
   char a;
   double b;
   std::cout<<"Input field coordinates"<<std::endl;
