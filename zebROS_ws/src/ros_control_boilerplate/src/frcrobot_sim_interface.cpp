@@ -253,7 +253,7 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 
 		// Update the interface to a Talon SRX and re-create the read thread.
 		ctre_mcs_[i] = std::make_shared<ctre::phoenix::motorcontrol::can::WPI_TalonSRX>(can_ctre_mc_can_ids_[i]);
-		ctre_mc_read_threads_[i] = std::thread(&FRCRobotInterface::ctre_mc_read_thread, this,
+		ctre_mc_read_threads_[i] = std::thread(&FRCRobotSimInterface::ctre_mc_read_thread, this,
 											   ctre_mcs_[i], ctre_mc_read_thread_states_[i],
 											   ctre_mc_read_state_mutexes_[i],
 											   std::make_unique<Tracer>("ctre_mc_read_" + can_ctre_mc_names_[i] + " " + root_nh.getNamespace()));
