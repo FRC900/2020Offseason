@@ -369,6 +369,53 @@ void FRCRobotSimInterface::read(const ros::Time& time, const ros::Duration& peri
 	read_tracer_.start_unique("HAL_SimPeriodicBefore");
 	HAL_SimPeriodicBefore();
 	read_tracer_.start_unique("ShooterSim");
+
+	// Set encoder values for each of our motors.
+	for (size_t i = 0; i < num_can_ctre_mcs_; i++)
+	{
+		std::lock_guard<std::mutex> l(*ctre_mc_read_state_mutexes_[i]);
+		auto &ts   = talon_state_[i];
+		auto &trts = ctre_mc_read_thread_states_[i];
+		
+		// Since Talon FX controller's have an integrated motor encoder and
+		// there is no support for this type yet, we're going to manually set 
+		// the encoder type to a quad encoder.
+		if (can_ctre_mc_is_talon_fx_[i])
+		{
+			ts.setEncoderFeedback(FeedbackDevice_QuadEncoder);  
+		}
+
+
+		// Get current mode of the motor controller.
+		TalonMode mode = ts.getTalonMode();
+
+		// Set the encoder position based on the current motor mode.
+		if (mode == TalonMode_Position)
+		{
+			// Set encoder position to set point.
+			// Set velocity to 0.
+			ts.setPosition(ts.getSetpoint());
+			ts.setSpeed(0);
+		}
+		else if (mode == TalonMode_Velocity)
+		{
+			// Set velocity to set point
+			// Set encoder position to current position + velocity * dt
+			ts.setSpeed(ts.getSetpoint());
+			ts.setPosition(ts.getPosition + ts.getSpeed() * period.toSec());
+		}
+		else if (mode == TalonMode_MotionMagic)
+		{
+			// Do some ~magic~ to figure out position/velocity.
+			ts.setPosition(ts.getActiveTrajectoryPosition());
+			ts.setSpeed(ts.getActiveTrajectoryVelocity());
+		}
+		else
+		{
+			// Pass
+		}
+	}
+
 #if 0
 	// This needs work.  It kinda takes commands but ends up at the wrong
 	// steady-state velocity.  Could be from the gearing, the unit conversion,
