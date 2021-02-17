@@ -228,13 +228,15 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 
 
 	// Update the Talon FX interfaces to use SRX to allow for simulation.
+	ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << "Beginning Talon FX Modifications");
 	for (size_t i = 0; i < num_can_ctre_mcs_; i++)
 	{
-		if (!can_ctre_mc_is_talon_fx_[i])
+		if (!can_ctre_mc_is_talon_fx_[i] || !can_ctre_mc_local_hardwares_[i])
 		{
 			continue;  // Utilize early continue to avoid super-nesting
 		}
 
+		ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << "Index " << i << "is a Talon FX.");
 		// To prevent weird threading issues, we'll first stop the read thread 
 		// associated to this talon. We can do this by disabling the read thread,
 		// then joining it.
@@ -242,7 +244,12 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 			std::lock_guard<std::mutex> l(*ctre_mc_read_state_mutexes_[i]);
 			ctre_mc_read_thread_states_[i]->setEnableReadThread(false);
 		}
-		ctre_mc_read_threads_[i].join();
+
+		if (ctre_mc_read_threads_[i].is_joinable())
+		{
+			ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << "Joining current thread to stop it.");
+			ctre_mc_read_threads_[i].join();
+		}
 
 		// After thread dies, we want to re-enable the read thread so it doesn't
 		// immediately exit when we restart it.
@@ -252,13 +259,16 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 		}
 
 		// Update the interface to a Talon SRX and re-create the read thread.
+		ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << "Recreating controller as an SRX and restarting the read thread.");
 		ctre_mcs_[i] = std::make_shared<ctre::phoenix::motorcontrol::can::WPI_TalonSRX>(can_ctre_mc_can_ids_[i]);
 		ctre_mc_read_threads_[i] = std::thread(&FRCRobotSimInterface::ctre_mc_read_thread, this,
 											   ctre_mcs_[i], ctre_mc_read_thread_states_[i],
 											   ctre_mc_read_state_mutexes_[i],
 											   std::make_unique<Tracer>("ctre_mc_read_" + can_ctre_mc_names_[i] + " " + root_nh.getNamespace()));
+		ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << "Done processing for index: " << i);
 
 	}
+	ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << "End Talon FX Modifications");
 
 
     //TODO fix joystick topic
