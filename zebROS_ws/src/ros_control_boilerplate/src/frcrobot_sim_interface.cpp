@@ -245,7 +245,7 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 			ctre_mc_read_thread_states_[i]->setEnableReadThread(false);
 		}
 
-		if (ctre_mc_read_threads_[i].is_joinable())
+		if (ctre_mc_read_threads_[i].joinable())
 		{
 			ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << "Joining current thread to stop it.");
 			ctre_mc_read_threads_[i].join();
@@ -384,41 +384,67 @@ void FRCRobotSimInterface::read(const ros::Time& time, const ros::Duration& peri
 	// Set encoder values for each of our motors.
 	for (size_t i = 0; i < num_can_ctre_mcs_; i++)
 	{
-		std::lock_guard<std::mutex> l(*ctre_mc_read_state_mutexes_[i]);
-		auto &ts   = talon_state_[i];
+		auto &talon_state   = talon_state_[i];
+		auto &talon_cmd = talon_command_[i];
+		auto ctre_mc = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::can::WPI_TalonSRX>(ctre_mcs_[i]);
+		
+		if (!ctre_mc) 
+		{
+			continue;
+		}
+
+		auto &sim_motor = ctre_mc->GetSimCollection();
+
+
+		// Generate the conversion factors to translate b/w the talon state and the sim units.
+		hardware_interface::FeedbackDevice encoder_feedback = talon_state.getEncoderFeedback();
+		int encoder_ticks_per_rotation = talon_state.getEncoderTicksPerRotation();
+		double conversion_factor = talon_state.getConversionFactor();
+
+		const double radians_scale = getConversionFactor(
+			encoder_ticks_per_rotation, 
+			encoder_feedback, 
+			hardware_interface::TalonMode_Position
+		) * conversion_factor;
+
+		const double radians_per_second_scale = getConversionFactor(
+			encoder_ticks_per_rotation, 
+			encoder_feedback, 
+			hardware_interface::TalonMode_Velocity
+		) * conversion_factor;
 		
 		// Since Talon FX controller's have an integrated motor encoder and
 		// there is no support for this type yet, we're going to manually set 
 		// the encoder type to a quad encoder.
 		if (can_ctre_mc_is_talon_fx_[i])
 		{
-			ts.setEncoderFeedback(hardware_interface::FeedbackDevice_QuadEncoder);  
+			talon_cmd.setEncoderFeedback(hardware_interface::FeedbackDevice_QuadEncoder);  
 		}
 
 
 		// Get current mode of the motor controller.
-		hardware_interface::TalonMode mode = ts.getTalonMode();
+		hardware_interface::TalonMode mode = talon_state.getTalonMode();
 
 		// Set the encoder position based on the current motor mode.
 		if (mode == hardware_interface::TalonMode_Position)
 		{
 			// Set encoder position to set point.
 			// Set velocity to 0.
-			ts.setPosition(ts.getSetpoint());
-			ts.setSpeed(0);
+			sim_motor.SetQuadratureRawPosition(talon_state.getSetpoint() / radians_scale);
+			sim_motor.SetQuadratureVelocity(0);
 		}
 		else if (mode == hardware_interface::TalonMode_Velocity)
 		{
 			// Set velocity to set point
 			// Set encoder position to current position + velocity * dt
-			ts.setSpeed(ts.getSetpoint());
-			ts.setPosition(ts.getPosition() + ts.getSpeed() * period.toSec());
+			sim_motor.SetQuadratureVelocity(talon_state.getSetpoint() / radians_per_second_scale);
+			sim_motor.AddQuadraturePosition(talon_state.getSpeed() * period.toSec());
 		}
 		else if (mode == hardware_interface::TalonMode_MotionMagic)
 		{
 			// Do some ~magic~ to figure out position/velocity.
-			ts.setPosition(ts.getActiveTrajectoryPosition());
-			ts.setSpeed(ts.getActiveTrajectoryVelocity());
+			sim_motor.SetQuadratureVelocity(talon_state.getActiveTrajectoryPosition() / radians_scale);
+			sim_motor.SetQuadratureRawPosition(talon_state.getActiveTrajectoryVelocity() / radians_per_second_scale);
 		}
 	}
 
