@@ -372,6 +372,8 @@ void FRCRobotSimInterface::read(const ros::Time& time, const ros::Duration& peri
 	// TODO : needed for standalone robots, but not
 	// updated once per control loop using the appropriate timestep
 
+
+
 	read_tracer_.start_unique("FeedEnable");
 	if (num_can_ctre_mcs_)
 	{
@@ -384,12 +386,14 @@ void FRCRobotSimInterface::read(const ros::Time& time, const ros::Duration& peri
 	// Set encoder values for each of our motors.
 	for (size_t i = 0; i < num_can_ctre_mcs_; i++)
 	{
+		ROS_INFO_NAMED("frcrobot_sim_interface", "Begin processing motor %d", (int)i);
 		auto &talon_state   = talon_state_[i];
 		auto &talon_cmd = talon_command_[i];
 		auto ctre_mc = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::can::WPI_TalonSRX>(ctre_mcs_[i]);
 		
 		if (!ctre_mc) 
 		{
+			ROS_INFO_NAMED("frcrobot_sim_interface", "Unable to dynamic cast motor %d", (int) i);
 			continue;
 		}
 
@@ -424,6 +428,9 @@ void FRCRobotSimInterface::read(const ros::Time& time, const ros::Duration& peri
 
 		// Get current mode of the motor controller.
 		hardware_interface::TalonMode mode = talon_state.getTalonMode();
+		auto mc_mode = ctre_mc->GetControlMode();
+		ROS_INFO_NAMED("frcrobot_sim_interface", "Motor %d: Talon State: %d. MC State: %d", (int)i, (int)mode, (int)mc_mode);
+
 
 		// Set the encoder position based on the current motor mode.
 		if (mode == hardware_interface::TalonMode_Position)
@@ -438,7 +445,7 @@ void FRCRobotSimInterface::read(const ros::Time& time, const ros::Duration& peri
 			// Set velocity to set point
 			// Set encoder position to current position + velocity * dt
 			sim_motor.SetQuadratureVelocity(talon_state.getSetpoint() / radians_per_second_scale);
-			sim_motor.AddQuadraturePosition(talon_state.getSpeed() * period.toSec());
+			sim_motor.AddQuadraturePosition(talon_state.getSpeed() * radians_per_second_scale * period.toSec());
 		}
 		else if (mode == hardware_interface::TalonMode_MotionMagic)
 		{
