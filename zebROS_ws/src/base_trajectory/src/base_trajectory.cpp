@@ -1166,14 +1166,20 @@ bool RPROP(
 					deltaCost = fabs(thisCost - currCost);
 					ROS_INFO_STREAM_FILTER(&messageFilter, "RPROP : i=" << i << " j=" << j << " bestCost=" << bestCost << " thisCost=" << thisCost << " currCost=" << currCost << " deltaCost=" << deltaCost << " deltaCostEpsilon=" << deltaCostEpsilon);
 					currCost = thisCost;
-				}
-				if (thisCost > 2.30)
-				{
-					optimizationCounter++;
-				}
-				else
-				{
-					optimizationCounter = 0;
+
+					if (thisCost > 150)
+					{
+						optimizationCounter++;
+					}
+					else
+					{
+						optimizationCounter = 0;
+					}
+					if (optimizationCounter > optimizationCounterMax)
+					{
+						// ROS_INFO_STREAM("broken out of the optimization loop");
+						break;
+					}
 				}
 			}
 		}
@@ -1434,7 +1440,7 @@ int main(int argc, char **argv)
 	ros::ServiceServer service = nh.advertiseService("base_trajectory/spline_gen", callback);
 
 	nh.param("optimization_counter_max", optimizationCounterMax, 500);
-	ddr.registerVariable<int>("optimization_counter_max", optimizationCounterMax, 500);
+	ddr.registerVariable<int>("optimization_counter_max", &optimizationCounterMax, "Iteration count for breaking out of optimization loop", 0, 500000);
 
 	ros::spin();
 }
