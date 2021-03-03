@@ -1487,7 +1487,7 @@ double maxCentAccGetCB(void)
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "base_trajectory");
-	ros::NodeHandle nh("base_trajectory");
+	ros::NodeHandle nh;
 
 	ddynamic_reconfigure::DDynamicReconfigure ddr;
 	nh.param("seg_length_epsilon", segLengthEpsilon, 1.0e-4);
@@ -1537,7 +1537,7 @@ int main(int argc, char **argv)
 	ddr.registerVariable<int>("optimization_counter_max", &optimizationCounterMax, "Iteration count for breaking out of optimization loop", 0, 500000);
 
     ddr.publishServicesTopics();
-	ros::ServiceServer service = nh.advertiseService("spline_gen", callback);
+	ros::ServiceServer service = nh.advertiseService("base_trajectory/spline_gen", callback);
 
 	tf2_ros::Buffer buffer(ros::Duration(10));
 	tf2_ros::TransformListener tf(buffer);
