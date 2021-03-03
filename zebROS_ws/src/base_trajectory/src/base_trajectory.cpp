@@ -1536,7 +1536,7 @@ int main(int argc, char **argv)
 	nh.param("optimization_counter_max", optimizationCounterMax, 500);
 	ddr.registerVariable<int>("optimization_counter_max", &optimizationCounterMax, "Iteration count for breaking out of optimization loop", 0, 500000);
 
-    ddr.publishServicesTopics();
+	ddr.publishServicesTopics();
 	ros::ServiceServer service = nh.advertiseService("base_trajectory/spline_gen", callback);
 
 	tf2_ros::Buffer buffer(ros::Duration(10));
