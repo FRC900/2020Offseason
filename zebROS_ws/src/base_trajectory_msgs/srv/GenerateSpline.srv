@@ -1,4 +1,5 @@
 trajectory_msgs/JointTrajectoryPoint[] points
+PathOffsetLimit[]                      path_offset_limit
 Constraint[]                           constraints
 ---
 Coefs[]       orient_coefs

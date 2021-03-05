@@ -102,15 +102,81 @@ struct OptParams
 {
 	double posX_; // offset from requested waypoint in x and y
 	double posY_;
+	double minOffX_;
+	double maxOffX_;
+	double minOffY_;
+	double maxOffY_;
 	double length_;       // These control the
 	double length_scale_; // curveature vs. velocity at waypoints
 
 	OptParams(void)
 		: posX_(0.)
 		, posY_(0.)
+		, minOffX_(0.)
+		, maxOffX_(0.)
+		, minOffY_(0.)
+		, maxOffY_(0.)
 		, length_(0.)
 		, length_scale_(0.75)
 	{
+	}
+
+	OptParams(double minOffX, double maxOffX, double minOffY, double maxOffY)
+		: posX_(0.)
+		, posY_(0.)
+		, minOffX_(minOffX)
+		, maxOffX_(maxOffX)
+		, minOffY_(minOffY)
+		, maxOffY_(maxOffY)
+		, length_(0.)
+		, length_scale_(0.75)
+	{
+	}
+
+	bool IncrementVariable(size_t index, double value)
+	{
+		if (index == 0) // posX_
+		{
+			if ((value > 0) && (posX_ >= maxOffX_))
+				return false;
+			if ((value < 0) && (posX_ <= minOffX_))
+				return false;
+
+			if (maxOffX_ >= (posX_ + value))
+				posX_ = maxOffX_;
+			else if ((posX_ + value) <= minOffX_)
+				posX_ = minOffX_;
+			else
+				posX_ += value;
+			return true;
+		}
+		if (index == 1) // posY_
+		{
+			if ((value > 0) && (posY_ >= maxOffY_))
+				return false;
+			if ((value < 0) && (posY_ <= minOffY_))
+				return false;
+
+			if (maxOffY_ >= (posY_ + value))
+				posY_ = maxOffY_;
+			else if ((posY_ + value) <= minOffY_)
+				posY_ = minOffY_;
+			else
+				posY_ += value;
+			return true;
+		}
+		if (index == 2)
+		{
+			length_ += value;
+			return true;
+		}
+		if (index == 3)
+		{
+			length_scale_ += value;
+			return true;
+		}
+		throw std::out_of_range ("out of range in OptParams IncrementVariable");
+		return false;
 	}
 
 	// Syntax to let callers use the values in this
@@ -119,9 +185,10 @@ struct OptParams
 	// in there into a simple for() loop
 	size_t size(void) const
 	{
-		return 2;
+		return 4;
 	}
 
+#if 0
 	double& operator[](size_t i)
 	{
 		if (i == 0)
@@ -140,14 +207,20 @@ struct OptParams
 #endif
 		throw std::out_of_range ("out of range in OptParams operator[]");
 	}
+#endif
 	friend std::ostream& operator<< (std::ostream& stream, const OptParams &optParams);
 };
 
+
 std::ostream& operator<< (std::ostream& stream, const OptParams &optParams)
 {
-	//stream << "posX_:" << optParams.posX_;
-	//stream << " posY_:" << optParams.posY_;
-	stream << "length_:" << optParams.length_;
+	stream << "posX_:" << optParams.posX_;
+	stream << " posY_:" << optParams.posY_;
+	stream << " minOffX_:" << optParams.minOffX_;
+	stream << " maxOffX_:" << optParams.maxOffX_;
+	stream << " minOffY_:" << optParams.minOffY_;
+	stream << " maxOffY_:" << optParams.maxOffY_;
+	stream << " length_:" << optParams.length_;
 	stream << " length_scale_:" << optParams.length_scale_;
 	return stream;
 }
@@ -1169,11 +1242,12 @@ template <class T>
 bool RPROP(
 		Trajectory<T> &bestTrajectory,
 		const std::vector<trajectory_msgs::JointTrajectoryPoint> &points,
+		const std::vector<OptParams> &initOptParams,
 		const std::vector<std::string> &jointNames)
 {
 	// initialize params to 0 offset in x, y and tangent
 	// length for all spline points
-	std::vector<OptParams> bestOptParams(points.size());
+	std::vector<OptParams> bestOptParams = initOptParams;
 	ROS_INFO_STREAM("RPROP initial params: ");
 	for (const auto &it: bestOptParams)
 		ROS_INFO_STREAM("     " << it);
@@ -1205,7 +1279,7 @@ bool RPROP(
 		// Ignore the first and last point - can't
 		// optimize the starting and end position since
 		// those need to be hit exactly.
-		for (size_t i = 1; i < (bestOptParams.size() - 1); i++) // index of param optimized
+		for (size_t i = 1; i < (bestOptParams.size() - 1); i++) // index of point being optimized
 		{
 			int optimizationCounter = 0;
 			// OptParams is overloaded to act like an array
@@ -1216,6 +1290,8 @@ bool RPROP(
 				double deltaCost = std::numeric_limits<double>::max();
 				double currCost = bestCost;
 				double dparam = initialDParam;
+				if (!optParams[i].IncrementVariable(j, dparam))
+					dparam *= -1;
 				// One exit criteria for the inner loop is if the cost
 				// stops improving by an appreciable amount while changing
 				// this one parameter. Track that here
@@ -1224,8 +1300,10 @@ bool RPROP(
 					// Alter one optimization parameter
 					// and see how it changes the cost compared
 					// to the last iteration
+					if (!optParams[i].IncrementVariable(j, dparam))
+						break;
+
 					Trajectory<T> thisTrajectory;
-					optParams[i][j] += dparam;
 					if (!generateSpline(points, optParams, jointNames, thisTrajectory))
 					{
 						ROS_ERROR("base_trajectory_node : RPROP generateSpline() falied");
@@ -1398,7 +1476,19 @@ bool callback(base_trajectory_msgs::GenerateSpline::Request &msg,
 	kinematicConstraints.resetConstraints();
 	kinematicConstraints.addConstraints(msg.constraints);
 
-	std::vector<OptParams> optParams(msg.points.size());
+	std::vector<OptParams> optParams;
+	for (size_t i = 0; i < msg.path_offset_limit.size(); i++)
+	{
+		optParams.push_back(OptParams(msg.path_offset_limit[i].neg_x,
+									  msg.path_offset_limit[i].pos_x,
+									  msg.path_offset_limit[i].neg_y,
+									  msg.path_offset_limit[i].pos_y));
+	}
+	while (msg.path_offset_limit.size() < msg.points.size())
+	{
+		optParams.push_back(OptParams());
+	}
+
 	Trajectory<double> trajectory;
 	if (!generateSpline(msg.points, optParams, jointNames, trajectory))
 		return false;
@@ -1423,7 +1513,7 @@ bool callback(base_trajectory_msgs::GenerateSpline::Request &msg,
 		fflush(stdout);
 
 		// Call optimization, get optimizated result in trajectory
-		if (!RPROP(trajectory, msg.points, jointNames))
+		if (!RPROP(trajectory, msg.points, optParams, jointNames))
 		{
 			ROS_ERROR("base_trajectory_node : RPROP() returned false");
 			return false;
@@ -1552,6 +1642,7 @@ int main(int argc, char **argv)
 	tf2_ros::Buffer buffer(ros::Duration(10));
 	tf2_ros::TransformListener tf(buffer);
 	costmap = std::make_unique<costmap_2d::Costmap2DROS>("/costmap", buffer);
+
 	local_plan_pub = nh.advertise<nav_msgs::Path>("local_plan", 1000, true);
 
 	ros::spin();
