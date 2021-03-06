@@ -1484,7 +1484,7 @@ bool callback(base_trajectory_msgs::GenerateSpline::Request &msg,
 									  msg.path_offset_limit[i].neg_y,
 									  msg.path_offset_limit[i].pos_y));
 	}
-	while (msg.path_offset_limit.size() < msg.points.size())
+	while (optParams.size() < msg.points.size())
 	{
 		optParams.push_back(OptParams());
 	}
