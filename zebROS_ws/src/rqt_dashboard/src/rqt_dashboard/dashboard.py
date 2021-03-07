@@ -314,10 +314,19 @@ class Dashboard(Plugin):
             r.sleep()
 
     def shutdown_plugin(self):
-        self.auto_state_sub.unregister()
-        self.n_balls_sub.unregister()
-        self.shooter_in_range_sub.unregister()
-        self.turret_in_range_sub.unregister()
+
+        if self.auto_state_sub is not None:
+            self.auto_state_sub.unregister()
+        
+        if self.n_balls_sub is not None:
+            self.n_balls_sub.unregister()
+        
+        if self.shooter_in_range_sub is not None:
+            self.shooter_in_range_sub.unregister()
+
+        if self.turret_in_range_sub is not None:
+            self.turret_in_range_sub.unregister()
+        
         self.client.close()
 
 
