@@ -1,4 +1,4 @@
-float64 pos_x
-float64 neg_x
-float64 pos_y
-float64 neg_y
+float64 min_x
+float64 max_x
+float64 min_y
+float64 max_y

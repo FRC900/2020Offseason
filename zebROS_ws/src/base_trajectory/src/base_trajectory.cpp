@@ -55,6 +55,11 @@ double pathDistBetweenArcLengthsEpsilon; // 1 cm
 double initialDeltaCostEpsilon;
 double minDeltaCostEpsilon;
 
+// How many consecutive attemps at optimization the resulting cost is
+// change is less than the minimum before moving on to the next variable
+int maxDeltaCostExitCounter;
+
+
 // Initial change added to optimization parameter in the RPROP loop
 double initialDParam;
 
@@ -100,80 +105,138 @@ void printTrajectory(const Trajectory<T> &trajectory, const std::vector<std::str
 // to improve the overall cost of following the spline
 struct OptParams
 {
-	double posX_; // offset from requested waypoint in x and y
-	double posY_;
-	double minOffX_;
-	double maxOffX_;
-	double minOffY_;
-	double maxOffY_;
-	double length_;       // These control the
-	double length_scale_; // curveature vs. velocity at waypoints
+	double posX_{0}; // offset from requested waypoint in x and y
+	double posY_{0};
+	double minOffX_{0};
+	double maxOffX_{0};
+	double minOffY_{0};
+	double maxOffY_{0};
+	double length_{0};       // These control the
+	double minLength_{-std::numeric_limits<double>::max()};
+	double maxLength_{std::numeric_limits<double>::max()};
+	double lengthScale_{0.75}; // curveature vs. velocity at waypoints
+	double minLengthScale_{-std::numeric_limits<double>::max()};
+	double maxLengthScale_{std::numeric_limits<double>::max()};
+	double deltaVMagnitude_{0};
+	double deltaVDirection_{0};
+	double minDeltaVMagnitude_{0};
+	double maxDeltaVMagnitude_{0};
+	double minDeltaVDirection_{0};
+	double maxDeltaVDirection_{0};
 
-	OptParams(void)
-		: posX_(0.)
-		, posY_(0.)
-		, minOffX_(0.)
-		, maxOffX_(0.)
-		, minOffY_(0.)
-		, maxOffY_(0.)
-		, length_(0.)
-		, length_scale_(0.75)
-	{
-	}
-
+	OptParams() = default;
 	OptParams(double minOffX, double maxOffX, double minOffY, double maxOffY)
-		: posX_(0.)
-		, posY_(0.)
-		, minOffX_(minOffX)
+		: minOffX_(minOffX)
 		, maxOffX_(maxOffX)
 		, minOffY_(minOffY)
 		, maxOffY_(maxOffY)
-		, length_(0.)
-		, length_scale_(0.75)
 	{
+	}
+
+	void setDeltaV(double minMagnitude, double maxMagnitude, double minDirection, double maxDirection)
+	{
+		minDeltaVMagnitude_ = minMagnitude;
+		maxDeltaVMagnitude_ = maxMagnitude;
+		minDeltaVDirection_ = minDirection;
+		maxDeltaVDirection_ = maxDirection;
+	}
+
+	void clearLengthLimits(void)
+	{
+		minLength_ = length_;
+		maxLength_ = length_;
+		minLengthScale_ = lengthScale_;
+		maxLengthScale_ = lengthScale_;
+	}
+
+	bool IsAtMax(size_t index) const
+	{
+		if (index == 0) // posX_
+		{
+			return posX_ >= maxOffX_;
+		}
+		if (index == 1) // posX_
+		{
+			return posY_ >= maxOffY_;
+		}
+		if (index == 2) // length_
+		{
+			return length_ >= maxLength_;
+		}
+		if (index == 3) // lengthScale_
+		{
+			return lengthScale_ >= maxLengthScale_;
+		}
+		if (index == 4) // deltaVMagnitude_
+		{
+			return deltaVMagnitude_ >= maxDeltaVMagnitude_;
+		}
+		if (index == 5) // deltaVDirection_
+		{
+			return deltaVDirection_ >= maxDeltaVDirection_;
+		}
+
+		throw std::out_of_range ("out of range in OptParams IncrementVariable");
+		return false;
 	}
 
 	bool IncrementVariable(size_t index, double value)
 	{
+		//ROS_INFO_STREAM("IncrementVariable, index=" << index << " value=" << value);
 		if (index == 0) // posX_
 		{
-			if ((value > 0) && (posX_ >= maxOffX_))
-				return false;
-			if ((value < 0) && (posX_ <= minOffX_))
-				return false;
-
-			if (maxOffX_ >= (posX_ + value))
-				posX_ = maxOffX_;
-			else if ((posX_ + value) <= minOffX_)
-				posX_ = minOffX_;
-			else
-				posX_ += value;
-			return true;
+			return IncrementHelper(posX_, value, minOffX_, maxOffX_);
 		}
 		if (index == 1) // posY_
 		{
+			return IncrementHelper(posY_, value, minOffY_, maxOffY_);
+#if 0
+			ROS_INFO_STREAM(" value=" << value
+					<< " posY_=" << posY_
+					<< " maxOffY_=" << maxOffY_
+					<< " minOffY_=" << minOffY_);
 			if ((value > 0) && (posY_ >= maxOffY_))
+			{
+				ROS_INFO_STREAM("At maximum");
 				return false;
+			}
 			if ((value < 0) && (posY_ <= minOffY_))
+			{
+				ROS_INFO_STREAM("At minimum");
 				return false;
+			}
 
 			if (maxOffY_ >= (posY_ + value))
+			{
+				ROS_INFO_STREAM("Would exceed maxOffY_, limiting positive value");
 				posY_ = maxOffY_;
+			}
 			else if ((posY_ + value) <= minOffY_)
+			{
+				ROS_INFO_STREAM("Would exceed minOffY_, limiting negative value");
 				posY_ = minOffY_;
+			}
 			else
 				posY_ += value;
+			ROS_INFO_STREAM("new posY_= " << posY_);
+#endif
 			return true;
 		}
 		if (index == 2)
 		{
-			length_ += value;
-			return true;
+			return IncrementHelper(length_, value, minLength_, maxLength_);
 		}
 		if (index == 3)
 		{
-			length_scale_ += value;
-			return true;
+			return IncrementHelper(lengthScale_, value, minLengthScale_, maxLengthScale_);
+		}
+		if (index == 4) // deltaVMagnitude
+		{
+			return IncrementHelper(deltaVMagnitude_, value, minDeltaVMagnitude_, maxDeltaVMagnitude_);
+		}
+		if (index == 5) // deltaVDirection
+		{
+			return IncrementHelper(deltaVDirection_, value, minDeltaVDirection_, maxDeltaVDirection_);
 		}
 		throw std::out_of_range ("out of range in OptParams IncrementVariable");
 		return false;
@@ -185,32 +248,42 @@ struct OptParams
 	// in there into a simple for() loop
 	size_t size(void) const
 	{
-		return 4;
+		return 6;
 	}
 
-#if 0
-	double& operator[](size_t i)
+private:
+
+	bool IncrementHelper(double &var, double value, double minOff, double maxOff)
 	{
-		if (i == 0)
-			return length_;
-		if (i == 1)
-			return length_scale_;
-#if 0
-		if (i == 0)
-			return posX_;
-		if (i == 1)
-			return posY_;
-		if (i == 2)
-			return length_;
-		if (i == 3)
-			return length_scale_;
-#endif
-		throw std::out_of_range ("out of range in OptParams operator[]");
+		//ROS_INFO_STREAM("  var=" << var << " value=" << value << " minOff=" << minOff << " maxOff=" << maxOff);
+		if ((value > 0) && (var >= maxOff))
+		{
+			//ROS_INFO_STREAM("At maximum");
+			return false;
+		}
+		if ((value < 0) && (var <= minOff))
+		{
+			//ROS_INFO_STREAM("At minimum");
+			return false;
+		}
+
+		if (maxOff <= (var + value))
+		{
+			//ROS_INFO_STREAM("hit max");
+			var = maxOff;
+		}
+		else if ((var + value) <= minOff)
+		{
+			//ROS_INFO_STREAM("hit min");
+			var = minOff;
+		}
+		else
+			var += value;
+		//ROS_INFO_STREAM("new var = " << var);
+		return true;
 	}
-#endif
 	friend std::ostream& operator<< (std::ostream& stream, const OptParams &optParams);
 };
-
 
 std::ostream& operator<< (std::ostream& stream, const OptParams &optParams)
 {
@@ -221,7 +294,13 @@ std::ostream& operator<< (std::ostream& stream, const OptParams &optParams)
 	stream << " minOffY_:" << optParams.minOffY_;
 	stream << " maxOffY_:" << optParams.maxOffY_;
 	stream << " length_:" << optParams.length_;
-	stream << " length_scale_:" << optParams.length_scale_;
+	stream << " lengthScale_:" << optParams.lengthScale_;
+	stream << " deltaVMagnitude_:" << optParams.deltaVMagnitude_;
+	stream << " maxDeltaVMagnitude_:" << optParams.maxDeltaVMagnitude_;
+	stream << " minDeltaVMagnitude_:" << optParams.minDeltaVMagnitude_;
+	stream << " deltaVDirection_:" << optParams.deltaVDirection_;
+	stream << " maxDeltaVDirection_:" << optParams.maxDeltaVDirection_;
+	stream << " minDeltaVDirection_:" << optParams.minDeltaVDirection_;
 	return stream;
 }
 
@@ -277,7 +356,7 @@ bool generateSpline(      std::vector<trajectory_msgs::JointTrajectoryPoint> poi
 	// Paper says to make the coord system based off the
 	// tangent direction (perp & parallel to tangent)
 	// We'll see if that makes a difference
-	for (size_t i = 1; i < (points.size() - 1); i++)
+	for (size_t i = 0; i < points.size(); i++)
 	{
 		points[i].positions[0] += optParams[i].posX_;
 		points[i].positions[1] += optParams[i].posY_;
@@ -319,7 +398,7 @@ bool generateSpline(      std::vector<trajectory_msgs::JointTrajectoryPoint> poi
 		// at the waypoints.  Bigger than 1 ==> curvier path with
 		// higher speeds.  Less than 1 ==> tigher turns to stay
 		// closer to straight paths.
-		const double length = std::min(prevLength, currLength) * optParams[i].length_scale_ + optParams[i].length_;
+		const double length = std::min(prevLength, currLength) * optParams[i].lengthScale_ + optParams[i].length_;
 
 		// Don't overwrite requested input velocities
 		if (points[i].velocities.size() == 0)
@@ -327,10 +406,11 @@ bool generateSpline(      std::vector<trajectory_msgs::JointTrajectoryPoint> poi
 		if (points[i].velocities.size() == 1)
 			points[i].velocities.push_back(length * sin(angle)); // y
 		if (points[i].velocities.size() == 2)
-			points[i].velocities.push_back(0.0); // theta TODO : what if there is rotation both before and after this waypoint?
-		                                                // probably just use the difference between mi[2] and mip1[2].
+			points[i].velocities.push_back(fabs(mip1[2] - mi[2])); // theta TODO : Check me
 														// Need a length and length scale for this case?
 
+		points[i].velocities[0] += optParams[i].deltaVMagnitude_ * cos(angle + optParams[i].deltaVDirection_);
+		points[i].velocities[1] += optParams[i].deltaVMagnitude_ * sin(angle + optParams[i].deltaVDirection_);
 #if 0
 		ROS_INFO_STREAM_FILTER(&messageFilter, "prevAngle " << prevAngle << " prevLength " << prevLength);
 		ROS_INFO_STREAM_FILTER(&messageFilter, "currAngle " << currAngle << " currLength " << currLength);
@@ -341,11 +421,19 @@ bool generateSpline(      std::vector<trajectory_msgs::JointTrajectoryPoint> poi
 		prevAngle = currAngle;
 		prevLength = currLength;
 	}
-	// TODO :
-	// if optimizing endpoint speed is allowed, do it here.  The code should just
-	// decompose the endpoint optParam speed into x and y components like the
-	// code above and push them onto points.back().velocities in order
-	// (don't forget to zero out theta)
+	// Save some typing
+	auto &pb = points.back();
+	const auto opb = optParams.back();
+	// prevAngle after exiting the loop is the direction from the 2nd to last to the
+	// last point.  Decompose the optParms dv magnitude into x and y components
+	// and set it here.
+	// TODO - this overwrites the previous values, which might be weird if users specified
+	// a final velocity?
+	pb.velocities[0] = opb.deltaVMagnitude_ * cos(prevAngle + opb.deltaVDirection_); // x
+	pb.velocities[1] = opb.deltaVMagnitude_ * sin(prevAngle + opb.deltaVDirection_); // y
+	pb.velocities[2] = 0; // theta TODO : anything to do here?
+	//ROS_INFO_STREAM("pb.velocities = " << pb.velocities[0] << ", " << pb.velocities[1] << " opb.deltaVMagnitude_= " << opb.deltaVMagnitude_
+			//<< " opb.deltaVDirection_=" << opb.deltaVDirection_);
 
 	// Guess for acceleration term is explained in
 	// http://www2.informatik.uni-freiburg.de/~lau/students/Sprunk2008.pdf
@@ -1268,6 +1356,7 @@ bool RPROP(
 		return false;
 	}
 
+	unsigned int optimizationAttempts = 0;
 	double deltaCostEpsilon = initialDeltaCostEpsilon;
 
 	while (deltaCostEpsilon >= minDeltaCostEpsilon)
@@ -1279,7 +1368,7 @@ bool RPROP(
 		// Ignore the first and last point - can't
 		// optimize the starting and end position since
 		// those need to be hit exactly.
-		for (size_t i = 1; i < (bestOptParams.size() - 1); i++) // index of point being optimized
+		for (size_t i = 0; i < bestOptParams.size(); i++) // index of point being optimized
 		{
 			int optimizationCounter = 0;
 			// OptParams is overloaded to act like an array
@@ -1290,12 +1379,21 @@ bool RPROP(
 				double deltaCost = std::numeric_limits<double>::max();
 				double currCost = bestCost;
 				double dparam = initialDParam;
-				if (!optParams[i].IncrementVariable(j, dparam))
+				// If a parameter is already maxed out, start this pass
+				// of the optimization by moving away from that maximum
+				// Without this, the initial call to IncrementVariable will
+				// fail and the code will never move values off their maximum
+				if (optParams[i].IsAtMax(j))
 					dparam *= -1;
 				// One exit criteria for the inner loop is if the cost
 				// stops improving by an appreciable amount while changing
 				// this one parameter. Track that here
-				while (deltaCost > deltaCostEpsilon)
+				// Break after several consecutive attempts stop improving
+				// the results by enough - this will let the code check both
+				// positive and negative directions
+				int deltaCostExitCounter = 0;
+				//while (deltaCost > deltaCostEpsilon)
+				while (deltaCostExitCounter < maxDeltaCostExitCounter)
 				{
 					// Alter one optimization parameter
 					// and see how it changes the cost compared
@@ -1316,6 +1414,7 @@ bool RPROP(
 						ROS_ERROR("base_trajectory_node : RPROP evaluateTrajectory() failed");
 						return false;
 					}
+					optimizationAttempts += 1;
 
 					// If cost is better than the best cost, record it and
 					// move on to optimizing the next parameter. It is possible
@@ -1348,7 +1447,16 @@ bool RPROP(
 					}
 					// Record values for next iteration
 					deltaCost = fabs(thisCost - currCost);
-					ROS_INFO_STREAM_FILTER(&messageFilter, "RPROP : i=" << i << " j=" << j << " bestCost=" << bestCost << " thisCost=" << thisCost << " currCost=" << currCost << " deltaCost=" << deltaCost << " deltaCostEpsilon=" << deltaCostEpsilon);
+					ROS_INFO_STREAM_FILTER(&messageFilter, "RPROP : optimizationAttempts=" << optimizationAttempts << " i=" << i << " j=" << j << " bestCost=" << bestCost << " thisCost=" << thisCost << " currCost=" << currCost << " deltaCost=" << deltaCost << " deltaCostEpsilon=" << deltaCostEpsilon);
+					if (deltaCost < deltaCostEpsilon)
+					{
+						deltaCostExitCounter += 1;
+					}
+					else
+					{
+						deltaCostExitCounter = 0;
+					}
+
 					currCost = thisCost;
 
 					if (thisCost > 150)
@@ -1370,6 +1478,7 @@ bool RPROP(
 		if (!bestCostChanged)
 			deltaCostEpsilon /= 1.75;
 	}
+	ROS_INFO_STREAM("RPROP optimizationAttempts=" << optimizationAttempts);
 	ROS_INFO_STREAM("RPROP best params: ");
 	for (const auto &it: bestOptParams)
 		ROS_INFO_STREAM("     " << it);
@@ -1472,6 +1581,7 @@ bool callback(base_trajectory_msgs::GenerateSpline::Request &msg,
 		msg.points.back().velocities.push_back(0.);
 	}
 
+
 	ROS_WARN_STREAM(__PRETTY_FUNCTION__ << " : runOptimization = " << runOptimization);
 	kinematicConstraints.resetConstraints();
 	kinematicConstraints.addConstraints(msg.constraints);
@@ -1479,15 +1589,24 @@ bool callback(base_trajectory_msgs::GenerateSpline::Request &msg,
 	std::vector<OptParams> optParams;
 	for (size_t i = 0; i < msg.path_offset_limit.size(); i++)
 	{
-		optParams.push_back(OptParams(msg.path_offset_limit[i].neg_x,
-									  msg.path_offset_limit[i].pos_x,
-									  msg.path_offset_limit[i].neg_y,
-									  msg.path_offset_limit[i].pos_y));
+		optParams.push_back(OptParams(msg.path_offset_limit[i].min_x,
+									  msg.path_offset_limit[i].max_x,
+									  msg.path_offset_limit[i].min_y,
+									  msg.path_offset_limit[i].max_y));
 	}
 	while (optParams.size() < msg.points.size())
 	{
 		optParams.push_back(OptParams());
 	}
+	if (msg.optimize_final_velocity)
+	{
+		optParams.back().setDeltaV(0, kinematicConstraints.globalKinematics().getMaxVel(), -M_PI, M_PI);
+	}
+	// Length and length scale aren't used for first and last point
+	// so disable those params here to speed up RPROP a bit - no point
+	// in trying to change variables which don't actually change the path
+	optParams[0].clearLengthLimits();
+	optParams.back().clearLengthLimits();
 
 	Trajectory<double> trajectory;
 	if (!generateSpline(msg.points, optParams, jointNames, trajectory))
@@ -1606,9 +1725,11 @@ int main(int argc, char **argv)
 
 	nh.param("initial_delta_cost_epsilon", initialDeltaCostEpsilon, 0.05);
 	nh.param("min_delta_cost_epsilon", minDeltaCostEpsilon, 0.005);
+	nh.param("max_delta_cost_exit_counter", maxDeltaCostExitCounter, 3);
 	ddr.registerVariable<double>("initial_delta_cost_epsilon", &initialDeltaCostEpsilon, "RPROP initial deltaCost value", 0, 1);
 	ddr.registerVariable<double>("min_delta_cost_epsilon", &minDeltaCostEpsilon, "RPROP minimum deltaCost value", 0, 1);
-	nh.param("initial_dparam", initialDParam, 0.05);
+	ddr.registerVariable<int>("max_delta_cost_exit_counter", &maxDeltaCostExitCounter, "RPROP inner iteration with low change in code exit criteria", 0, 10);
+	nh.param("initial_dparam", initialDParam, 0.25);
 	ddr.registerVariable<double>("initial_dparam", &initialDParam, "RPROP initial optimization value change", 0, 2);
 
 	double pathLimitDistance;
@@ -1617,11 +1738,11 @@ int main(int argc, char **argv)
 	double maxLinearDec;
 	double maxCentAcc;
 
-	nh.param("path_distance_limit", pathLimitDistance, 0.2);
+	nh.param("path_distance_limit", pathLimitDistance, 2.0);
 	nh.param("max_vel", maxVel, 4.5);
 	nh.param("max_linear_acc", maxLinearAcc, 2.5);
 	nh.param("max_linear_dec", maxLinearDec, 2.5);
-	nh.param("max_cent_acc", maxCentAcc, 3.5);
+	nh.param("max_cent_acc", maxCentAcc, 8.0);
 	kinematicConstraints.globalKinematics(Kinematics(maxLinearAcc, maxLinearDec, maxVel, maxCentAcc, pathLimitDistance));
 
 	ddr.registerVariable<double>("path_distance_limit", pathLimitDistanceGetCB, pathLimitDistanceSetCB, "how far robot can diverge from straight-line path between waypoints", 0, 20);
