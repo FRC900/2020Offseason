@@ -3,8 +3,10 @@
 #include <opencv2/opencv.hpp>
 #include <XmlRpcValue.h>
 
-double field_width, field_height, border, inches_per_pixel; //field dimensions in inches
-int width, height;
+double field_width, field_height, inches_per_pixel; //field dimensions in inches
+int height;
+const int width = 1200;
+const double border = width * .05;
 
 cv::Point map_to_image(cv::Point map_coord)
 {
@@ -32,24 +34,25 @@ void drawRotatedRectangle(cv::Mat& image, const cv::Point &centerPoint, const cv
 	cv::fillConvexPoly(image, vertices, 4, color);
 }
 
-void drawTriangle(cv::Mat& image, const cv::Point vertices[3], const cv::Scalar &color)
+void drawPoly(cv::Mat& image, const std::vector<cv::Point>& points, const cv::Scalar &color)
 {
 	// Convert map coordinates to image coordinates
-	cv::Point image_vertices[3];
-	for(int i = 0; i < 3; ++i){
-		image_vertices[i] = map_to_image(vertices[i]);
+	const size_t num_points = points.size();
+	cv::Point image_vertices[num_points];
+	for(int i = 0; i < num_points; ++i){
+		image_vertices[i] = map_to_image(points[i]);
 	}
 
 	// Now we can fill the triangle with our specific color
-	cv::fillConvexPoly(image, image_vertices, 3, color);
+	cv::fillConvexPoly(image, image_vertices, num_points, color);
 }
 
 void drawCircle(cv::Mat& image, const cv::Point &center, const double radius, const cv::Scalar &color)
 {
-	// Convert map coordinates to image coordinates
+	// Convert field coordinates to image coordinates
 	cv::Point image_center = map_to_image(center);
 
-	// Now we can fill the triangle with our specific color
+	// Now we can draw a filled circle
 	cv::circle(image, image_center, radius, color, CV_FILLED, 8);
 }
 
@@ -75,9 +78,7 @@ int main(int argc, char **argv)
     return -1;
   }
 
-	width = 1200;
 	height = width / (field_width / field_height);
-	border = width * .05;
 	inches_per_pixel = field_width / width;
 
 	// Create mat large enough to hold field plus a border
@@ -106,33 +107,36 @@ int main(int argc, char **argv)
 		}
 	}
 
+	// Draw field obstacles
 	for (size_t i = 0; i < (unsigned) xml_obstacles_list.size(); i++) {
 		xml_obstacle = xml_obstacles_list[i];
 		std::string type = xml_obstacle["type"];
 
-		if(type == "triangle")
-		{
-			cv::Point vertices[3];
-			vertices[0] = cv::Point(xml_obstacle["p1"][0], xml_obstacle["p1"][1]);
-			vertices[1] = cv::Point(xml_obstacle["p2"][0], xml_obstacle["p2"][1]);
-			vertices[2] = cv::Point(xml_obstacle["p3"][0], xml_obstacle["p3"][1]);
-
-			drawTriangle(image, vertices, cv::Scalar(0,0,0));
-		}
-		else if(type == "circle")
+		if(type == "circle")
 		{
 			cv::Point center = cv::Point(xml_obstacle["center"][0], xml_obstacle["center"][1]);
-			
 			drawCircle(image, center, xml_obstacle["radius"], cv::Scalar(0,0,0));
 		}
-
+		else if(type == "polygon")
+		{
+			std::vector<cv::Point> points;
+			std::string p = "p";
+			int num_points = xml_obstacle["num_points"];
+			for(int i = 1; i < num_points + 1; ++i)
+			{
+				points.push_back(cv::Point(xml_obstacle[p + std::to_string(i)][0], xml_obstacle[p + std::to_string(i)][1]));
+			}
+			drawPoly(image, points, cv::Scalar(0,0,0));
+		}
   }
 
 	// Calculations for various inputs to stage and map_server
 	double meter_per_pixel = (field_width * .0254) / width;
 	ROS_INFO_STREAM("meters per pixel: " << meter_per_pixel);
 	ROS_INFO_STREAM("width x height: " << meter_per_pixel * image.cols << " " << meter_per_pixel * image.rows);
-	std::cout << "pose " << (meter_per_pixel * image.cols) / 2. - border * meter_per_pixel << " " << (meter_per_pixel * image.rows) / 2. - border * meter_per_pixel << std::endl;
+	ROS_INFO_STREAM("pose " << (meter_per_pixel * image.cols) / 2. - border * meter_per_pixel << " " << (meter_per_pixel * image.rows) / 2. - border * meter_per_pixel);
+
+	// Write and show field image
 	cv::imwrite("2020Field.png", image);
 	cv::imshow("image", image);
 	cv::waitKey(0);
