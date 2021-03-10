@@ -267,7 +267,7 @@ private:
 			return false;
 		}
 
-		if (maxOff <= (var + value))
+		if ((var + value) >= maxOff)
 		{
 			//ROS_INFO_STREAM("hit max");
 			var = maxOff;
