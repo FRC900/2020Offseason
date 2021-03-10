@@ -62,6 +62,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh_;
 
 	XmlRpc::XmlRpcValue xml_obstacles_list, xml_obstacle;
+	std::string imagename;
 
   if (!nh_.getParam("field_dims/width", field_width)) {
     ROS_ERROR("field dimension not specified");
@@ -75,6 +76,11 @@ int main(int argc, char **argv)
 
 	if (!nh_.getParam("obstacles", xml_obstacles_list)) {
     ROS_ERROR("failed to load obstacles");
+    return -1;
+  }
+
+	if (!nh_.getParam("imagename", imagename)) {
+    ROS_ERROR("failed to load image name");
     return -1;
   }
 
@@ -137,7 +143,7 @@ int main(int argc, char **argv)
 	ROS_INFO_STREAM("pose " << (meter_per_pixel * image.cols) / 2. - border * meter_per_pixel << " " << (meter_per_pixel * image.rows) / 2. - border * meter_per_pixel);
 
 	// Write and show field image
-	cv::imwrite("2020Field.png", image);
+	cv::imwrite(imagename, image);
 	cv::imshow("image", image);
 	cv::waitKey(0);
 
