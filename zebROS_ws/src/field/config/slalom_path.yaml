@@ -3,6 +3,5 @@ field_dims:
   height: 180
 
 obstacles:
-  - {type: "circle", center: [150, 60], radius: 20.0}
-  - {type: "circle", center: [240, 120], radius: 20.0}
-  - {type: "circle", center: [300, 60], radius: 20.0}
+  - {type: "polygon", num_points: 3, p1: [120, 120], p2: [150, 120], p3: [150, 60]}
+  - {type: "polygon", num_points: 4, p1: [210, 120], p2: [240, 120], p3: [240, 60], p4: [210, 60]}
