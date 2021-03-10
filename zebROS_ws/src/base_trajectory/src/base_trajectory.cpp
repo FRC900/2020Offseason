@@ -1189,7 +1189,6 @@ bool RPROP(
 				// the results by enough - this will let the code check both
 				// positive and negative directions
 				int deltaCostExitCounter = 0;
-				//while (deltaCost > deltaCostEpsilon)
 				while (deltaCostExitCounter < maxDeltaCostExitCounter)
 				{
 					// Alter one optimization parameter
