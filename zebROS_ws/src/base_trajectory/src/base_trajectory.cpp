@@ -21,7 +21,6 @@
 #include "base_trajectory/opt_params.h"
 #include "spline_util/spline_util.h"
 
-#include <ros/ros.h> //isn't included in this file yet, but not sure if it's in headers or not?
 // Various tuning paramters - will be read as params
 // and exposed as dynamic reconfigure options
 //
@@ -70,9 +69,11 @@ KinematicConstraints kinematicConstraints;
 
 MessageFilter messageFilter(true);
 
-int optimizationCounterMax = 500;
+int optimizationCounterMax;
 
 std::unique_ptr<costmap_2d::Costmap2DROS> costmap;
+
+std::string pathFrameID;
 
 template <class T>
 void printTrajectory(const Trajectory<T> &trajectory, const std::vector<std::string> &jointNames)
@@ -1032,7 +1033,7 @@ void trajectoryToSplineResponseMsg(base_trajectory_msgs::GenerateSpline::Respons
 	}
 	out_msg.path.poses.clear();
 	out_msg.path.header.stamp = ros::Time::now();
-	out_msg.path.header.frame_id = "base_link";
+	out_msg.path.header.frame_id = pathFrameID;
 	typename Segment<T>::State xState;
 	typename Segment<T>::State yState;
 	typename Segment<T>::State rotState;
@@ -1043,7 +1044,7 @@ void trajectoryToSplineResponseMsg(base_trajectory_msgs::GenerateSpline::Respons
 	for (size_t i = 0; i < equalArcLengthTimes.size(); i++)
 	{
 		geometry_msgs::PoseStamped pose;
-		pose.header.frame_id = "base_link";
+		pose.header.frame_id = pathFrameID;
 		// Remapped times is wall-clock time
 		pose.header.stamp = out_msg.path.header.stamp + ros::Duration(remappedTimes[i]);
 		// equalArcLenghtTimes is arbitrary spline time
@@ -1281,6 +1282,47 @@ bool RPROP(
 	return true;
 }
 
+tf2_ros::Buffer            tfBuffer;
+tf2_ros::TransformListener tfListener(tfBuffer);
+
+// Transform the x,y, theta values encoded in positions from
+// a source reference frame (included in fromHeader) to a
+// different destination frame (in toFrame)
+bool transformTrajectoryPoint(std::vector<double> &positions,
+							  const std_msgs::Header &fromHeader,
+							  const std::string &toFrame)
+{
+	if (fromHeader.frame_id.size() == 0)
+		return true;
+
+	geometry_msgs::PoseStamped poseStamped;
+
+	poseStamped.header = fromHeader;
+	poseStamped.pose.position.x = positions[0];
+	poseStamped.pose.position.y = positions[1];
+	poseStamped.pose.position.z = 0;
+	tf2::Quaternion quaternion;
+	quaternion.setRPY(0,0,positions[2]);
+	poseStamped.pose.orientation = tf2::toMsg(quaternion);
+
+	try
+	{
+		poseStamped = tfBuffer.transform(poseStamped, toFrame);
+	}
+	catch(...)
+	{
+		ROS_ERROR_STREAM("base_trajectory : Error transforming from " << fromHeader.frame_id << " to " << toFrame);
+		return false;
+	}
+	positions[0] = poseStamped.pose.position.x;
+	positions[1] = poseStamped.pose.position.y;
+	const tf2::Quaternion poseQuat(poseStamped.pose.orientation.x, poseStamped.pose.orientation.y, poseStamped.pose.orientation.z, poseStamped.pose.orientation.w);
+	double roll;
+	double pitch;
+	tf2::Matrix3x3(poseQuat).getRPY(roll, pitch, positions[2]);
+
+	return true;
+}
 
 // input should be JointTrajectory[] custom message
 // Output wil be array of spline coefficents base_trajectory/Coefs[] for x, y, orientation,
@@ -1377,6 +1419,24 @@ bool callback(base_trajectory_msgs::GenerateSpline::Request &msg,
 		msg.points.back().velocities.push_back(0.);
 	}
 
+	// cases where points are generated relative to other frames, e.g. from camera
+	// data or relative to a fixed map
+	// The second pass optionally applies a transform from a given frame back to base
+	// link. This would be useful if we want a particular point to be relative to a
+	// different part of the robot rather than the center - e.g. moving the intake
+	// over a game piece rather than running it over with the center of the robot
+	for (size_t i = 0; i < msg.points.size(); i++)
+	{
+		if (!transformTrajectoryPoint(msg.points[i].positions, msg.header, pathFrameID))
+			return false;
+		if (i < msg.point_frame_id.size())
+		{
+			std_msgs::Header header = msg.header;
+			msg.header.frame_id = msg.point_frame_id[i];
+			if (!transformTrajectoryPoint(msg.points[i].positions, header, pathFrameID))
+				return false;
+		}
+	}
 
 	ROS_WARN_STREAM(__PRETTY_FUNCTION__ << " : runOptimization = " << runOptimization);
 	kinematicConstraints.resetConstraints();
@@ -1553,12 +1613,11 @@ int main(int argc, char **argv)
 	nh.param("optimization_counter_max", optimizationCounterMax, 500);
 	ddr.registerVariable<int>("optimization_counter_max", &optimizationCounterMax, "Iteration count for breaking out of optimization loop", 0, 500000);
 
+	nh.param("path_frame_id", pathFrameID, std::string("base_link"));
 	ddr.publishServicesTopics();
 	ros::ServiceServer service = nh.advertiseService("base_trajectory/spline_gen", callback);
 
-	tf2_ros::Buffer buffer(ros::Duration(10));
-	tf2_ros::TransformListener tf(buffer);
-	costmap = std::make_unique<costmap_2d::Costmap2DROS>("/costmap", buffer);
+	costmap = std::make_unique<costmap_2d::Costmap2DROS>("/costmap", tfBuffer);
 
 	local_plan_pub = nh.advertise<nav_msgs::Path>("local_plan", 1000, true);
 
