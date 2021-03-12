@@ -59,7 +59,6 @@ double minDeltaCostEpsilon;
 // change is less than the minimum before moving on to the next variable
 int maxDeltaCostExitCounter;
 
-
 // Initial change added to optimization parameter in the RPROP loop
 double initialDParam;
 
@@ -74,6 +73,8 @@ int optimizationCounterMax;
 std::unique_ptr<costmap_2d::Costmap2DROS> costmap;
 
 std::string pathFrameID;
+std::unique_ptr<tf2_ros::Buffer>            tfBuffer;
+std::unique_ptr<tf2_ros::TransformListener> tfListener;
 
 template <class T>
 void printTrajectory(const Trajectory<T> &trajectory, const std::vector<std::string> &jointNames)
@@ -1282,9 +1283,6 @@ bool RPROP(
 	return true;
 }
 
-tf2_ros::Buffer            tfBuffer;
-tf2_ros::TransformListener tfListener(tfBuffer);
-
 // Transform the x,y, theta values encoded in positions from
 // a source reference frame (included in fromHeader) to a
 // different destination frame (in toFrame)
@@ -1297,6 +1295,7 @@ bool transformTrajectoryPoint(std::vector<double> &positions,
 
 	geometry_msgs::PoseStamped poseStamped;
 
+	//ROS_INFO_STREAM("From pose " << positions[0] << ", " << positions[1] << ", " << positions[2] << " in frame " << fromHeader.frame_id);
 	poseStamped.header = fromHeader;
 	poseStamped.pose.position.x = positions[0];
 	poseStamped.pose.position.y = positions[1];
@@ -1307,7 +1306,7 @@ bool transformTrajectoryPoint(std::vector<double> &positions,
 
 	try
 	{
-		poseStamped = tfBuffer.transform(poseStamped, toFrame);
+		poseStamped = tfBuffer->transform(poseStamped, toFrame);
 	}
 	catch(...)
 	{
@@ -1321,6 +1320,7 @@ bool transformTrajectoryPoint(std::vector<double> &positions,
 	double pitch;
 	tf2::Matrix3x3(poseQuat).getRPY(roll, pitch, positions[2]);
 
+	//ROS_INFO_STREAM("To pose " << positions[0] << ", " << positions[1] << ", " << positions[2] << " in frame " << toFrame);
 	return true;
 }
 
@@ -1425,15 +1425,17 @@ bool callback(base_trajectory_msgs::GenerateSpline::Request &msg,
 	// link. This would be useful if we want a particular point to be relative to a
 	// different part of the robot rather than the center - e.g. moving the intake
 	// over a game piece rather than running it over with the center of the robot
-	for (size_t i = 0; i < msg.points.size(); i++)
+	// Note first point should be 0,0,0, don't transform this since the starting
+	// point has to be robot-relative and at the robot's current position
+	std_msgs::Header header = msg.header;
+	header.frame_id = pathFrameID;
+	for (size_t i = 1; i < msg.points.size(); i++)
 	{
 		if (!transformTrajectoryPoint(msg.points[i].positions, msg.header, pathFrameID))
 			return false;
 		if (i < msg.point_frame_id.size())
 		{
-			std_msgs::Header header = msg.header;
-			msg.header.frame_id = msg.point_frame_id[i];
-			if (!transformTrajectoryPoint(msg.points[i].positions, header, pathFrameID))
+			if (!transformTrajectoryPoint(msg.points[i].positions, header, msg.point_frame_id[i]))
 				return false;
 		}
 	}
@@ -1564,6 +1566,9 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "base_trajectory");
 	ros::NodeHandle nh;
 
+	tfBuffer = std::make_unique<tf2_ros::Buffer>();
+	tfListener = std::make_unique<tf2_ros::TransformListener>(*tfBuffer);;
+
 	ddynamic_reconfigure::DDynamicReconfigure ddr;
 	nh.param("seg_length_epsilon", segLengthEpsilon, 1.0e-4);
     ddr.registerVariable<double>("seg_length_epsilon", &segLengthEpsilon, "maximum error for each segment when parameterizing spline arclength", 0, .1);
@@ -1617,7 +1622,7 @@ int main(int argc, char **argv)
 	ddr.publishServicesTopics();
 	ros::ServiceServer service = nh.advertiseService("base_trajectory/spline_gen", callback);
 
-	costmap = std::make_unique<costmap_2d::Costmap2DROS>("/costmap", tfBuffer);
+	costmap = std::make_unique<costmap_2d::Costmap2DROS>("/costmap", *tfBuffer);
 
 	local_plan_pub = nh.advertise<nav_msgs::Path>("local_plan", 1000, true);
 
