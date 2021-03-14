@@ -3,9 +3,14 @@ Newly found bugs:
 
 Possible improvements:
 - WorldModel::init_particle should be implemented and used by ParticleFilter::init
+- map to odom transform
 
 Fixes made:
 - delta_x,y now local and only track change since last motion update
 - unique_ptr for pf in pf_localization_node
 - M_PI in ParticleFilter init
 - const reference in beacon constructor args
+
+new structure change needed:
+- currently is either position OR bearing beacons
+- needs to support both
