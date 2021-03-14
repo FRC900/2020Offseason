@@ -18,6 +18,8 @@ from behavior_actions.srv import resetBallSrv
 import std_msgs.msg
 import roslibpy
 
+import logging
+
 from python_qt_binding import QtCore
 
 class Dashboard(Plugin):
@@ -28,10 +30,14 @@ class Dashboard(Plugin):
 
     msg_data = "default"
     def __init__(self, context):
+        super(Dashboard, self).__init__(context)
+
         #Start client -rosbridge
         self.client = roslibpy.Ros(host='localhost', port=5803)
         self.client.run()
-        super(Dashboard, self).__init__(context)
+
+        self.log = logging.getLogger(__name__)
+
         # Give QObjects reasonable names
         self.setObjectName('Dashboard')
 
@@ -70,34 +76,37 @@ class Dashboard(Plugin):
         # Add buttons for auto modes
         v_layout = self._widget.auto_mode_v_layout #vertical layout storing the buttons
         self.auto_mode_button_group = QButtonGroup(self._widget) # needs to be a member variable so the publisher can access it to see which auto mode was selected
+
+
         # Search for auto_mode config items
-        for i in range(1,100): # loop will exit when can't find the next auto mode, so really only a while loop needed, but exiting at 100 will prevent infinite looping
-            if rospy.has_param("/auto/auto_mode_" + str(i)):
-                auto_sequence = rospy.get_param("/auto/auto_mode_" + str(i))
-               
-                new_auto_mode = QWidget()
-                new_h_layout = QHBoxLayout()
-                new_h_layout.setContentsMargins(0,0,0,0)
+        mode_idx = 0
+        while rospy.has_param("/auto/auto_mode_{0:d}".format(mode_idx + 1)):
+            auto_sequence = rospy.get_param("/auto/auto_mode_" + str(mode_idx + 1))
 
-                new_button = QRadioButton("Mode " + str(i))
-                new_button.setStyleSheet("font-weight: bold") 
-                self.auto_mode_button_group.addButton(new_button, i) #second arg is the button's id
-                new_h_layout.addWidget( new_button )
-                
-                new_h_layout.addWidget( QLabel(", ".join(auto_sequence)) )
+            new_auto_mode = QWidget()
+            new_h_layout = QHBoxLayout()
+            new_h_layout.setContentsMargins(0, 0, 0, 0)
 
-                hSpacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
-                new_h_layout.addItem(hSpacer)
-
-                new_auto_mode.setLayout( new_h_layout )
-                v_layout.addWidget(new_auto_mode)
-            else:
-                print(str(i-1) + " auto modes found.")
-                # if no auto modes found, inform the user with a label
-                if (i-1) == 0:
-                    v_layout.addWidget( QLabel("No auto modes found") )
-                break #break out of for loop searching for auto modes
+            new_button = QRadioButton("Mode " + str(mode_idx + 1))
+            new_button.setStyleSheet("font-weight: bold") 
+            self.auto_mode_button_group.addButton(new_button, mode_idx + 1) #  Second arg is the button's id
+            new_h_layout.addWidget( new_button )
             
+            new_h_layout.addWidget( QLabel(", ".join(auto_sequence)) )
+
+            hSpacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
+            new_h_layout.addItem(hSpacer)
+
+            new_auto_mode.setLayout( new_h_layout )
+            v_layout.addWidget(new_auto_mode)
+
+            mode_idx += 1
+
+        if mode_idx == 0:
+            v_layout.addWidget( QLabel("No auto modes found") )
+        else:
+            self.log.info("Auto modes found: {0:d}".format(mode_idx - 1))
+
         # auto state stuff
         self.autoState = 0
         self.displayAutoState() #display initial auto state
