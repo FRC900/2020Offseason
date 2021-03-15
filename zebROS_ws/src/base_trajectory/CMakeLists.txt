@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   spline_util
   std_msgs
+  math
 )
 
 list(FILTER catkin_LIBRARIES EXCLUDE REGEX ".*libjoint_trajectory_controller.so.*")
@@ -107,16 +108,19 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node src/base_trajectory.cpp src/matlab_printer.cpp src/kinematic_constraints.cpp)
+add_executable(galactic_path_server src/galactic_path_gen.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
+add_dependencies(point_ordering_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   ${GPERFTOOLS_LIBRARIES}
 )
+
+target_link_libraries(galactic_path_server ${catkin_LIBRARIES})
 
 #############
 ## Install ##

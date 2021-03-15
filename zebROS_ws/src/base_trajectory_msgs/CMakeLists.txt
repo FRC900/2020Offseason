@@ -58,6 +58,7 @@ add_message_files(
 add_service_files(
    FILES
    GenerateSpline.srv
+   GalacticPathGen.srv
 )
 
 ## Generate actions in the 'action' folder
