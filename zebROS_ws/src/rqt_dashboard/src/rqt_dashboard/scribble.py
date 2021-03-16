@@ -59,10 +59,16 @@ class ScribbleArea(QWidget):
         self.myPenWidth = 5
         self.myPenColor = Qt.blue
         self.image = QImage()
+        self.current_image = None
         self.lastPoint = QPoint()
+        self.enable_drawing = True
         self.coords = list()
 
     def openImage(self, fileName):
+
+        if fileName is None:
+            return False
+
         self.coords = list()
         loadedImage = QImage()
         if not loadedImage.load(fileName):
@@ -76,10 +82,17 @@ class ScribbleArea(QWidget):
         # Set new fixed size based on the loaded image.
         self.setFixedWidth(loadedImage.width())
         self.setFixedHeight(loadedImage.height())
+        self.current_image = fileName
 
         self.update()
         return True
 
+    def enableDrawing(self, enable):
+        self.enable_drawing = enable
+        if not enable:
+            self.clearImage()
+            self.openImage(self.current_image)
+    
     def saveImage(self, fileName, fileFormat):
         visibleImage = self.image
         self.resizeImage(visibleImage, self.size())
@@ -96,13 +109,21 @@ class ScribbleArea(QWidget):
     def setPenWidth(self, newWidth):
         self.myPenWidth = newWidth
 
+    def unsetImage(self):
+        self.current_image = None
+
     def clearImage(self):
         self.coords = list()
         self.image.fill(qRgb(255, 255, 255))
         self.modified = True
+        # self.current_image = None
         self.update()
 
     def mousePressEvent(self, event):
+
+        if not self.enable_drawing:
+            return
+
         if event.button() == Qt.LeftButton:
             self.scribbling = True
             self.drawPoint(event.pos())
@@ -115,10 +136,18 @@ class ScribbleArea(QWidget):
 
 
     def mouseMoveEvent(self, event):
+
+        if not self.enable_drawing:
+            return
+
         if (event.buttons() & Qt.LeftButton) and self.scribbling:
             self.drawLineTo(event.pos())
 
     def mouseReleaseEvent(self, event):
+
+        if not self.enable_drawing:
+            return
+
         if event.button() == Qt.LeftButton and self.scribbling:
             self.drawLineTo(event.pos())
             self.scribbling = False
