@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="images">
+    <file>slalom_path.png</file>
+    <file>barrel_path.png</file>
     <file>0_balls.png</file>
     <file>1_ball.png</file>
     <file>2_balls.png</file>
@@ -7,7 +9,7 @@
     <file>4_balls.png</file>
     <file>5_balls.png</file>
     <file>more_than_5_balls.png</file>
-	<file>GreenTarget.png</file>
-	<file>RedTarget.png</file>
+    <file>GreenTarget.png</file>
+    <file>RedTarget.png</file>
   </qresource>
 </RCC>
