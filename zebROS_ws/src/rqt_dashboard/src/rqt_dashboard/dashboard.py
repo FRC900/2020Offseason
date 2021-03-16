@@ -19,6 +19,7 @@ import std_msgs.msg
 import roslibpy
 
 import logging
+import scribble
 
 from python_qt_binding import QtCore
 
@@ -56,12 +57,17 @@ class Dashboard(Plugin):
         # Create QWidget
         self._widget = QWidget()
         # Get path to UI file which should be in the "resource" folder of this package
-        ui_file = os.path.join(rospkg.RosPack().get_path('rqt_dashboard'), 'resource', 'Dashboard.ui')
+        ui_file = os.path.join(rospkg.RosPack().get_path('rqt_dashboard'), 'resource', 'DashboardAtHome.ui')
         # Extend the widget with all attributes and children from UI file
         loadUi(ui_file, self._widget)
         # Give QObjects reasonable names
         self._widget.setObjectName('DashboardUi')
 
+
+        self.draw_pad = scribble.ScribbleArea()
+        self._widget.verticalLayout_7.insertWidget(0, self.draw_pad)
+
+        # print(self._widget.field_widget.parent().objectName())self._widget.verticalLayout_7
 
         # Set up signal-slot connections
         self._widget.set_imu_angle_button.clicked.connect(self.setImuAngle)

@@ -56,10 +56,11 @@ class ScribbleArea(QWidget):
         self.setAttribute(Qt.WA_StaticContents)
         self.modified = False
         self.scribbling = False
-        self.myPenWidth = 1
+        self.myPenWidth = 5
         self.myPenColor = Qt.blue
         self.image = QImage()
         self.lastPoint = QPoint()
+        self.coords = list()
 
     def openImage(self, fileName):
         loadedImage = QImage()
@@ -90,14 +91,22 @@ class ScribbleArea(QWidget):
         self.myPenWidth = newWidth
 
     def clearImage(self):
+        self.coords.clear()
         self.image.fill(qRgb(255, 255, 255))
         self.modified = True
         self.update()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self.lastPoint = event.pos()
             self.scribbling = True
+            self.drawPoint(event.pos())
+
+            if self.coords:
+                self.drawLineTo(event.pos())
+
+            self.coords.append(event.pos())
+            self.lastPoint = event.pos()
+
 
     def mouseMoveEvent(self, event):
         if (event.buttons() & Qt.LeftButton) and self.scribbling:
@@ -121,6 +130,17 @@ class ScribbleArea(QWidget):
             self.update()
 
         super(ScribbleArea, self).resizeEvent(event)
+
+    def drawPoint(self, point):
+        painter = QPainter(self.image)
+        painter.setPen(QPen(self.myPenColor, self.myPenWidth, Qt.SolidLine,
+                Qt.RoundCap, Qt.RoundJoin))
+        painter.drawPoint(point)
+        self.modified = True
+
+        rad = self.myPenWidth / 2 + 2
+        self.update(QRect(self.lastPoint, point).normalized().adjusted(-rad, -rad, +rad, +rad))
+        # self.lastPoint = QPoint(point)
 
     def drawLineTo(self, endPoint):
         painter = QPainter(self.image)
