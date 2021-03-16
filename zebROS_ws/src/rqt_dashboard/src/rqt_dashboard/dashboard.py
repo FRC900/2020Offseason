@@ -23,6 +23,11 @@ import scribble
 
 from python_qt_binding import QtCore
 
+# PATH_COMBOBOX_INFO = 
+# {
+#     0: 'Galactic '
+# }
+
 class Dashboard(Plugin):
     autoStateSignal = QtCore.pyqtSignal(int)
     nBallsSignal = QtCore.pyqtSignal(int)
@@ -78,6 +83,8 @@ class Dashboard(Plugin):
         
         self._widget.ball_reset_button.clicked.connect(self.resetBallCount)
         self._widget.ball_reset_count.valueChanged.connect(self.resetBallChanged)
+
+        self._widget.path_combobox.currentIndexChanged.connect(self.set_path_plan)
         
         # Add buttons for auto modes
         v_layout = self._widget.auto_mode_v_layout #vertical layout storing the buttons
@@ -166,6 +173,26 @@ class Dashboard(Plugin):
         self.nBallsSignal.connect(self.nBallsSlot)
         self.shooterInRangeSignal.connect(self.shooterInRangeSlot)
         self.turretInRangeSignal.connect(self.turretInRangeSlot)
+
+
+    def set_path_plan(self, idx):
+        print(idx)
+
+        path_text = self._widget.path_combobox.currentText()
+        if path_text == 'Galactic Search':
+            print('Galactic Search')
+            self.draw_pad.clearImage()
+        elif path_text == 'Barrel Racing Path':
+            img_load = self.draw_pad.openImage(":/images/barrel_path.png")
+            print('Image loaded: {0:s}'.format('True' if img_load else 'False'))
+        elif path_text == 'Slalom Path':
+            self.draw_pad.openImage(":/images/slalom_path.png")
+        elif path_text == 'Bounce Path':
+            self.draw_pad.clearImage()
+        else:
+            self.draw_pad.clearImage()
+
+
 
 
     def autoStateCallback(self, msg):

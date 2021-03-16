@@ -63,6 +63,7 @@ class ScribbleArea(QWidget):
         self.coords = list()
 
     def openImage(self, fileName):
+        self.coords = list()
         loadedImage = QImage()
         if not loadedImage.load(fileName):
             return False
@@ -71,6 +72,11 @@ class ScribbleArea(QWidget):
         self.resizeImage(loadedImage, newSize)
         self.image = loadedImage
         self.modified = False
+
+        # Set new fixed size based on the loaded image.
+        self.setFixedWidth(loadedImage.width())
+        self.setFixedHeight(loadedImage.height())
+
         self.update()
         return True
 
@@ -91,7 +97,7 @@ class ScribbleArea(QWidget):
         self.myPenWidth = newWidth
 
     def clearImage(self):
-        self.coords.clear()
+        self.coords = list()
         self.image.fill(qRgb(255, 255, 255))
         self.modified = True
         self.update()
