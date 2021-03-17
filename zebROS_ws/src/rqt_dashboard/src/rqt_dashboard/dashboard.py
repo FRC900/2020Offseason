@@ -21,19 +21,22 @@ import os
 
 import logging
 import scribble
+import json
 
 from python_qt_binding import QtCore
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 MAP_PATH = os.path.abspath(os.path.join(FILE_DIR, '..', '..', 'resource', 'maps'))
 # print('Map path: {0:s}'.format(MAP_PATH))
-MAP_IMG_DICT = {
-    'Galactic Search': None,
-    'Barrel Racing Path': os.path.join(MAP_PATH, 'barrel_path.png'),
-    'Slalom Path': os.path.join(MAP_PATH, 'slalom_path.png'),
-    'Bounce Path': os.path.join(MAP_PATH, 'bounce_path.png'),
-    'Lightspeed Circuit': os.path.join(MAP_PATH, 'lightspeed_circuit_path.png')
-}
+
+MAP_CONFIGURATION = os.path.join(FILE_DIR, 'map_cfg.json')
+# MAP_IMG_DICT = {
+#     'Galactic Search': None,
+#     'Barrel Racing Path': os.path.join(MAP_PATH, 'barrel_path.png'),
+#     'Slalom Path': os.path.join(MAP_PATH, 'slalom_path.png'),
+#     'Bounce Path': os.path.join(MAP_PATH, 'bounce_path.png'),
+#     'Lightspeed Circuit': os.path.join(MAP_PATH, 'lightspeed_circuit_path.png')
+# }
 
 class Dashboard(Plugin):
     autoStateSignal = QtCore.pyqtSignal(int)
@@ -60,9 +63,7 @@ class Dashboard(Plugin):
         from argparse import ArgumentParser
         parser = ArgumentParser()
         # Add argument(s) to the parser.
-        parser.add_argument("-q", "--quiet", action="store_true",
-                      dest="quiet",
-                      help="Put plugin in silent mode")
+        parser.add_argument("-q", "--quiet", action="store_true", dest="quiet", help="Put plugin in silent mode")
         args, unknowns = parser.parse_known_args(context.argv())
         # if not args.quiet:
         #     print 'arguments: ', args
@@ -81,7 +82,14 @@ class Dashboard(Plugin):
         self.draw_pad = scribble.ScribbleArea()
         self._widget.verticalLayout_7.insertWidget(0, self.draw_pad)
 
-        # print(self._widget.field_widget.parent().objectName())self._widget.verticalLayout_7
+        # Load the map configurations
+        with open(MAP_CONFIGURATION, 'r') as f:
+            self.map_cfg = json.load(f)
+        
+        for path_name, map_cfg_path in self.map_cfg.items():
+            if map_cfg_path:
+                self.map_cfg[path_name] = os.path.join(MAP_PATH, map_cfg_path)
+
 
         # Set up signal-slot connections
         self._widget.set_imu_angle_button.clicked.connect(self.setImuAngle)
@@ -193,9 +201,9 @@ class Dashboard(Plugin):
 
     def set_path_plan(self, idx):
         path_text = self._widget.path_combobox.currentText()
-        map_path = MAP_IMG_DICT[path_text]
+        map_path = self.map_cfg[path_text]
 
-        if map_path is None:
+        if not map_path:
             rospy.loginfo('No map specified for path: {0:s}. Clearing draw area'.format(path_text))
             self.draw_pad.clearImage()
             self.draw_pad.unsetImage()
