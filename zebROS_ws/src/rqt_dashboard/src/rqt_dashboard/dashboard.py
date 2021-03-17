@@ -35,6 +35,15 @@ NOT_IN_RANGE_IMG = QPixmap(":/images/RedTarget.png")
 RED_STYLE = "background-color:#ff0000;"
 GREEN_STYLE = "background-color:#5eff00;"
 
+BALL_IMG_0 = QPixmap(":/images/0_balls.png")
+BALL_IMG_1 = QPixmap(":/images/1_ball.png")
+BALL_IMG_2 = QPixmap(":/images/2_balls.png")
+BALL_IMG_3 = QPixmap(":/images/3_balls.png")
+BALL_IMG_4 = QPixmap(":/images/4_balls.png")
+BALL_IMG_5 = QPixmap(":/images/5_balls.png")
+BALL_IMG_5PLUS = QPixmap(":/images/more_than_5_balls.png")
+
+
 class Dashboard(Plugin):
     autoStateSignal = QtCore.pyqtSignal(int)
     nBallsSignal = QtCore.pyqtSignal(int)
@@ -144,14 +153,6 @@ class Dashboard(Plugin):
         publish_thread = Thread(target=self.publish_thread) #args=(self,))
         publish_thread.start()
 
-        # number balls display
-        self.zero_balls = QPixmap(":/images/0_balls.png")
-        self.one_ball = QPixmap(":/images/1_ball.png")
-        self.two_balls = QPixmap(":/images/2_balls.png")
-        self.three_balls = QPixmap(":/images/3_balls.png")
-        self.four_balls = QPixmap(":/images/4_balls.png")
-        self.five_balls = QPixmap(":/images/5_balls.png")
-        self.more_than_five_balls = QPixmap(":/images/more_than_5_balls.png")
         
         self.n_balls = -1 #don't know n balls at first 
 
@@ -262,26 +263,29 @@ class Dashboard(Plugin):
         self.nBallsSignal.emit(int(msg['data']))
 
     def nBallsSlot(self, state):
-        if(self.n_balls != state):
-            self.n_balls = state
-            display = self._widget.n_balls_display
-            
-            if state == 0:
-                display.setPixmap(self.zero_balls)
-            elif state == 1:
-                display.setPixmap(self.one_ball)
-            elif state == 2:
-                display.setPixmap(self.two_balls)
-            elif state == 3:
-                display.setPixmap(self.three_balls)
-            elif state == 4:
-                display.setPixmap(self.four_balls)
-            elif state == 5:
-                display.setPixmap(self.five_balls)
-            elif state > 5:
-                display.setPixmap(self.more_than_five_balls)
-            else:
-                display.setText("Couldn't read # balls")
+        
+        if self.n_balls == state:
+            return
+        
+        self.n_balls = state
+        display = self._widget.n_balls_display
+        
+        if state == 0:
+            display.setPixmap(BALL_IMG_0)
+        elif state == 1:
+            display.setPixmap(BALL_IMG_1)
+        elif state == 2:
+            display.setPixmap(BALL_IMG_2)
+        elif state == 3:
+            display.setPixmap(BALL_IMG_3)
+        elif state == 4:
+            display.setPixmap(BALL_IMG_4)
+        elif state == 5:
+            display.setPixmap(BALL_IMG_5)
+        elif state > 5:
+            display.setPixmap(BALL_IMG_5PLUS)
+        else:
+            display.setText("Couldn't read # balls")
 
     def shooterInRangeCallback(self, msg):
         self.shooterInRangeSignal.emit(bool(msg['data']))
@@ -392,6 +396,8 @@ class Dashboard(Plugin):
 
 
     def shutdown_plugin(self):
+
+        rospy.loginfo('Begin shutdown sequence')
 
         if self.auto_state_sub is not None:
             self.auto_state_sub.unregister()
