@@ -133,7 +133,9 @@ class ScribbleArea(QWidget):
 
         if event.button() == Qt.LeftButton:
             self.scribbling = True
-            self.drawPoint(event.pos())
+            drawSuccess = self.drawPoint(event.pos())
+            if not drawSuccess:
+                return
 
             if self.coords:
                 self.drawLineTo(event.pos())
@@ -142,23 +144,6 @@ class ScribbleArea(QWidget):
             self.coords.append((coordinate.x(), coordinate.y()))
             self.lastPoint = event.pos()
 
-
-    def mouseMoveEvent(self, event):
-
-        if not self.enable_drawing:
-            return
-
-        if (event.buttons() & Qt.LeftButton) and self.scribbling:
-            self.drawLineTo(event.pos())
-
-    def mouseReleaseEvent(self, event):
-
-        if not self.enable_drawing:
-            return
-
-        if event.button() == Qt.LeftButton and self.scribbling:
-            self.drawLineTo(event.pos())
-            self.scribbling = False
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -176,24 +161,38 @@ class ScribbleArea(QWidget):
 
     def drawPoint(self, point):
         painter = QPainter(self.image)
-        painter.setPen(QPen(self.myPenColor, self.myPenWidth, Qt.SolidLine,
+
+        # Don't paint anything if the image is showing black.
+        img_rgb = self.image.pixel(point)
+        # print('{0:X} -> {1:d}'.format(img_rgb, img_rgb & 0x00FFFFFF))
+        if img_rgb & 0x00FFFFFF == 0:
+            return False
+
+        painter.setPen(QPen(Qt.blue, self.myPenWidth, Qt.SolidLine,
                 Qt.RoundCap, Qt.RoundJoin))
+        
+        painter.setRenderHint(QPainter.Antialiasing, True)
         painter.drawPoint(point)
+
+
         self.modified = True
 
         rad = self.myPenWidth / 2 + 2
-        self.update(QRect(self.lastPoint, point).normalized().adjusted(-rad, -rad, +rad, +rad))
+        self.update()
+        # self.update(QRect(self.lastPoint, point).normalized().adjusted(-rad, -rad, +rad, +rad))
         # self.lastPoint = QPoint(point)
+        return True
 
     def drawLineTo(self, endPoint):
         painter = QPainter(self.image)
-        painter.setPen(QPen(self.myPenColor, self.myPenWidth, Qt.SolidLine,
+        painter.setPen(QPen(Qt.blue, self.myPenWidth, Qt.SolidLine,
                 Qt.RoundCap, Qt.RoundJoin))
         painter.drawLine(self.lastPoint, endPoint)
         self.modified = True
 
         rad = self.myPenWidth / 2 + 2
-        self.update(QRect(self.lastPoint, endPoint).normalized().adjusted(-rad, -rad, +rad, +rad))
+        self.update()
+        # self.update(QRect(self.lastPoint, endPoint).normalized().adjusted(-rad, -rad, +rad, +rad))
         self.lastPoint = QPoint(endPoint)
 
     def resizeImage(self, image, newSize):
