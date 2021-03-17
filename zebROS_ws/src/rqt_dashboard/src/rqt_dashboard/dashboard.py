@@ -17,16 +17,23 @@ from imu_zero.srv import ImuZeroAngle
 from behavior_actions.srv import resetBallSrv
 import std_msgs.msg
 import roslibpy
+import os
 
 import logging
 import scribble
 
 from python_qt_binding import QtCore
 
-# PATH_COMBOBOX_INFO = 
-# {
-#     0: 'Galactic '
-# }
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+MAP_PATH = os.path.abspath(os.path.join(FILE_DIR, '..', '..', 'resource', 'maps'))
+# print('Map path: {0:s}'.format(MAP_PATH))
+MAP_IMG_DICT = {
+    'Galactic Search': None,
+    'Barrel Racing Path': os.path.join(MAP_PATH, 'barrel_path.png'),
+    'Slalom Path': os.path.join(MAP_PATH, 'slalom_path.png'),
+    'Bounce Path': os.path.join(MAP_PATH, 'bounce_path.png'),
+    'Lightspeed Circuit': os.path.join(MAP_PATH, 'lightspeed_circuit_path.png')
+}
 
 class Dashboard(Plugin):
     autoStateSignal = QtCore.pyqtSignal(int)
@@ -38,11 +45,13 @@ class Dashboard(Plugin):
     def __init__(self, context):
         super(Dashboard, self).__init__(context)
 
+        rospy.loginfo('Starting the Dashboard. Welcome :)')
+
         #Start client -rosbridge
         self.client = roslibpy.Ros(host='localhost', port=5803)
         self.client.run()
 
-        self.log = logging.getLogger(__name__)
+        # self.log = logging.getLogger(__name__)
 
         # Give QObjects reasonable names
         self.setObjectName('Dashboard')
@@ -55,9 +64,9 @@ class Dashboard(Plugin):
                       dest="quiet",
                       help="Put plugin in silent mode")
         args, unknowns = parser.parse_known_args(context.argv())
-        if not args.quiet:
-            print 'arguments: ', args
-            print 'unknowns: ', unknowns
+        # if not args.quiet:
+        #     print 'arguments: ', args
+        #     print 'unknowns: ', unknowns
 
         # Create QWidget
         self._widget = QWidget()
@@ -119,7 +128,7 @@ class Dashboard(Plugin):
         if mode_idx == 0:
             v_layout.addWidget( QLabel("No auto modes found") )
         else:
-            self.log.info("Auto modes found: {0:d}".format(mode_idx - 1))
+            rospy.loginfo("Auto modes found: {0:d}".format(mode_idx - 1))
 
         # auto state stuff
         self.autoState = 0
@@ -176,27 +185,31 @@ class Dashboard(Plugin):
         self.turretInRangeSignal.connect(self.turretInRangeSlot)
 
         self.draw_pad.enableDrawing(False)
+        rospy.loginfo('Dashboard loaded')
 
 
     def set_path_plan(self, idx):
-        print(idx)
-
         path_text = self._widget.path_combobox.currentText()
-        if path_text == 'Galactic Search':
-            print('Galactic Search')
+        map_path = MAP_IMG_DICT[path_text]
+
+        if map_path is None:
+            rospy.loginfo('No map specified for path: {0:s}. Clearing draw area'.format(path_text))
             self.draw_pad.clearImage()
             self.draw_pad.unsetImage()
-        elif path_text == 'Barrel Racing Path':
-            img_load = self.draw_pad.openImage(":/images/barrel_path.png")
-            print('Image loaded: {0:s}'.format('True' if img_load else 'False'))
-        elif path_text == 'Slalom Path':
-            self.draw_pad.openImage(":/images/slalom_path.png")
-        elif path_text == 'Bounce Path':
+            return
+
+        if not os.path.exists(map_path):
+            rospy.loginfo('Unable to find map: {1:s} for path: {0:s}. Clearing draw area'.format(path_text, map_path))
             self.draw_pad.clearImage()
             self.draw_pad.unsetImage()
+            return
+
+        img_load = self.draw_pad.openImage(map_path)
+        if img_load:
+            rospy.loginfo('Successfully loaded map for path: {0:s}. Map file: {1:s}'.format(path_text, map_path))
         else:
-            self.draw_pad.clearImage()
-            self.draw_pad.unsetImage()
+            rospy.loginfo('Unable to load map image for path: {0:s} Map file: {1:s}'.format(path_text, map_path))
+
 
 
     def teleop_box_checked(self, state):
