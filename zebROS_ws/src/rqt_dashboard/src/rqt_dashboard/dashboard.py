@@ -48,8 +48,6 @@ class Dashboard(Plugin):
         self.client = roslibpy.Ros(host='localhost', port=5803)
         self.client.run()
 
-        # self.log = logging.getLogger(__name__)
-
         # Give QObjects reasonable names
         self.setObjectName('Dashboard')
 
@@ -305,51 +303,46 @@ class Dashboard(Plugin):
 
 
     def setImuAngle(self):
-        print("setting imu")
-        #self.lock.acquire()
+
         angle = self._widget.imu_angle.value() # imu_angle is the text field (doublespinbox) that the user can edit to change the navx angle, defaulting to zero
-        
-        # call the service
+        rospy.loginfo("Set IMU angle: {0:0.1f}".format(angle))
+
         try:
             service = roslibpy.Service(self.client,'/imu/set_imu_zero',ImuZeroAngle)
-           # rospy.wait_for_service("/imu/set_imu_zero", 1) # timeout in sec, TODO maybe put in config file?
-            #TODO remove print
+
             #Service Request-rosbridge
             request = roslibpy.ServiceRequest()
             result = service.call(request)
-            #result(angle)
+
             # change button to green color to indicate that the service call went through
             self._widget.set_imu_angle_button.setStyleSheet("background-color:#5eff00;")
 
         except (rospy.ServiceException, rospy.ROSException) as e: # the second exception happens if the wait for service times out
             self.errorPopup("Imu Set Angle Error", e)
-        #self.lock.release()
-        print("finished setting imu")
+
+        rospy.loginfo("Finished setting imu")
+
 
     def imuAngleChanged(self):
-        #self.lock.acquire()
         # change button to red color if someone fiddled with the angle input, to indicate that input wasn't set yet
-        self._widget.set_imu_angle_button
         self._widget.set_imu_angle_button.setStyleSheet("background-color:#ff0000;")
-        #self.lock.release()
 
 
     def setAutoWallDist(self):
-        print("setting auto wall distance")
-        #self.lock.acquire()
         distance = self._widget.auto_wall_dist.value()
-        
+        rospy.loginfo("Set auto wall distance: {0:0.2f}".format(distance))
         self._widget.auto_wall_dist_button.setStyleSheet("background-color:#5eff00;")
 
-        print("finished setting auto wall distance")
+        rospy.loginfo("Finished setting auto wall distance")
+
 
     def autoWallDistChanged(self):
         self._widget.auto_wall_dist_button.setStyleSheet("background-color:#ff0000;")
     
+
     def resetBallCount(self):
-        print("manually reset ball count")
-        #self.lock.acquire()
         nballs = self._widget.ball_reset_count.value() 
+        rospy.loginfo("Manually reset ball count: {0:d} balls".format(nballs))
         
         # call the service
         try:
@@ -361,8 +354,9 @@ class Dashboard(Plugin):
 
         except (rospy.ServiceException, rospy.ROSException) as e: # the second exception happens if the wait for service times out
             self.errorPopup("Reset ball count Error", e)
-        #self.lock.release()
-        print("finished resetting ball count")
+
+        rospy.loginfo("Finished resetting ball count")
+
 
     def resetBallChanged(self):
         self._widget.ball_reset_button.setStyleSheet("background-color:#ff0000;")
@@ -375,11 +369,14 @@ class Dashboard(Plugin):
         msg_box.setText("%s"%e)
         msg_box.exec_()
 
+        rospy.logerror(e)
+
+
     #Publisher -> fake Auto States
     def publish_thread(self):
 
         pub = roslibpy.Topic(self.client, '/auto/auto_mode', 'behavior_actions/AutoMode')
-        r = rospy.Rate(10) # 10hz
+        r = rospy.Rate(10) # 10 Hz
         pub.advertise()
         while self.client.is_connected:
 
@@ -389,6 +386,7 @@ class Dashboard(Plugin):
                 }
             ))
             r.sleep()
+
 
     def shutdown_plugin(self):
 
@@ -405,6 +403,8 @@ class Dashboard(Plugin):
             self.turret_in_range_sub.unregister()
         
         self.client.close()
+
+        rospy.loginfo('All done shutting down. Bye!')
 
 
     def save_settings(self, plugin_settings, instance_settings):
