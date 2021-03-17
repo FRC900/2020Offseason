@@ -27,16 +27,10 @@ from python_qt_binding import QtCore
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 MAP_PATH = os.path.abspath(os.path.join(FILE_DIR, '..', '..', 'resource', 'maps'))
-# print('Map path: {0:s}'.format(MAP_PATH))
-
 MAP_CONFIGURATION = os.path.join(FILE_DIR, 'map_cfg.json')
-# MAP_IMG_DICT = {
-#     'Galactic Search': None,
-#     'Barrel Racing Path': os.path.join(MAP_PATH, 'barrel_path.png'),
-#     'Slalom Path': os.path.join(MAP_PATH, 'slalom_path.png'),
-#     'Bounce Path': os.path.join(MAP_PATH, 'bounce_path.png'),
-#     'Lightspeed Circuit': os.path.join(MAP_PATH, 'lightspeed_circuit_path.png')
-# }
+
+IN_RANGE_IMG = QPixmap(":/images/GreenTarget.png")
+NOT_IN_RANGE_IMG = QPixmap(":/images/RedTarget.png")
 
 class Dashboard(Plugin):
     autoStateSignal = QtCore.pyqtSignal(int)
@@ -163,9 +157,7 @@ class Dashboard(Plugin):
         #in range stuff
         self.shooter_in_range = False
         self.turret_in_range = False
-        self.in_range_pixmap = QPixmap(":/images/GreenTarget.png")
-        self.not_in_range_pixmap = QPixmap(":/images/RedTarget.png")
-        self._widget.in_range_display.setPixmap(self.not_in_range_pixmap)
+        self._widget.in_range_display.setPixmap(NOT_IN_RANGE_IMG)
 
         # Show _widget.windowTitle on left-top of each plugin (when 
         # it's set in _widget). This is useful when you open multiple 
@@ -307,9 +299,9 @@ class Dashboard(Plugin):
     def updateInRange(self):
         display = self._widget.in_range_display
         if(self.shooter_in_range and self.turret_in_range):
-            display.setPixmap(self.in_range_pixmap)
+            display.setPixmap(IN_RANGE_IMG)
         else:
-            display.setPixmap(self.not_in_range_pixmap)
+            display.setPixmap(NOT_IN_RANGE_IMG)
 
 
     def setImuAngle(self):
