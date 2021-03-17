@@ -74,6 +74,8 @@ class ScribbleArea(QWidget):
         if not loadedImage.load(fileName):
             return False
 
+        loadedImage = loadedImage.convertToFormat(QImage.Format_RGB32)
+
         newSize = loadedImage.size().expandedTo(self.size())
         self.resizeImage(loadedImage, newSize)
         self.image = loadedImage
