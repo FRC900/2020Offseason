@@ -11,6 +11,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <behavior_actions/IntakeAction.h>
 #include <behavior_actions/ShooterAction.h>
+#include <behavior_actions/DynamicPath.h>
 #include <path_follower_msgs/PathAction.h>
 
 #include <thread>
@@ -41,7 +42,6 @@ std::map<std::string, nav_msgs::Path> premade_paths;
 
 ros::ServiceClient spline_gen_cli_;
 
-
 //FUNCTIONS -------
 
 //server callback for stop autonomous execution
@@ -63,7 +63,6 @@ void matchDataCallback(const frc_msgs::MatchSpecificData::ConstPtr& msg)
 	}
 }
 
-
 //subscriber callback for dashboard data
 void updateAutoMode(const behavior_actions::AutoMode::ConstPtr& msg)
 {
@@ -74,6 +73,12 @@ void updateAutoMode(const behavior_actions::AutoMode::ConstPtr& msg)
 void enable_auto_in_teleop(const std_msgs::Bool::ConstPtr& msg)
 {
 	enable_teleop = msg->data;
+}
+
+bool dynamic_path_storage(behavior_actions::DynamicPath::Request &req, behavior_actions::DynamicPath::Response &res)
+{
+	premade_paths[req.path_name] = req.dynamic_path;
+	return true;
 }
 
 void doPublishAutostate(ros::Publisher &state_pub)
@@ -358,6 +363,9 @@ int main(int argc, char** argv)
 	ros::Subscriber auto_mode_sub = nh.subscribe("auto_mode", 1, updateAutoMode); //TODO get correct topic name (namespace)
 	ros::Subscriber enable_auto_in_teleop_sub = nh.subscribe("/enable_auto_in_teleop", 1, enable_auto_in_teleop);
 
+	//
+	ros::ServiceServer path_finder = nh.advertiseService("dynamic_path", dynamic_path_storage);
+
 	//auto state
 	auto_state_pub_thread = std::thread(publishAutoState, std::ref(nh));
 
@@ -465,8 +473,8 @@ int main(int argc, char** argv)
 			else if(action_data["type"] == "shooter_actionlib_server")
 			{
 				if(!shooter_ac.waitForServer(ros::Duration(5))){
-					shutdownNode(ERROR, "Auto node - couldn't find shooter actionlib server");
 					return 1;
+					shutdownNode(ERROR, "Auto node - couldn't find shooter actionlib server");
 				} //for some reason this is necessary, even if the server has been up and running for a while
 				behavior_actions::ShooterGoal goal;
 				goal.mode = 0;
@@ -479,13 +487,19 @@ int main(int argc, char** argv)
 					shutdownNode(ERROR, "Couldn't find path server");
 					return 1;
 				}
-				path_follower_msgs::PathGoal goal;
-				if (premade_paths.find(auto_steps[i]) == premade_paths.end()) {
-					shutdownNode(ERROR, "Can't find premade path " + std::string(auto_steps[i]));
+				int iteration_value = action_data["goal"]["iterations"];
+
+				while(iteration_value > 0)
+				{
+					path_follower_msgs::PathGoal goal;
+					if (premade_paths.find(auto_steps[i]) == premade_paths.end()) {
+						shutdownNode(ERROR, "Can't find premade path " + std::string(auto_steps[i]));
+					}
+					goal.path = premade_paths[auto_steps[i]];
+					path_ac.sendGoal(goal);
+					waitForActionlibServer(path_ac, 100, "running path");
+					iteration_value --;
 				}
-				goal.path = premade_paths[auto_steps[i]];
-				path_ac.sendGoal(goal);
-				waitForActionlibServer(path_ac, 100, "running path");
 			}
 			else
 			{
