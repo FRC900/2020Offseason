@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES
+
 #include "particle_filter.hpp"
 #include "world_model.hpp"
 #include <random>
@@ -5,7 +7,6 @@
 #include <utility>
 #include <cmath>
 
-#define _USE_MATH_DEFINES
 
 ParticleFilter::ParticleFilter(const WorldModel& w,
                                double x_min, double x_max, double y_min, double y_max,

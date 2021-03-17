@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES
+
 #include "world_model.hpp"
 #include <cmath>
 #include <utility>
@@ -7,8 +9,6 @@
 #include <string>
 
 #include <ros/ros.h>
-
-#define _USE_MATH_DEFINES
 
 
 WorldModel::WorldModel(const std::vector<Beacon>& beacons,
