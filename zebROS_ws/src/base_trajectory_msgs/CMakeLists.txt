@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   std_msgs
   trajectory_msgs
+  field_obj
 )
 
 ## System dependencies are found with CMake's conventions
@@ -75,6 +76,7 @@ generate_messages(
    nav_msgs
    std_msgs
    trajectory_msgs
+   field_obj
 )
 
 ## Generate messages in the 'msg' folder

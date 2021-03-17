@@ -1,5 +1,4 @@
 field_obj/Detection detection
-Constraint[]        constraints
 ---
 Coefs[]             orient_coefs
 Coefs[]             x_coefs
