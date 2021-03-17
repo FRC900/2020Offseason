@@ -32,6 +32,9 @@ MAP_CONFIGURATION = os.path.join(FILE_DIR, 'map_cfg.json')
 IN_RANGE_IMG = QPixmap(":/images/GreenTarget.png")
 NOT_IN_RANGE_IMG = QPixmap(":/images/RedTarget.png")
 
+RED_STYLE = "background-color:#ff0000;"
+GREEN_STYLE = "background-color:#5eff00;"
+
 class Dashboard(Plugin):
     autoStateSignal = QtCore.pyqtSignal(int)
     nBallsSignal = QtCore.pyqtSignal(int)
@@ -315,7 +318,7 @@ class Dashboard(Plugin):
             result = service.call(request)
 
             # change button to green color to indicate that the service call went through
-            self._widget.set_imu_angle_button.setStyleSheet("background-color:#5eff00;")
+            self._widget.set_imu_angle_button.setStyleSheet(GREEN_STYLE)
 
         except (rospy.ServiceException, rospy.ROSException) as e: # the second exception happens if the wait for service times out
             self.errorPopup("Imu Set Angle Error", e)
@@ -325,19 +328,19 @@ class Dashboard(Plugin):
 
     def imuAngleChanged(self):
         # change button to red color if someone fiddled with the angle input, to indicate that input wasn't set yet
-        self._widget.set_imu_angle_button.setStyleSheet("background-color:#ff0000;")
+        self._widget.set_imu_angle_button.setStyleSheet(RED_STYLE)
 
 
     def setAutoWallDist(self):
         distance = self._widget.auto_wall_dist.value()
         rospy.loginfo("Set auto wall distance: {0:0.2f}".format(distance))
-        self._widget.auto_wall_dist_button.setStyleSheet("background-color:#5eff00;")
+        self._widget.auto_wall_dist_button.setStyleSheet(GREEN_STYLE)
 
         rospy.loginfo("Finished setting auto wall distance")
 
 
     def autoWallDistChanged(self):
-        self._widget.auto_wall_dist_button.setStyleSheet("background-color:#ff0000;")
+        self._widget.auto_wall_dist_button.setStyleSheet(RED_STYLE)
     
 
     def resetBallCount(self):
@@ -350,7 +353,7 @@ class Dashboard(Plugin):
             caller = rospy.ServiceProxy("/reset_ball", resetBallSrv)
             caller(nballs)
             # change button to green color to indicate that the service call went through
-            self._widget.set_imu_angle_button.setStyleSheet("background-color:##5eff00;")
+            self._widget.set_imu_angle_button.setStyleSheet(GREEN_STYLE)
 
         except (rospy.ServiceException, rospy.ROSException) as e: # the second exception happens if the wait for service times out
             self.errorPopup("Reset ball count Error", e)
@@ -359,7 +362,7 @@ class Dashboard(Plugin):
 
 
     def resetBallChanged(self):
-        self._widget.ball_reset_button.setStyleSheet("background-color:#ff0000;")
+        self._widget.ball_reset_button.setStyleSheet(RED_STYLE)
 
 
     def errorPopup(self, title, e):
