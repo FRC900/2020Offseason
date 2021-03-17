@@ -53,6 +53,7 @@ add_message_files(
   FILES
   Coefs.msg
   Constraint.msg
+  PathOffsetLimit.msg
 )
 
 ## Generate services in the 'srv' folder

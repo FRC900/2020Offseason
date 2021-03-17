@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(tf_object_detection)
+project(field)
 
 include ("../cmake_modules/CMakeOpt.cmake")
 
@@ -7,15 +7,7 @@ include ("../cmake_modules/CMakeOpt.cmake")
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
-  field_obj
-  field_obj_tracker
-  image_transport
-  message_filters
   roscpp
-  rospy
-  sensor_msgs
-  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -75,7 +67,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
+#   std_msgs
 # )
 
 ################################################
@@ -109,25 +101,28 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES tf_object_detection
-#  CATKIN_DEPENDS rospy
+#  LIBRARIES field
+#  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
 ###########
 ## Build ##
 ###########
+find_package(OpenCV REQUIRED)
 list(FILTER catkin_LIBRARIES EXCLUDE REGEX "opencv_freetype")
+list(FILTER OpenCV_LIBS EXCLUDE REGEX "opencv_freetype")
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/tf_object_detection.cpp
+#   src/${PROJECT_NAME}/field.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -138,7 +133,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(OBDE src/object_detection.cpp)
+add_executable(create_field_map src/create_field_map.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -148,12 +143,13 @@ add_executable(OBDE src/object_detection.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(OBDE  ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(create_field_map ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(OBDE
- ${catkin_LIBRARIES}
- )
+target_link_libraries(create_field_map
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+)
 
 #############
 ## Install ##
@@ -164,11 +160,10 @@ target_link_libraries(OBDE
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
- install(PROGRAMS
-   src/test_detection.py
-   src/pub_video.py
-   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
+# catkin_install_python(PROGRAMS
+#   scripts/my_python_script
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -203,7 +198,7 @@ target_link_libraries(OBDE
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_tf_object_detection.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_field.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
