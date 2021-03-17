@@ -8,6 +8,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <behavior_actions/IntakeAction.h>
 #include <behavior_actions/ShooterAction.h>
+#include <behavior_actions/DynamicPath.h>
 #include <path_follower_msgs/PathAction.h>
 
 #include <thread>
@@ -22,6 +23,8 @@ std::vector<std::string> auto_steps; //stores string of action names to do, read
 bool auto_started = false; //set to true when enter auto time period
 bool auto_stopped = false; //set to true if driver stops auto (callback: stopAuto() ) - note: this node will keep doing actions during teleop if not finished and the driver doesn't stop auto
 //All actions check if(auto_started && !auto_stopped) before proceeding.
+std::map<std::string, nav_msgs::Path> dynamic_paths;
+
 
 double goal_to_wall_y_dist = 2.404;
 
@@ -64,6 +67,11 @@ void updateAutoMode(const behavior_actions::AutoMode::ConstPtr& msg)
 	distance_from_center = -1 * (goal_to_wall_y_dist - msg->distance_from_wall); // left is positive, right is negative
 }
 
+bool dynamic_path_storage(behavior_actions::DynamicPath::Request &req, behavior_actions::DynamicPath::Response &res)
+{
+	dynamic_paths[req.path_name] = req.dynamic_path;
+	return true;
+}
 
 void doPublishAutostate(ros::Publisher &state_pub)
 {
@@ -224,6 +232,9 @@ int main(int argc, char** argv)
 	//dashboard (to get auto mode)
 	ros::Subscriber auto_mode_sub = nh.subscribe("auto_mode", 1, updateAutoMode); //TODO get correct topic name (namespace)
 
+	//
+	ros::ServiceServer path_finder = nh.advertiseService("dynamic_path", dynamic_path_storage);
+
 	//auto state
 	auto_state_pub_thread = std::thread(publishAutoState, std::ref(nh));
 
@@ -330,8 +341,8 @@ int main(int argc, char** argv)
 			else if(action_data["type"] == "shooter_actionlib_server")
 			{
 				if(!shooter_ac.waitForServer(ros::Duration(5))){
-					shutdownNode(ERROR, "Auto node - couldn't find shooter actionlib server");
 					return 1;
+					shutdownNode(ERROR, "Auto node - couldn't find shooter actionlib server");
 				} //for some reason this is necessary, even if the server has been up and running for a while
 				behavior_actions::ShooterGoal goal;
 				goal.mode = 0;
@@ -353,22 +364,27 @@ int main(int argc, char** argv)
 				point.z = 0;
 				goal.points.push_back(point);
 
-				//read array of array of doubles
-				XmlRpc::XmlRpcValue points_config = action_data["goal"]["points"];
-				for(int i = 0; i < points_config.size(); i++)
-				{
-					point.x = (double) points_config[i][0];
-					point.y = (double) points_config[i][1];
-					if(action_data["goal"]["apply_offset"])
-					{
-						point.y -= distance_from_center; // if the robot is not centered to goal, adjust path
-					}
-					point.z = (double) points_config[i][2];
-					goal.points.push_back(point);
-				}
+				int iteration_value = action_data["goal"]["iterations"];
 
-				path_ac.sendGoal(goal);
-				waitForActionlibServer(path_ac, 100, "running path");
+				while(iteration_value > 0)
+				{
+					//read array of array of doubles
+					XmlRpc::XmlRpcValue points_config = action_data["goal"]["points"];
+					for(int i = 0; i < points_config.size(); i++)
+					{
+						point.x = (double) points_config[i][0];
+						point.y = (double) points_config[i][1];
+						if(action_data["goal"]["apply_offset"])
+						{
+							point.y -= distance_from_center; // if the robot is not centered to goal, adjust path
+						}
+						point.z = (double) points_config[i][2];
+						goal.points.push_back(point);
+					}
+					path_ac.sendGoal(goal);
+					waitForActionlibServer(path_ac, 100, "running path");
+					iteration_value --;
+				}
 			}
 			else
 			{
@@ -381,4 +397,3 @@ int main(int argc, char** argv)
 	shutdownNode(DONE, auto_stopped ? "Auto node - Autonomous actions stopped before completion" : "Auto node - Autonomous actions completed!");
 	return 0;
 }
-
