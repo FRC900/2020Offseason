@@ -5,6 +5,8 @@
 #include <std_srvs/Empty.h>
 #include <frc_msgs/MatchSpecificData.h>
 
+#include "base_trajectory_msgs/GenerateSpline.h"
+
 #include <actionlib/client/simple_action_client.h>
 #include <behavior_actions/IntakeAction.h>
 #include <behavior_actions/ShooterAction.h>
@@ -17,8 +19,6 @@
 //VARIABLES ---------------------------------------------------------
 int auto_mode = -1; //-1 if nothing selected
 double distance_from_center = 0.0; // distance from robot to center of goal; left is positive, right is negative
-std::vector<std::string> auto_steps; //stores string of action names to do, read from the auto mode array in the config file
-
 bool auto_started = false; //set to true when enter auto time period
 bool auto_stopped = false; //set to true if driver stops auto (callback: stopAuto() ) - note: this node will keep doing actions during teleop if not finished and the driver doesn't stop auto
 //All actions check if(auto_started && !auto_stopped) before proceeding.
@@ -33,6 +33,10 @@ enum AutoStates {
 	ERROR
 };
 std::atomic<int> auto_state(NOT_READY); //This state is published by the publish thread
+
+std::map<std::string, nav_msgs::Path> premade_paths;
+
+ros::ServiceClient spline_gen_cli_;
 
 
 //FUNCTIONS -------
@@ -181,7 +185,7 @@ void shutdownNode(AutoStates state, const std::string &msg)
 }
 
 
-bool waitForAutoStart(void)
+bool waitForAutoStart(ros::NodeHandle nh)
 {
 	ros::Rate r(20);
 
@@ -189,6 +193,64 @@ bool waitForAutoStart(void)
 	while( ros::ok() && !auto_stopped )
 	{
 		ros::spinOnce(); //spin so the subscribers can update
+
+		std::vector<std::string> auto_steps; //stores string of action names to do, read from the auto mode array in the config file
+		//read sequence of actions from config
+		if(nh.getParam("auto_mode_" + std::to_string(auto_mode), auto_steps))
+		{
+			for (size_t j = 0; j < auto_steps.size(); j++) {
+				XmlRpc::XmlRpcValue action_data;
+				if(nh.getParam(auto_steps[j], action_data)) {
+					if(action_data["type"] == "path") {
+						if (premade_paths.find(auto_steps[j]) != premade_paths.end()) {
+							continue;
+						}
+						//read array of array of doubles
+						XmlRpc::XmlRpcValue points_config = action_data["goal"]["points"];
+
+						// Generate the waypoints of the spline
+						base_trajectory_msgs::GenerateSpline spline_gen_srv;
+						const size_t point_num = points_config.size() + 1;
+						spline_gen_srv.request.points.resize(point_num);
+						spline_gen_srv.request.points[0].positions.resize(3);
+						spline_gen_srv.request.points[0].positions[0] = 0;
+						spline_gen_srv.request.points[0].positions[1] = 0;
+						spline_gen_srv.request.points[0].positions[2] = 0;
+						for (size_t i = 1; i < point_num; i++)
+						{
+							spline_gen_srv.request.points[i].positions.resize(3);
+							spline_gen_srv.request.points[i].positions[0] = (double) points_config[i][0];
+							spline_gen_srv.request.points[i].positions[1] = (double) points_config[i][1];
+							spline_gen_srv.request.points[i].positions[2] = (double) points_config[i][2];
+						}
+
+						/*
+						const size_t constraint_num = goal->constraints.size();
+						spline_gen_srv.request.constraints.resize(constraint_num);
+						for (size_t i = 0; i < constraint_num; i++)
+						{
+							spline_gen_srv.request.constraints[i].corner1.x = goal->constraints[i].corner1.x;
+							spline_gen_srv.request.constraints[i].corner2.x = goal->constraints[i].corner2.x;
+							spline_gen_srv.request.constraints[i].corner1.y = goal->constraints[i].corner1.y;
+							spline_gen_srv.request.constraints[i].corner2.y = goal->constraints[i].corner2.y;
+							spline_gen_srv.request.constraints[i].max_accel = (goal->constraints[i].max_accel < 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_accel);
+							spline_gen_srv.request.constraints[i].max_decel = (goal->constraints[i].max_decel < 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_decel);
+							spline_gen_srv.request.constraints[i].max_vel = (goal->constraints[i].max_vel <= 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_vel);
+							spline_gen_srv.request.constraints[i].max_cent_accel = (goal->constraints[i].max_cent_accel <= 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_cent_accel);
+							spline_gen_srv.request.constraints[i].path_limit_distance = (goal->constraints[i].path_limit_distance <= 0 ? std::numeric_limits<double>::max() : goal->constraints[i].path_limit_distance);
+						}
+						*/
+
+						if (!spline_gen_cli_.call(spline_gen_srv))
+						{
+							ROS_ERROR_STREAM("Can't call spline gen service in path_follower_server");
+							return false;
+						}
+						premade_paths[auto_steps[j]] = spline_gen_srv.response.path;
+					}
+				}
+			}
+		}
 
 		if(auto_mode > 0){
 			auto_state = READY;
@@ -217,6 +279,10 @@ int main(int argc, char** argv)
 	//create node
 	ros::init(argc, argv, "auto_node");
 	ros::NodeHandle nh;
+
+	std::map<std::string, std::string> service_connection_header;
+	service_connection_header["tcp_nodelay"] = "1";
+	spline_gen_cli_ = nh.serviceClient<base_trajectory_msgs::GenerateSpline>("/path_follower/base_trajectory/spline_gen", false, service_connection_header);
 
 	//subscribers
 	//rio match data (to know if we're in auto period)
@@ -251,7 +317,7 @@ int main(int argc, char** argv)
 	ROS_INFO("Auto node - waiting for autonomous to start");
 
 	//wait for auto period to start
-	if (!waitForAutoStart())
+	if (!waitForAutoStart(nh))
 		return 0;
 
 	//EXECUTE AUTONOMOUS ACTIONS --------------------------------------------------------------------------
@@ -259,6 +325,7 @@ int main(int argc, char** argv)
 	ROS_INFO_STREAM("Auto node - Executing auto mode " << auto_mode);
 	auto_state = RUNNING;
 
+	std::vector<std::string> auto_steps; //stores string of action names to do, read from the auto mode array in the config file
 	//read sequence of actions from config
 	if(! nh.getParam("auto_mode_" + std::to_string(auto_mode), auto_steps)){
 		shutdownNode(ERROR, "Couldn't read auto_mode_" + std::to_string(auto_mode) + " config value in auto node");
@@ -345,28 +412,10 @@ int main(int argc, char** argv)
 					return 1;
 				}
 				path_follower_msgs::PathGoal goal;
-
-				//initialize 0, 0, 0 point
-				geometry_msgs::Point point;
-				point.x = 0;
-				point.y = 0;
-				point.z = 0;
-				goal.points.push_back(point);
-
-				//read array of array of doubles
-				XmlRpc::XmlRpcValue points_config = action_data["goal"]["points"];
-				for(int i = 0; i < points_config.size(); i++)
-				{
-					point.x = (double) points_config[i][0];
-					point.y = (double) points_config[i][1];
-					if(action_data["goal"]["apply_offset"])
-					{
-						point.y -= distance_from_center; // if the robot is not centered to goal, adjust path
-					}
-					point.z = (double) points_config[i][2];
-					goal.points.push_back(point);
+				if (premade_paths.find(auto_steps[i]) == premade_paths.end()) {
+					shutdownNode(ERROR, "Can't find premade path " + std::string(auto_steps[i]));
 				}
-
+				goal.path = premade_paths[auto_steps[i]];
 				path_ac.sendGoal(goal);
 				waitForActionlibServer(path_ac, 100, "running path");
 			}
@@ -381,4 +430,3 @@ int main(int argc, char** argv)
 	shutdownNode(DONE, auto_stopped ? "Auto node - Autonomous actions stopped before completion" : "Auto node - Autonomous actions completed!");
 	return 0;
 }
-
