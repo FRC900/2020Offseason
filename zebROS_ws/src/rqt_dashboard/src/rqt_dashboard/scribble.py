@@ -90,8 +90,11 @@ class ScribbleArea(QWidget):
     def enableDrawing(self, enable):
         self.enable_drawing = enable
         if not enable:
-            self.clearImage()
-            self.openImage(self.current_image)
+            self.reloadImage()
+
+    def reloadImage(self):
+        self.clearImage()
+        self.openImage(self.current_image)
     
     def saveImage(self, fileName, fileFormat):
         visibleImage = self.image
@@ -119,6 +122,9 @@ class ScribbleArea(QWidget):
         # self.current_image = None
         self.update()
 
+    def GetCoords(self):
+        return self.coords
+
     def mousePressEvent(self, event):
 
         if not self.enable_drawing:
@@ -131,7 +137,8 @@ class ScribbleArea(QWidget):
             if self.coords:
                 self.drawLineTo(event.pos())
 
-            self.coords.append(event.pos())
+            coordinate = event.pos()
+            self.coords.append((coordinate.x(), coordinate.y()))
             self.lastPoint = event.pos()
 
 

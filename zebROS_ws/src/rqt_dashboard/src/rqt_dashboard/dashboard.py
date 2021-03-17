@@ -95,6 +95,9 @@ class Dashboard(Plugin):
 
         self._widget.path_combobox.currentIndexChanged.connect(self.set_path_plan)
         self._widget.teleop_draw_check.stateChanged.connect(self.teleop_box_checked)
+
+        self._widget.clear_btn.released.connect(self.draw_pad.reloadImage)
+        self._widget.execute_path_btn.released.connect(self.execute_path)
         
         # Add buttons for auto modes
         v_layout = self._widget.auto_mode_v_layout #vertical layout storing the buttons
@@ -211,12 +214,19 @@ class Dashboard(Plugin):
             rospy.loginfo('Unable to load map image for path: {0:s} Map file: {1:s}'.format(path_text, map_path))
 
 
+    def execute_path(self):
+        rospy.loginfo('Execute path')
+        coords = self.draw_pad.GetCoords()
+        print(coords)
+
 
     def teleop_box_checked(self, state):
 
         if state == QtCore.Qt.Checked:
+            rospy.loginfo('Enabling Teleop mode. Drawing enabled')
             self.draw_pad.enableDrawing(True)
         else:
+            rospy.loginfo('Enabling Auto mode. Drawing disabled')
             self.draw_pad.enableDrawing(False)
 
 
@@ -242,8 +252,8 @@ class Dashboard(Plugin):
         elif self.autoState == 3: 
             self._widget.auto_state_display.setText("Finished")
             self._widget.auto_state_display.setStyleSheet("background-color:#00ff00;")
-	elif self.autoState == 4:
-	    self._widget.auto_state_display.setText("Error")
+        elif self.autoState == 4:
+            self._widget.auto_state_display.setText("Error")
             self._widget.auto_state_display.setStyleSheet("background-color:#ff5555;")
 
 
