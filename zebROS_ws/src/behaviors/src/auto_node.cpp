@@ -195,6 +195,8 @@ bool waitForAutoStart(ros::NodeHandle nh)
 {
 	ros::Rate r(20);
 
+	// read in stuff from config here
+
 	//wait for auto period to start
 	while( ros::ok() && !auto_stopped )
 	{
@@ -202,61 +204,66 @@ bool waitForAutoStart(ros::NodeHandle nh)
 
 		std::vector<std::string> auto_steps; //stores string of action names to do, read from the auto mode array in the config file
 		//read sequence of actions from config
-		if(nh.getParam("auto_mode_" + std::to_string(auto_mode), auto_steps))
+		if (auto_mode > 0)
 		{
-			for (size_t j = 0; j < auto_steps.size(); j++) {
-				XmlRpc::XmlRpcValue action_data;
-				if(nh.getParam(auto_steps[j], action_data)) {
-					if(action_data["type"] == "path") {
-						if (premade_paths.find(auto_steps[j]) != premade_paths.end()) {
-							continue;
-						}
-						//read array of array of doubles
-						XmlRpc::XmlRpcValue points_config = action_data["goal"]["points"];
+			if(nh.getParam("auto_mode_" + std::to_string(auto_mode), auto_steps))
+			{
+				for (size_t j = 0; j < auto_steps.size(); j++) {
+					XmlRpc::XmlRpcValue action_data;
+					if(nh.getParam(auto_steps[j], action_data)) {
+						if(action_data["type"] == "path") {
+							if (premade_paths.find(auto_steps[j]) != premade_paths.end()) {
+								continue;
+							}
+							//read array of array of doubles
+							XmlRpc::XmlRpcValue points_config = action_data["goal"]["points"];
 
-						// Generate the waypoints of the spline
-						base_trajectory_msgs::GenerateSpline spline_gen_srv;
-						const size_t point_num = points_config.size() + 1;
-						spline_gen_srv.request.points.resize(point_num);
-						spline_gen_srv.request.points[0].positions.resize(3);
-						spline_gen_srv.request.points[0].positions[0] = 0;
-						spline_gen_srv.request.points[0].positions[1] = 0;
-						spline_gen_srv.request.points[0].positions[2] = 0;
-						for (size_t i = 1; i < point_num; i++)
-						{
-							spline_gen_srv.request.points[i].positions.resize(3);
-							spline_gen_srv.request.points[i].positions[0] = (double) points_config[i][0];
-							spline_gen_srv.request.points[i].positions[1] = (double) points_config[i][1];
-							spline_gen_srv.request.points[i].positions[2] = (double) points_config[i][2];
-						}
+							// Generate the waypoints of the spline
+							base_trajectory_msgs::GenerateSpline spline_gen_srv;
+							const size_t point_num = points_config.size() + 1;
+							spline_gen_srv.request.points.resize(point_num);
+							spline_gen_srv.request.points[0].positions.resize(3);
+							spline_gen_srv.request.points[0].positions[0] = 0;
+							spline_gen_srv.request.points[0].positions[1] = 0;
+							spline_gen_srv.request.points[0].positions[2] = 0;
+							for (size_t i = 0; i < point_num-1; i++)
+							{
+								spline_gen_srv.request.points[i].positions.resize(3);
+								spline_gen_srv.request.points[i].positions[0] = (double) points_config[i][0];
+								spline_gen_srv.request.points[i].positions[1] = (double) points_config[i][1];
+								spline_gen_srv.request.points[i].positions[2] = (double) points_config[i][2];
+							}
 
-						/*
-						const size_t constraint_num = goal->constraints.size();
-						spline_gen_srv.request.constraints.resize(constraint_num);
-						for (size_t i = 0; i < constraint_num; i++)
-						{
-							spline_gen_srv.request.constraints[i].corner1.x = goal->constraints[i].corner1.x;
-							spline_gen_srv.request.constraints[i].corner2.x = goal->constraints[i].corner2.x;
-							spline_gen_srv.request.constraints[i].corner1.y = goal->constraints[i].corner1.y;
-							spline_gen_srv.request.constraints[i].corner2.y = goal->constraints[i].corner2.y;
-							spline_gen_srv.request.constraints[i].max_accel = (goal->constraints[i].max_accel < 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_accel);
-							spline_gen_srv.request.constraints[i].max_decel = (goal->constraints[i].max_decel < 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_decel);
-							spline_gen_srv.request.constraints[i].max_vel = (goal->constraints[i].max_vel <= 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_vel);
-							spline_gen_srv.request.constraints[i].max_cent_accel = (goal->constraints[i].max_cent_accel <= 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_cent_accel);
-							spline_gen_srv.request.constraints[i].path_limit_distance = (goal->constraints[i].path_limit_distance <= 0 ? std::numeric_limits<double>::max() : goal->constraints[i].path_limit_distance);
-						}
-						*/
+							/*
+							const size_t constraint_num = goal->constraints.size();
+							spline_gen_srv.request.constraints.resize(constraint_num);
+							for (size_t i = 0; i < constraint_num; i++)
+							{
+								spline_gen_srv.request.constraints[i].corner1.x = goal->constraints[i].corner1.x;
+								spline_gen_srv.request.constraints[i].corner2.x = goal->constraints[i].corner2.x;
+								spline_gen_srv.request.constraints[i].corner1.y = goal->constraints[i].corner1.y;
+								spline_gen_srv.request.constraints[i].corner2.y = goal->constraints[i].corner2.y;
+								spline_gen_srv.request.constraints[i].max_accel = (goal->constraints[i].max_accel < 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_accel);
+								spline_gen_srv.request.constraints[i].max_decel = (goal->constraints[i].max_decel < 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_decel);
+								spline_gen_srv.request.constraints[i].max_vel = (goal->constraints[i].max_vel <= 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_vel);
+								spline_gen_srv.request.constraints[i].max_cent_accel = (goal->constraints[i].max_cent_accel <= 0 ? std::numeric_limits<double>::max() : goal->constraints[i].max_cent_accel);
+								spline_gen_srv.request.constraints[i].path_limit_distance = (goal->constraints[i].path_limit_distance <= 0 ? std::numeric_limits<double>::max() : goal->constraints[i].path_limit_distance);
+							}
+							*/
 
-						if (!spline_gen_cli_.call(spline_gen_srv))
-						{
-							ROS_ERROR_STREAM("Can't call spline gen service in path_follower_server");
-							return false;
+							if (!spline_gen_cli_.call(spline_gen_srv))
+							{
+								ROS_ERROR_STREAM("Can't call spline gen service in path_follower_server");
+								return false;
+							}
+							premade_paths[auto_steps[j]] = spline_gen_srv.response.path;
 						}
-						premade_paths[auto_steps[j]] = spline_gen_srv.response.path;
 					}
 				}
 			}
 		}
+
+
 
 		if(auto_mode > 0){
 			auto_state = READY;
