@@ -43,7 +43,7 @@
 
 
 from PyQt5.QtCore import QDir, QPoint, QRect, QSize, Qt
-from PyQt5.QtGui import QImage, QImageWriter, QPainter, QPen, qRgb, QTransform, QPainterPath
+from PyQt5.QtGui import QImage, QImageWriter, QPainter, QPen, qRgb, QTransform, QPainterPath, QColor
 from PyQt5.QtWidgets import (QAction, QApplication, QColorDialog, QFileDialog,
         QInputDialog, QMainWindow, QMenu, QMessageBox, QWidget)
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
@@ -55,6 +55,9 @@ IMAGE_BL_X_IN_METERS = -0.4572
 IMAGE_BL_Y_IN_METERS = -0.4572
 METERS_PER_PIXEL = 0.00762
 IMG_HEIGHT_PX = 720
+
+ROBOT_WIDTH_IN_METERS = 0.889
+ROBOT_WIDTH_IN_PIXELS = ROBOT_WIDTH_IN_METERS / METERS_PER_PIXEL
 
 
 class Point(object):
@@ -240,7 +243,8 @@ class ScribbleArea(QWidget):
 
         # Print the points to the screen and draw lines between them.
         painter = QPainter(self.image)
-        painter.setPen(QPen(Qt.red, 1, Qt.SolidLine,
+        painter.setPen(QPen(
+                QColor(255, 0, 0, 15), ROBOT_WIDTH_IN_PIXELS, Qt.SolidLine,
                 Qt.RoundCap, Qt.RoundJoin))
         painter.setRenderHint(QPainter.Antialiasing, True)
 
@@ -381,7 +385,7 @@ class ScribbleArea(QWidget):
         if image.size() == newSize:
             return
 
-        newImage = QImage(newSize, QImage.Format_RGB32)
+        newImage = QImage(newSize, QImage.Format_ARGB32)
         newImage.fill(qRgb(255, 255, 255))
         painter = QPainter(newImage)
         painter.drawImage(QPoint(0, 0), image)
