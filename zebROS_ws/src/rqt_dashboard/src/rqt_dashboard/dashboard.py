@@ -16,6 +16,7 @@ from behavior_actions.msg import AutoState, AutoMode
 from pf_localization.msg import pf_pose
 from imu_zero.srv import ImuZeroAngle
 from behavior_actions.srv import resetBallSrv
+from base_trajectory_msgs.srv import GenerateSpline
 import std_msgs.msg
 import roslibpy
 import os
@@ -225,8 +226,60 @@ class Dashboard(Plugin):
 
     def execute_path(self):
         rospy.loginfo('Execute path')
-        coords = self.draw_pad.GetWorldCoords()
-        print(coords)
+        coords = self.draw_pad.GetWorldCoordsRobotCentric()
+        print 'Map centric coordinates:', self.draw_pad.GetWorldCoords()
+        print 'Robot centric coordinates:', coords
+
+        # Note the first point must always be (0, 0, 0) so modify it manually.
+        coords[0] = scribble.Point(coords[0].x, coords[0].y)
+
+        points = [
+            {
+                'positions': [pt.x, pt.y, 0],
+                'velocities': [],
+                'accelerations': [],
+                'effort': [],
+                'time_from_start': {'secs': 0, 'nsecs': 0}
+            } 
+            for pt in coords  
+        ]
+
+        path_offset_limits = [{
+            'min_x': 0.0, 'max_x': 0.0,
+            'min_y': 0.0, 'max_y': 0.0
+            } for pt in coords
+        ]
+
+        msg = {
+            # 'header': {'frame_id': 'map'},
+            'points': points,
+            'point_frame_id': [],
+            'path_offset_limit': path_offset_limits,
+            'optimize_final_velocity': False
+        }
+
+        self.setRobotPath(msg)
+
+    def setRobotPath(self, msg):
+
+        rospy.loginfo("Set robot path")
+
+        try:
+            # service = roslibpy.Service(self.client,'/base_trajectory/spline_gen', GenerateSpline)
+            service = roslibpy.Service(self.client,'/path_follower/base_trajectory/spline_gen', msg)
+
+            #Service Request-rosbridge
+            request = roslibpy.ServiceRequest(msg)
+            result = service.call(request)
+            print(result)
+
+            rospy.loginfo("Successfully called spline generation")
+
+        except (rospy.ServiceException, rospy.ROSException) as e: # the second exception happens if the wait for service times out
+            self.errorPopup("Path generation error", e)
+
+        rospy.loginfo("Finished setting robot path")
+
 
 
     def teleop_box_checked(self, state):

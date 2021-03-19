@@ -203,6 +203,14 @@ class ScribbleArea(QWidget):
             for pt in self.coords
         ]
 
+    def GetWorldCoordsRobotCentric(self):
+
+        real_coords = self.GetWorldCoords()
+        return [
+            Point(pt.x - real_coords[0].x, pt.y - real_coords[0].y)
+            for pt in real_coords
+        ]
+
 
     def setRobotPosition(self, robot_x, robot_y):
         self.robot_pt = Point(robot_x, robot_y)
