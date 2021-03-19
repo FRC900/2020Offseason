@@ -13,6 +13,7 @@ from python_qt_binding.QtGui import QPixmap
 import resource_rc
 
 from behavior_actions.msg import AutoState, AutoMode
+from pf_localization.msg import pf_pose
 from imu_zero.srv import ImuZeroAngle
 from behavior_actions.srv import resetBallSrv
 import std_msgs.msg
@@ -43,6 +44,9 @@ BALL_IMG_4 = QPixmap(":/images/4_balls.png")
 BALL_IMG_5 = QPixmap(":/images/5_balls.png")
 BALL_IMG_5PLUS = QPixmap(":/images/more_than_5_balls.png")
 
+IMAGE_BL_X_IN_METERS = -0.4572
+IMAGE_BL_Y_IN_METERS = -0.4572
+METERS_PER_PIXEL = 0.00762
 
 class Dashboard(Plugin):
     autoStateSignal = QtCore.pyqtSignal(int)
@@ -184,6 +188,9 @@ class Dashboard(Plugin):
         turret_in_range_listener = roslibpy.Topic(self.client, '/align_to_shoot/turret_in_range', std_msgs.msg.Bool)
         self.turret_in_range_sub = turret_in_range_listener.subscribe(self.turretInRangeCallback)
 
+        pf_location_listener = roslibpy.Topic(self.client, '/pf_localization/predicted_pose', 'pf_localization/pf_pose')
+        self.pf_pose_sub = pf_location_listener.subscribe(self.robotPoseCallback)
+
         self.autoStateSignal.connect(self.autoStateSlot)
         self.nBallsSignal.connect(self.nBallsSlot)
         self.shooterInRangeSignal.connect(self.shooterInRangeSlot)
@@ -231,6 +238,9 @@ class Dashboard(Plugin):
             rospy.loginfo('Enabling Auto mode. Drawing disabled')
             self.draw_pad.enableDrawing(False)
 
+
+    def robotPoseCallback(self, msg):
+        self.draw_pad.setRobotPosition(msg['x'], msg['y'])
 
     def autoStateCallback(self, msg):
         self.autoStateSignal.emit(int(msg['id']))

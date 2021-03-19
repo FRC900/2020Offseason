@@ -43,10 +43,30 @@
 
 
 from PyQt5.QtCore import QDir, QPoint, QRect, QSize, Qt
-from PyQt5.QtGui import QImage, QImageWriter, QPainter, QPen, qRgb
+from PyQt5.QtGui import QImage, QImageWriter, QPainter, QPen, qRgb, QTransform, QPainterPath
 from PyQt5.QtWidgets import (QAction, QApplication, QColorDialog, QFileDialog,
         QInputDialog, QMainWindow, QMenu, QMessageBox, QWidget)
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
+
+import rospy
+import math
+
+IMAGE_BL_X_IN_METERS = -0.4572
+IMAGE_BL_Y_IN_METERS = -0.4572
+METERS_PER_PIXEL = 0.00762
+IMG_HEIGHT_PX = 720
+
+
+class Point(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __str__(self):
+        return "({0:0.2f}, {1:0.2f})".format(self.x, self.y)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class ScribbleArea(QWidget):
@@ -62,7 +82,49 @@ class ScribbleArea(QWidget):
         self.current_image = None
         self.lastPoint = QPoint()
         self.enable_drawing = True
+        self.img_height = 0
         self.coords = list()
+
+        self.transform = QTransform(
+            METERS_PER_PIXEL,  # m11
+            0,  # m12
+            0,  # m21
+            -METERS_PER_PIXEL,  # m22
+            0,  # dx
+            IMG_HEIGHT_PX * METERS_PER_PIXEL  #dy
+        )
+
+        self.origin_rel_sw = Point(0, 0)
+        self.meter_per_pixel = 0
+
+        self.setOrigin(IMAGE_BL_X_IN_METERS, IMAGE_BL_X_IN_METERS)
+        self.setResolution(METERS_PER_PIXEL)
+        self.robot_pt = Point(0, 0)
+
+    def setOrigin(self, origin_x, origin_y):
+        self.origin_rel_sw = Point(origin_x, origin_y)
+
+    def setResolution(self, resolution):
+        self.meter_per_pixel = resolution
+
+    def WorldCoordsFromDrawPad(self, point, origin, resolution, img_height):
+
+        transformed_pt = Point(point.x, point.y)
+        transformed_pt.x = transformed_pt.x * resolution + origin.x
+        transformed_pt.y = -transformed_pt.y * resolution + origin.y + (img_height * resolution)
+        return transformed_pt
+
+    def DrawPadCoordsFromWorld(self, point, origin, resolution, img_height):
+
+        transformed_pt = Point(point.x, point.y)
+
+        transformed_pt.x = (transformed_pt.x - origin.x) / resolution
+        transformed_pt.y = -(transformed_pt.y - origin.y) / resolution + img_height
+
+        transformed_pt.x = math.floor(transformed_pt.x)
+        transformed_pt.y = math.floor(transformed_pt.y)
+        return transformed_pt
+
 
     def openImage(self, fileName):
 
@@ -84,7 +146,9 @@ class ScribbleArea(QWidget):
         # Set new fixed size based on the loaded image.
         self.setFixedWidth(loadedImage.width())
         self.setFixedHeight(loadedImage.height())
+        self.img_height = loadedImage.height()
         self.current_image = fileName
+        self.drawRobotPosition()
 
         self.update()
         self.myPenColor = Qt.blue
@@ -128,6 +192,45 @@ class ScribbleArea(QWidget):
     def GetCoords(self):
         return self.coords
 
+
+    def setRobotPosition(self, robot_x, robot_y):
+        self.robot_pt = Point(robot_x, robot_y)
+
+
+    def drawRobotPosition(self):
+        
+        ROBOT_SIZE = 10
+
+        robot_transform_pt = self.DrawPadCoordsFromWorld(
+            self.robot_pt,
+            self.origin_rel_sw,
+            self.meter_per_pixel,
+            self.img_height
+        )
+
+        rospy.loginfo('Robot position (real): {0:s}'.format(self.robot_pt))
+        rospy.loginfo('Robot position (transform): {0:s}'.format(robot_transform_pt))
+
+        path = QPainterPath()
+
+        painter = QPainter(self.image)
+        painter.setPen(QPen(Qt.red, self.myPenWidth, Qt.SolidLine))
+
+        path.addRect(
+            robot_transform_pt.x - ROBOT_SIZE / 2,
+            robot_transform_pt.y - ROBOT_SIZE / 2,
+            ROBOT_SIZE,
+            ROBOT_SIZE
+        )
+
+        painter.fillPath(path, Qt.red)
+        painter.drawPath(path)
+
+        self.coords = [(robot_transform_pt.x, robot_transform_pt.y)]
+        self.lastPoint = QPoint(robot_transform_pt.x, robot_transform_pt.y)
+
+        self.update()
+
     def mousePressEvent(self, event):
 
         if not self.enable_drawing:
@@ -143,6 +246,14 @@ class ScribbleArea(QWidget):
                 self.drawLineTo(event.pos())
 
             coordinate = event.pos()
+            original_pt = Point(coordinate.x(), coordinate.y())
+            transform_pt = self.WorldCoordsFromDrawPad(
+                original_pt,
+                self.origin_rel_sw,
+                self.meter_per_pixel,
+                self.img_height
+            )
+            print('{0:s} -> {1:s}'.format(original_pt, transform_pt))
             self.coords.append((coordinate.x(), coordinate.y()))
             self.lastPoint = event.pos()
 
@@ -163,6 +274,7 @@ class ScribbleArea(QWidget):
 
     def drawPoint(self, point):
         painter = QPainter(self.image)
+        # painter.setTransform(self.transform)
 
         # Don't paint anything if the image is showing black.
         img_rgb = self.image.pixel(point)
@@ -187,6 +299,7 @@ class ScribbleArea(QWidget):
 
     def drawLineTo(self, endPoint):
         painter = QPainter(self.image)
+        # painter.setTransform(self.transform)
         painter.setPen(QPen(Qt.blue, self.myPenWidth, Qt.SolidLine,
                 Qt.RoundCap, Qt.RoundJoin))
         painter.drawLine(self.lastPoint, endPoint)
