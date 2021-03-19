@@ -271,7 +271,8 @@ class Dashboard(Plugin):
             #Service Request-rosbridge
             request = roslibpy.ServiceRequest(msg)
             result = service.call(request)
-            print(result)
+            # print(result)
+            self.draw_pad.drawSplinePath(result['path']['poses'])
 
             rospy.loginfo("Successfully called spline generation")
 

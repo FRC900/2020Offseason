@@ -62,6 +62,10 @@ class Point(object):
         self.x = x
         self.y = y
 
+    def Add(self, pt):
+        self.x += pt.x
+        self.y += pt.y
+
     def __str__(self):
         return "({0:0.2f}, {1:0.2f})".format(self.x, self.y)
 
@@ -210,6 +214,50 @@ class ScribbleArea(QWidget):
             Point(pt.x - real_coords[0].x, pt.y - real_coords[0].y)
             for pt in real_coords
         ]
+
+
+    def drawSplinePath(self, poses):
+
+        # Get the robot-centric coordinates.
+        draw_pts = [
+            Point(pt['pose']['position']['x'], pt['pose']['position']['y'])
+            for pt in poses
+        ]
+
+        # Convert to map-centric.
+        [pt.Add(self.robot_pt) for pt in draw_pts]
+
+        # Convert to screen
+        draw_pts = [
+            self.DrawPadCoordsFromWorld(
+                pt,
+                self.origin_rel_sw,
+                self.meter_per_pixel,
+                self.img_height
+            )
+            for pt in draw_pts
+        ]
+
+        # Print the points to the screen and draw lines between them.
+        painter = QPainter(self.image)
+        painter.setPen(QPen(Qt.red, 1, Qt.SolidLine,
+                Qt.RoundCap, Qt.RoundJoin))
+        painter.setRenderHint(QPainter.Antialiasing, True)
+
+        prev_pt = None
+        for pt in draw_pts:
+            
+            draw_point = QPoint(pt.x, pt.y)
+            # painter.drawPoint(draw_point)
+
+            if prev_pt is None:
+                painter.drawPoint(draw_point)
+            else:
+                painter.drawLine(prev_pt, draw_point)
+
+            prev_pt = draw_point
+
+        self.update()
 
 
     def setRobotPosition(self, robot_x, robot_y):
