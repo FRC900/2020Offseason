@@ -20,6 +20,7 @@ from base_trajectory_msgs.srv import GenerateSpline
 import std_msgs.msg
 import roslibpy
 import os
+from collections import OrderedDict
 
 import logging
 import scribble
@@ -93,11 +94,15 @@ class Dashboard(Plugin):
 
         # Load the map configurations
         with open(MAP_CONFIGURATION, 'r') as f:
-            self.map_cfg = json.load(f)
+            self.map_cfg = json.load(f, object_pairs_hook=OrderedDict)
         
         for path_name, map_cfg_path in self.map_cfg.items():
             if map_cfg_path:
                 self.map_cfg[path_name] = os.path.join(MAP_PATH, map_cfg_path)
+
+        for path_cfg in self.map_cfg:
+            self._widget.path_combobox.addItem(path_cfg)
+        self.set_path_plan(0)
 
 
         # Set up signal-slot connections

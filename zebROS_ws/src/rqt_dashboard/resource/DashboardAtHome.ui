@@ -23,7 +23,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="setup">
       <attribute name="title">
@@ -425,31 +425,6 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
-           <item>
-            <property name="text">
-             <string>Galactic Search</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>Barrel Racing Path</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>Slalom Path</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>Bounce Path</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>Lightspeed Circuit</string>
-            </property>
-           </item>
           </widget>
          </item>
          <item>
