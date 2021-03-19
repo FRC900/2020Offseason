@@ -393,8 +393,14 @@ class Dashboard(Plugin):
     def publish_thread(self):
 
         pub = roslibpy.Topic(self.client, '/auto/auto_mode', 'behavior_actions/AutoMode')
-        r = rospy.Rate(10) # 10 Hz
         pub.advertise()
+
+        enable_in_teleop_pub = roslibpy.Topic(self.client, '/enable_in_teleop', 'std_msgs/Bool')
+        enable_in_teleop_pub.advertise()
+
+        r = rospy.Rate(10) # 10 Hz
+
+
         while self.client.is_connected:
 
             pub.publish(roslibpy.Message(
@@ -402,6 +408,13 @@ class Dashboard(Plugin):
                     'auto_mode': self.auto_mode_button_group.checkedId()
                 }
             ))
+
+            enable_in_teleop_pub.publish(roslibpy.Message(
+                {
+                    'data': self._widget.enable_in_teleop_box.checkState() == QtCore.Qt.Checked
+                }
+            ))
+
             r.sleep()
 
 

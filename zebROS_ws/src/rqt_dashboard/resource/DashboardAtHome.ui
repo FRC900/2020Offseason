@@ -23,7 +23,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="setup">
       <attribute name="title">
@@ -175,6 +175,13 @@
               </widget>
              </item>
             </layout>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="enable_in_teleop_box">
+             <property name="text">
+              <string>Enable Auto in Teleop Mode?</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
