@@ -192,6 +192,17 @@ class ScribbleArea(QWidget):
     def GetCoords(self):
         return self.coords
 
+    def GetWorldCoords(self):
+        return [
+            self.WorldCoordsFromDrawPad(
+                pt,
+                self.origin_rel_sw,
+                self.meter_per_pixel,
+                self.img_height
+            ) 
+            for pt in self.coords
+        ]
+
 
     def setRobotPosition(self, robot_x, robot_y):
         self.robot_pt = Point(robot_x, robot_y)
@@ -226,7 +237,7 @@ class ScribbleArea(QWidget):
         painter.fillPath(path, Qt.red)
         painter.drawPath(path)
 
-        self.coords = [(robot_transform_pt.x, robot_transform_pt.y)]
+        self.coords = [Point(robot_transform_pt.x, robot_transform_pt.y)]
         self.lastPoint = QPoint(robot_transform_pt.x, robot_transform_pt.y)
 
         self.update()
@@ -253,8 +264,8 @@ class ScribbleArea(QWidget):
                 self.meter_per_pixel,
                 self.img_height
             )
-            print('{0:s} -> {1:s}'.format(original_pt, transform_pt))
-            self.coords.append((coordinate.x(), coordinate.y()))
+            rospy.logdebug('Drawing point: {0:s} -> {1:s}'.format(original_pt, transform_pt))
+            self.coords.append(Point(coordinate.x(), coordinate.y()))
             self.lastPoint = event.pos()
 
 

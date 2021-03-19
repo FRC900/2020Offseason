@@ -225,7 +225,7 @@ class Dashboard(Plugin):
 
     def execute_path(self):
         rospy.loginfo('Execute path')
-        coords = self.draw_pad.GetCoords()
+        coords = self.draw_pad.GetWorldCoords()
         print(coords)
 
 
