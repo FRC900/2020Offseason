@@ -198,7 +198,7 @@ bool waitForAutoStart(ros::NodeHandle nh)
 
 		std::vector<std::string> auto_steps; //stores string of action names to do, read from the auto mode array in the config file
 		//read sequence of actions from config
-		if (auto_mode > 0)
+		if (auto_mode >= 0)
 		{
 			if(nh.getParam("auto_mode_" + std::to_string(auto_mode), auto_steps))
 			{
@@ -222,10 +222,10 @@ bool waitForAutoStart(ros::NodeHandle nh)
 							spline_gen_srv.request.points[0].positions[2] = 0;
 							for (size_t i = 0; i < point_num-1; i++)
 							{
-								spline_gen_srv.request.points[i].positions.resize(3);
-								spline_gen_srv.request.points[i].positions[0] = (double) points_config[i][0];
-								spline_gen_srv.request.points[i].positions[1] = (double) points_config[i][1];
-								spline_gen_srv.request.points[i].positions[2] = (double) points_config[i][2];
+								spline_gen_srv.request.points[i+1].positions.resize(3);
+								spline_gen_srv.request.points[i+1].positions[0] = (double) points_config[i][0];
+								spline_gen_srv.request.points[i+1].positions[1] = (double) points_config[i][1];
+								spline_gen_srv.request.points[i+1].positions[2] = (double) points_config[i][2];
 							}
 
 							/*
