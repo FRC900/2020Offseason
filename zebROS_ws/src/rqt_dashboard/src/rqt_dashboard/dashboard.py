@@ -15,7 +15,7 @@ import resource_rc
 from behavior_actions.msg import AutoState, AutoMode
 from pf_localization.msg import pf_pose
 from imu_zero.srv import ImuZeroAngle
-from behavior_actions.srv import resetBallSrv
+from behavior_actions.srv import resetBallSrv, DynamicPath
 from base_trajectory_msgs.srv import GenerateSpline
 import std_msgs.msg
 import roslibpy
@@ -119,7 +119,7 @@ class Dashboard(Plugin):
         self._widget.teleop_draw_check.stateChanged.connect(self.teleop_box_checked)
 
         self._widget.clear_btn.released.connect(self.draw_pad.reloadImage)
-        self._widget.execute_path_btn.released.connect(self.execute_path)
+        self._widget.execute_path_btn.released.connect(self.start_execute_path)
         
         # Add buttons for auto modes
         v_layout = self._widget.auto_mode_v_layout #vertical layout storing the buttons
@@ -229,7 +229,7 @@ class Dashboard(Plugin):
             rospy.loginfo('Unable to load map image for path: {0:s} Map file: {1:s}'.format(path_text, map_path))
 
 
-    def execute_path(self):
+    def start_execute_path(self):
         rospy.loginfo('Execute path')
         coords = self.draw_pad.GetWorldCoordsRobotCentric()
         print 'Map centric coordinates:', self.draw_pad.GetWorldCoords()
@@ -276,16 +276,39 @@ class Dashboard(Plugin):
             #Service Request-rosbridge
             request = roslibpy.ServiceRequest(msg)
             result = service.call(request)
-            # print(result)
             self.draw_pad.drawSplinePath(result['path']['poses'])
 
             rospy.loginfo("Successfully called spline generation")
 
+            dynamic_path_client = {
+                'path_name': self._widget.path_combobox.currentText() + ' Teleop',
+                'dynamic_path': result['path']
+            }
+            # self.callExecutePath(result['path'])
+        
+            rospy.loginfo("Finished setting robot path")
+
         except (rospy.ServiceException, rospy.ROSException) as e: # the second exception happens if the wait for service times out
             self.errorPopup("Path generation error", e)
 
-        rospy.loginfo("Finished setting robot path")
 
+    def callExecutePath(self, path):
+        rospy.loginfo("Begin call robot execution of path")
+
+        try:
+            # service = roslibpy.Service(self.client,'/base_trajectory/spline_gen', GenerateSpline)
+            service = roslibpy.Service(self.client,'/auto/dynamic_path', path)
+
+            #Service Request-rosbridge
+            request = roslibpy.ServiceRequest(msg)
+            result = service.call(path)
+
+            rospy.loginfo("Successfully called dynamic path")
+
+        except (rospy.ServiceException, rospy.ROSException) as e: # the second exception happens if the wait for service times out
+            self.errorPopup("Path generation error", e)
+
+        rospy.loginfo("Finished calling robot path execution")
 
 
     def teleop_box_checked(self, state):
