@@ -50,7 +50,7 @@ bool stopAuto(std_srvs::Empty::Request &req,
 //subscriber callback for match data
 void matchDataCallback(const frc_msgs::MatchSpecificData::ConstPtr& msg)
 {
-	if((msg->Autonomous && msg->Enabled) && (msg->Enabled && enable_teleop))
+	if((msg->Autonomous && msg->Enabled) || (msg->Enabled && enable_teleop))
 	{
 		auto_started = true; //only want to set this to true, never set it to false afterwards
 	}
@@ -67,7 +67,6 @@ void updateAutoMode(const behavior_actions::AutoMode::ConstPtr& msg)
 void enable_in_teleop(const std_msgs::Bool::ConstPtr& msg)
 {
 	enable_teleop = msg->data;
-
 }
 
 void doPublishAutostate(ros::Publisher &state_pub)
@@ -228,7 +227,7 @@ int main(int argc, char** argv)
 	ros::Subscriber match_data_sub = nh.subscribe("/frcrobot_rio/match_data", 1, matchDataCallback);
 	//dashboard (to get auto mode)
 	ros::Subscriber auto_mode_sub = nh.subscribe("auto_mode", 1, updateAutoMode); //TODO get correct topic name (namespace)
-	ros::Subscriber enable_in_teleop_sub = nh.subscribe("enable_in_teleop",1,enable_in_teleop);
+	ros::Subscriber enable_in_teleop_sub = nh.subscribe("/enable_in_teleop", 1, enable_in_teleop);
 
 	//auto state
 	auto_state_pub_thread = std::thread(publishAutoState, std::ref(nh));
@@ -387,4 +386,3 @@ int main(int argc, char** argv)
 	shutdownNode(DONE, auto_stopped ? "Auto node - Autonomous actions stopped before completion" : "Auto node - Autonomous actions completed!");
 	return 0;
 }
-
