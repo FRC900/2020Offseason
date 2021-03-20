@@ -195,7 +195,76 @@ bool waitForAutoStart(ros::NodeHandle nh)
 {
 	ros::Rate r(20);
 
-	// read in stuff from config here
+	std::string frame_id;
+	XmlRpc::XmlRpcValue xml_point_frame_id_list, xml_point_frame_id;
+	XmlRpc::XmlRpcValue xml_path_offset_limit_arrays;
+	base_trajectory_msgs::PathOffsetLimit path_offset_limit_array;
+	bool optimize_final_velocity;
+
+	if (!nh.getParam("frame_id", frame_id))
+	{
+    ROS_ERROR("frame id not specified");
+    return -1;
+	}
+	if (!nh.getParam("point_frame_id", xml_point_frame_id_list))
+	{
+		ROS_ERROR("point frame id not specified");
+		return -1;
+	}
+	if (!nh.getParam("path_offset_limit", xml_path_offset_limit_arrays))
+	{
+    throw std::runtime_error("Couldn't read ");
+	}
+	if (!nh.getParam("optimize_final_velocity", optimize_final_velocity))
+	{
+		ROS_ERROR("optimize final velocity not specified");
+		return -1;
+	}
+
+
+
+	request.header.frame_id = nh.getParam("frame_id", frame_id);
+	request.header.stamp = ros::Time::now();
+
+	for (size_t i = 0; i < (unsigned) xml_point_frame_id_list.size(); i++)
+	{
+		xml_point_frame_id = xml_point_frame_id_list[i];
+		request.point_frame_id.push_back(xml_point_frame_id);
+	}
+
+	for (int i = 0; i < xml_path_offset_limit_arrays.size(); i++)
+	{
+    XmlRpc::XmlRpcValue &dictionary = xml_path_offset_limit_arrays[i];
+    if (dictionary.hasMember("min_x")) // repeat this code for each dictionary entry -min_x, max_x, min_y, max_y
+    {
+        XmlRpc::XmlRpcValue &dictionary_entry = dictionary["min_x"];
+        if (!dictionary_entry.valid() || ((dictionary_entry.getType() != XmlRpc::XmlRpcValue::TypeDouble) && (dictionary_entry.getType() != XmlRpc::XmlRpcValue::TypeInt))
+            throw std::runtime_error("An invalid dictionary entry was read (expecting a double or int)");
+        path_offset_limit_array.min_x = dictionary_entry;
+    }
+		if (dictionary.hasMember("min_y"))
+    {
+        XmlRpc::XmlRpcValue &dictionary_entry = dictionary["min_y"];
+        if (!dictionary_entry.valid() || ((dictionary_entry.getType() != XmlRpc::XmlRpcValue::TypeDouble) && (dictionary_entry.getType() != XmlRpc::XmlRpcValue::TypeInt))
+            throw std::runtime_error("An invalid dictionary entry was read (expecting a double or int)");
+        path_offset_limit_array.min_y = dictionary_entry;
+    }
+		if (dictionary.hasMember("max_x"))
+    {
+        XmlRpc::XmlRpcValue &dictionary_entry = dictionary["max_x"];
+        if (!dictionary_entry.valid() || ((dictionary_entry.getType() != XmlRpc::XmlRpcValue::TypeDouble) && (dictionary_entry.getType() != XmlRpc::XmlRpcValue::TypeInt))
+            throw std::runtime_error("An invalid dictionary entry was read (expecting a double or int)");
+        path_offset_limit_array.max_x = dictionary_entry;
+    }
+		if (dictionary.hasMember("max_y"))
+    {
+        XmlRpc::XmlRpcValue &dictionary_entry = dictionary["max_y"];
+        if (!dictionary_entry.valid() || ((dictionary_entry.getType() != XmlRpc::XmlRpcValue::TypeDouble) && (dictionary_entry.getType() != XmlRpc::XmlRpcValue::TypeInt))
+            throw std::runtime_error("An invalid dictionary entry was read (expecting a double or int)");
+        path_offset_limit_array.max_y = dictionary_entry;
+    }
+		requests.path_offset_limit.push_back(path_offset_limit_array);
+	}
 
 	//wait for auto period to start
 	while( ros::ok() && !auto_stopped )
