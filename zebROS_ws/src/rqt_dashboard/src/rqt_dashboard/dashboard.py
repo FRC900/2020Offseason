@@ -454,7 +454,7 @@ class Dashboard(Plugin):
         pub = roslibpy.Topic(self.client, '/auto/auto_mode', 'behavior_actions/AutoMode')
         pub.advertise()
 
-        enable_in_teleop_pub = roslibpy.Topic(self.client, '/enable_in_teleop', 'std_msgs/Bool')
+        enable_in_teleop_pub = roslibpy.Topic(self.client, '/enable_auto_in_teleop', 'std_msgs/Bool')
         enable_in_teleop_pub.advertise()
 
         r = rospy.Rate(10) # 10 Hz
