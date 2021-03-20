@@ -18,7 +18,7 @@ frame_id: ""
 point_frame_id: []
 path_offset_limit:
   - {min_x: 0, max_x: 0, min_y: 0, max_y:0}
-optimize_final_velocity: <bool value>
+optimize_final_velocity: true
 
 # ACTIONS ------------------------------------------------------------------------
 # must have a value for "type", other stuff varies
