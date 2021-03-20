@@ -4509,7 +4509,7 @@ bool FRCRobotInterface::safeTalonCall(ctre::phoenix::ErrorCode error_code, const
 			}
 
 	}
-	// ROS_ERROR_STREAM("Error calling " << talon_method_name << " : " << error_name);
+	ROS_ERROR_STREAM("Error calling " << talon_method_name << " : " << error_name);
 	can_error_count_++;
 	if ((can_error_count_> 1000) && !error_sent)
 	{
