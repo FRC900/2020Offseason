@@ -6,10 +6,7 @@
 #include <frc_msgs/MatchSpecificData.h>
 
 #include "base_trajectory_msgs/GenerateSpline.h"
-<<<<<<< HEAD
 #include "base_trajectory_msgs/PathOffsetLimit.h"
-=======
->>>>>>> bdf4cda8fb76b0de0c90bb07991015e57d037881
 
 #include <actionlib/client/simple_action_client.h>
 #include <behavior_actions/IntakeAction.h>
@@ -23,11 +20,8 @@
 //VARIABLES ---------------------------------------------------------
 int auto_mode = -1; //-1 if nothing selected
 double distance_from_center = 0.0; // distance from robot to center of goal; left is positive, right is negative
-<<<<<<< HEAD
 std::vector<std::string> auto_steps; //stores string of action names to do, read from the auto mode array in the config file
 bool enable_teleop = false;
-=======
->>>>>>> bdf4cda8fb76b0de0c90bb07991015e57d037881
 bool auto_started = false; //set to true when enter auto time period
 bool auto_stopped = false; //set to true if driver stops auto (callback: stopAuto() ) - note: this node will keep doing actions during teleop if not finished and the driver doesn't stop auto
 //All actions check if(auto_started && !auto_stopped) before proceeding.
