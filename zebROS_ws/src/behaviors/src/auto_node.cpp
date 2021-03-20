@@ -64,7 +64,7 @@ void updateAutoMode(const behavior_actions::AutoMode::ConstPtr& msg)
 	distance_from_center = -1 * (goal_to_wall_y_dist - msg->distance_from_wall); // left is positive, right is negative
 }
 
-void enable_in_teleop(const std_msgs::Bool::ConstPtr& msg)
+void enable_auto_in_teleop(const std_msgs::Bool::ConstPtr& msg)
 {
 	enable_teleop = msg->data;
 }
@@ -227,7 +227,7 @@ int main(int argc, char** argv)
 	ros::Subscriber match_data_sub = nh.subscribe("/frcrobot_rio/match_data", 1, matchDataCallback);
 	//dashboard (to get auto mode)
 	ros::Subscriber auto_mode_sub = nh.subscribe("auto_mode", 1, updateAutoMode); //TODO get correct topic name (namespace)
-	ros::Subscriber enable_in_teleop_sub = nh.subscribe("/enable_in_teleop", 1, enable_in_teleop);
+	ros::Subscriber enable_auto_in_teleop_sub = nh.subscribe("/enable_auto_in_teleop", 1, enable_auto_in_teleop);
 
 	//auto state
 	auto_state_pub_thread = std::thread(publishAutoState, std::ref(nh));
