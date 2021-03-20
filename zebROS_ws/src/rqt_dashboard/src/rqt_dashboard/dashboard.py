@@ -194,7 +194,7 @@ class Dashboard(Plugin):
         turret_in_range_listener = roslibpy.Topic(self.client, '/align_to_shoot/turret_in_range', std_msgs.msg.Bool)
         self.turret_in_range_sub = turret_in_range_listener.subscribe(self.turretInRangeCallback)
 
-        pf_location_listener = roslibpy.Topic(self.client, '/pf_localization/predicted_pose', 'pf_localization/pf_pose')
+        pf_location_listener = roslibpy.Topic(self.client, '/predicted_pose', 'pf_localization/pf_pose')
         self.pf_pose_sub = pf_location_listener.subscribe(self.robotPoseCallback)
 
         self.autoStateSignal.connect(self.autoStateSlot)
