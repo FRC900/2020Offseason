@@ -648,6 +648,8 @@ void TalonSwerveDriveController::compOdometry(const Time &time, const double inv
 			orientation = tf::createQuaternionMsgFromYaw(odom_yaw);
 
 		odom_pub_.msg_.header.stamp = time;
+		odom_pub_.msg_.header.frame_id = odom_frame_id_;
+		odom_pub_.msg_.child_frame_id = base_frame_id_;
 		odom_pub_.msg_.pose.pose.position.x = odom_y; //TODO terrible hacky
 		odom_pub_.msg_.pose.pose.position.y = - odom_x; //TODO terrible hacky
 		odom_pub_.msg_.pose.pose.orientation = orientation;

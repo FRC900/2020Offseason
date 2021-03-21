@@ -10,6 +10,7 @@
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Bool.h>
+#include <tf2_ros/transform_listener.h>
 
 class PathAction
 {
@@ -41,6 +42,8 @@ class PathAction
 		// If false, use odom for x, y and orientation.
 		bool use_odom_orientation_;
 
+		tf2_ros::Buffer            tfBuffer;
+		tf2_ros::TransformListener tfListener;
 	public:
 		PathAction(const std::string &name, const ros::NodeHandle &nh,
 				   double lookahead_distance,
@@ -63,6 +66,7 @@ class PathAction
 			, debug_(false) // TODO - config item?
 			, ros_rate_(ros_rate)
 			, use_odom_orientation_(use_odom_orientation)
+			, tfListener(tfBuffer)
 		{
 			//start_point_radius_ = start_point_radius;
 
@@ -83,7 +87,17 @@ class PathAction
 
 		void odomCallback(const nav_msgs::Odometry &odom_msg)
 		{
-			odom_ = odom_msg;
+			std::string odom_msg_frame_id{odom_msg.header.frame_id};
+			odom_.header.frame_id = odom_msg.child_frame_id;
+			try
+			{
+				odom_ = tfBuffer.transform(odom_msg, "base_link");
+			}
+			catch(tf2::TransformException &ex)
+			{
+				ROS_ERROR_STREAM("path_follower_server : Error transforming from " << odom_msg.child_frame_id << " to \"base_link\" : " << ex.what());
+			}
+			odom_.header.frame_id = odom_msg_frame_id;
 			//odom_.pose.pose.position.y *= -1;
 		}
 
