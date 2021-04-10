@@ -36,8 +36,7 @@ void ParticleFilter::init(const double x_min, const double x_max, const double y
     double x = x_distribution(rng_);
     double y = y_distribution(rng_);
     double rot = rot_distribution(rng_);
-    Particle p = {x, y, rot};
-    particles_.push_back(p);
+    particles_.emplace_back(Particle{x, y, rot});
   }
   normalize();
 }
@@ -91,7 +90,7 @@ void ParticleFilter::resample() {
 
 Particle ParticleFilter::predict() {
   double weight = 0;
-  Particle res {0, 0, 0};
+  Particle res {0, 0, 0}; // TODO - default constructor for Particle
   double s = 0;
   double c = 0;
   for (const Particle& p : particles_) {
