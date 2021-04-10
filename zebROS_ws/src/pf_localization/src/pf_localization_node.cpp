@@ -46,7 +46,8 @@ double degToRad(double deg) {
 }
 
 //formats and prints particle attributes
-void print_particle(Particle p) {
+// TODO - add Particle ostream<< operator
+void print_particle(const Particle& p) {
   ROS_INFO_STREAM(p.x_ << ", " << p.y_ << ", " << p.rot_ << ", " << p.weight_);
 }
 
@@ -56,6 +57,7 @@ void rotCallback(const sensor_msgs::Imu::ConstPtr& msg) {
   tf2::convert(msg -> orientation, raw);
   tf2::Matrix3x3(raw).getRPY(roll, pitch, yaw);
   rot = degToRad(yaw);
+  // TODO - check return code here
   pf->set_rotation(rot);
   #ifdef EXTREME_VERBOSE
   ROS_INFO("rotCallback called");
@@ -63,6 +65,8 @@ void rotCallback(const sensor_msgs::Imu::ConstPtr& msg) {
 }
 
 void goalCallback(const field_obj::Detection::ConstPtr& msg){
+  // TODO - just transform all of the detection coords to base_link here,
+  // remove the need to do so inside the particle filter
   geometry_msgs::TransformStamped zed_to_baselink;
   try
   {
@@ -81,15 +85,20 @@ void goalCallback(const field_obj::Detection::ConstPtr& msg){
   double tx = zed_to_baselink.transform.translation.x;
   double ty = zed_to_baselink.transform.translation.y;
 
+  // TODO - how to merge these?
   #ifdef BEARING_ONLY
   static std::vector<BearingBeacon> measurement;
   measurement.clear();
   // bearing only test
   for(const field_obj::Object& p : msg->objects) {
+  // TODO - emplace_back
+  // TODO - make constructor of Beacon and BearingBeacon the same,
+  // more atan2 call into BearingBeacon constructor
     BearingBeacon m {atan2(p.location.y, p.location.x), p.id};
     measurement.push_back(m);
   }
   if (measurement.size() > 0){
+	// TODO - use this return code
     bool success = pf->assign_weights_bearing(measurement, Particle(tx, ty, r));
     pf->resample();
     last_measurement = ros::Time::now();
@@ -103,6 +112,7 @@ void goalCallback(const field_obj::Detection::ConstPtr& msg){
     measurement.push_back(m);
   }
   if (measurement.size() > 0){
+	// TODO - use this return code
     bool success = pf->assign_weights_position(measurement, Particle(tx, ty, r));
     pf->resample();
     last_measurement = ros::Time::now();
@@ -112,8 +122,6 @@ void goalCallback(const field_obj::Detection::ConstPtr& msg){
   #ifdef EXTREME_VERBOSE
   ROS_INFO("goalCallback called");
   #endif
-
-
 }
 
 void cmdCallback(const geometry_msgs::TwistStamped::ConstPtr& msg){
@@ -126,8 +134,9 @@ void cmdCallback(const geometry_msgs::TwistStamped::ConstPtr& msg){
 
   last_time = msg->header.stamp;
 
+  // TODO - check return code
   pf->motion_update(delta_x, delta_y, 0);
-  if ((ros::Time::now() - last_measurement).toSec() < noise_delta_t) {
+  if ((ros::Time::now() - last_measurement).toSec() > noise_delta_t) {
     pf->noise_pos();
     pf->noise_rot();
   }
@@ -229,7 +238,7 @@ int main(int argc, char **argv) {
                                         num_particles);
 
   #ifdef VERBOSE
-  for (Particle p : pf->get_particles()) {
+  for (const Particle& p : pf->get_particles()) {
     print_particle(p);
   }
   ROS_INFO_STREAM("\n\n");
@@ -244,6 +253,11 @@ int main(int argc, char **argv) {
   ros::Publisher pub_debug = nh_.advertise<pf_localization::pf_debug>(pub_debug_topic, 1);
 
 
+  // TODO - rethink this - right now spin is only called at 10hz, and with
+  // subscriber queue sizes at 1, I think that means it will drop a number of 
+  // messages
+  // Keep track of last time published, then loop much quicker here
+  // Or possibly make the publishing a function
   ros::Rate rate(10);
   while (ros::ok()) {
 
