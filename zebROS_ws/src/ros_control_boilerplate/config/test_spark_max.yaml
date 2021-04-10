@@ -77,7 +77,7 @@ spark_max_state_controller:
 
 spark_max_config_controller:
     type: spark_max_config_controller/SparkMaxConfigController
-    publish_rate: 100
+    publish_rate: 10
 
 
 # Controllers to actually drive a motor

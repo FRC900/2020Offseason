@@ -1,6 +1,10 @@
 #pragma once
 
 #include <algorithm>
+#include <thread>
+#ifdef __linux__
+#include <sched.h>
+#endif
 #include <dynamic_reconfigure/server.h>
 #include <spark_max_interface/spark_max_command_interface.h>
 #include <spark_max_controllers/SparkMaxConfig.h>
@@ -562,7 +566,21 @@ class SparkMaxControllerInterface
 {
 	public:
 		SparkMaxControllerInterface(void)
+			: srv_mutex_{std::make_shared<boost::recursive_mutex>()}
+			, srv_update_thread_flag_{std::make_shared<std::atomic_flag>()}
+		    , srv_update_thread_active_{std::make_shared<std::atomic<bool>>(true)}
+		    , srv_update_thread_{nullptr}
 		{
+			srv_update_thread_flag_->test_and_set();
+		}
+
+		virtual ~SparkMaxControllerInterface()
+		{
+			if (srv_update_thread_ && srv_update_thread_->joinable())
+			{
+				*srv_update_thread_active_ = false;
+				srv_update_thread_->join();
+			}
 		}
 
 		virtual bool readParams(ros::NodeHandle &n, SparkMaxCIParams &params)
@@ -585,7 +603,7 @@ class SparkMaxControllerInterface
 								  hardware_interface::SparkMaxStateInterface * /*smsi*/,
 								  ros::NodeHandle &n)
 		{
-			return init(smci, n, spark_max_, srv_mutex_, srv_, true) &&
+			return init(smci, n, spark_max_, srv_mutex_, false) &&
 				   setInitialMode();
 		}
 
@@ -607,7 +625,7 @@ class SparkMaxControllerInterface
 			{
 				follower_srv_mutexes_.push_back(nullptr);
 				follower_srvs_.push_back(nullptr);
-				if (!init(smci, n[i], follower_spark_maxs_[i-1], follower_srv_mutexes_[i-1], follower_srvs_[i-1], false))
+				if (!init(smci, n[i], follower_spark_maxs_[i-1], nullptr, true))
 					return false;
 				follower_spark_maxs_[i-1]->setFollowerType(hardware_interface::kFollowerSparkMax);
 				follower_spark_maxs_[i-1]->setFollowerID(follow_can_id);
@@ -705,9 +723,15 @@ class SparkMaxControllerInterface
 	protected:
 		hardware_interface::SparkMaxCommandHandle                    spark_max_;
 		SparkMaxCIParams                                             params_;
-
-		std::shared_ptr<dynamic_reconfigure::Server<SparkMaxConfig>> srv_;
 		std::shared_ptr<boost::recursive_mutex>                      srv_mutex_;
+		//
+		// Variables for a thread which updates the dynamic reconfigure server
+		// when vars are updated from calls to the interafce. This keeps the
+		// values in the dynamic reconfigure GUI in sync with the values set
+		// via functions called in this interface
+		std::shared_ptr<std::atomic_flag>                    srv_update_thread_flag_;
+		std::shared_ptr<std::atomic<bool>>                   srv_update_thread_active_;
+		std::shared_ptr<std::thread>                         srv_update_thread_;
 
 		// List of follower talons associated with the master
 		// listed above
@@ -727,9 +751,8 @@ class SparkMaxControllerInterface
 		virtual bool init(hardware_interface::SparkMaxCommandInterface *smci,
 						  ros::NodeHandle &n,
 						  hardware_interface::SparkMaxCommandHandle &spark_max,
-						  std::shared_ptr<boost::recursive_mutex> &srv_mutex,
-						  std::shared_ptr<dynamic_reconfigure::Server<spark_max_controllers::SparkMaxConfig>> &srv,
-						  bool update_params)
+						  std::shared_ptr<boost::recursive_mutex> srv_mutex,
+						  bool follower)
 		{
 			ROS_WARN("spark max init start");
 			// Read params from startup and intialize SparkMax using them
@@ -737,15 +760,18 @@ class SparkMaxControllerInterface
 			if (!readParams(n, params))
 			   return false;
 
-			bool dynamic_reconfigure;
-			n.param<bool>("dynamic_reconfigure", dynamic_reconfigure, false);
 			ROS_WARN("spark max init past readParams");
 
 			spark_max = smci->getHandle(params.joint_name_);
-			if (!writeParamsToHW(params, spark_max, update_params))
+			if (!writeParamsToHW(params, spark_max, !follower))
 				return false;
 
 			ROS_WARN("spark_max init past writeParamsToHW");
+			bool dynamic_reconfigure = false;
+			if (!follower)
+			{
+				n.param<bool>("dynamic_reconfigure", dynamic_reconfigure, false);
+			}
 			if (dynamic_reconfigure)
 			{
 				// Create dynamic_reconfigure Server. Pass in n
@@ -753,8 +779,7 @@ class SparkMaxControllerInterface
 				// under the node's name.  Doing so allows multiple
 				// copies of the class to be started, each getting
 				// their own namespace.
-				srv_mutex = std::make_shared<boost::recursive_mutex>();
-				srv = std::make_shared<dynamic_reconfigure::Server<SparkMaxConfig>>(*srv_mutex_, n);
+				auto srv = std::make_shared<dynamic_reconfigure::Server<SparkMaxConfig>>(*srv_mutex, n);
 
 				ROS_WARN("init updateConfig");
 				// Without this, the first call to callback()
@@ -767,6 +792,8 @@ class SparkMaxControllerInterface
 				// time parameters are changed using
 				// rqt_reconfigure or the like
 				srv->setCallback(boost::bind(&SparkMaxControllerInterface::callback, this, _1, _2));
+				// Create a thread to update the server with new values written by users of this interface
+				srv_update_thread_ = std::make_shared<std::thread>(std::bind(&SparkMaxControllerInterface::srvUpdateThread, this, srv));
 			}
 
 			ROS_WARN("spark max init returning");
@@ -774,21 +801,57 @@ class SparkMaxControllerInterface
 			return true;
 		}
 
-		// TODO - backport ddr_updater branch changes to talon_controller_interface into here as well
 		// If dynamic reconfigure is running then update
 		// the reported config there with the new internal
 		// state
-		void syncDynamicReconfigure(void)
+		// Trigger a write of the current CIParams to the DDR server. This needs
+		// to happen if the values have been updated via the interface code.
+		// The meaning of the flag - set == no new updates, cleared == data has
+		// been updated via code and the reconfigure gui needs that new data sent
+		// to it to stay in sync
+		// This call is on the control loop update path and needs to be quick.
+		// atomic_flags are lock free, so clearing it should be a fast operation
+		// which never blocks.  Thus, with any luck it won't slow down the
+		// control loop by any significant amount.
+		void syncDynamicReconfigure()
 		{
-			if (srv_)
+			srv_update_thread_flag_->clear();
+		}
+
+		// Loop forever, waiting for requests from the main thread
+		// to update values from this class to the DDR server.
+		void srvUpdateThread(std::shared_ptr<dynamic_reconfigure::Server<SparkMaxConfig>> srv)
+		{
+			ROS_INFO_STREAM("srvUpdateThread started for joint " << params_.joint_name_);
+#ifdef __linux__
+			struct sched_param sp;
+			sp.sched_priority = 0;
+			sched_setscheduler(0, SCHED_IDLE, &sp); // GUI update is low priority compared to driving the robot
+			pthread_setname_np(pthread_self(), "tci_ddr_upd");
+			ROS_INFO_STREAM("srvUpdateThread priority set for joint " << params_.joint_name_);
+#endif
+			*srv_update_thread_active_ = true;
+			ros::Rate r(10);
+			while (*srv_update_thread_active_)
 			{
-				SparkMaxConfig config(params_.toConfig());
-				// first call in updateConfig is another lock, this is probably
-				// redundant
-				// boost::recursive_mutex::scoped_lock lock(*srv_mutex_);
-				srv_->updateConfig(config);
+				// Loop forever, periodically checking for the flag to be cleared
+				// Test and set returns the previous value of the variable and sets
+				// it, all in one atomic operation.  The set will reset the flag
+				// so after running updateConfig() the code will loop back and wait
+				// here for the next time the flag is cleared by syncDynamicReconfigure.
+				while (srv_update_thread_flag_->test_and_set())
+				{
+					r.sleep();
+				}
+
+				if (srv)
+				{
+					SparkMaxConfig config(params_.toConfig());
+					srv->updateConfig(config);
+				}
 			}
 		}
+
 
 		// Use data in params to actually set up SparkMax
 		// hardware. Make this a separate method outside of
