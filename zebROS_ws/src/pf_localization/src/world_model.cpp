@@ -82,7 +82,7 @@ std::vector<Beacon> WorldModel::particle_relative(const Particle& p, const Parti
   return single_particle_relative(offset, single_particle_relative(p, beacons_));
 }
 
-std::vector<Beacon> WorldModel::of_type(const std::vector<Beacon>& bcns, std::string type) {
+std::vector<Beacon> WorldModel::of_type(const std::vector<Beacon>& bcns, const std::string &type) {
   std::vector<Beacon> res;
   for (const Beacon& b : bcns) {
     if (b.type_ == type) {
