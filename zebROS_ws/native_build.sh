@@ -23,6 +23,7 @@ if [ $? -eq 1 ]; then
 fi
 
 catkin config --blacklist \
+	robot_visualizer \
 	velocity_controllers \
 	zed_ros \
 	$EXTRA_BLACKLIST_PACKAGES
