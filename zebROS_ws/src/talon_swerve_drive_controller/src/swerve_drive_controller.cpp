@@ -47,19 +47,15 @@ using Eigen::Matrix2d;
 
 using geometry_msgs::TwistConstPtr;
 
-const std::string talon_swerve_drive_controller::TalonSwerveDriveController::DEF_ODOM_FRAME = "odom";
-const std::string talon_swerve_drive_controller::TalonSwerveDriveController::DEF_BASE_FRAME = "base_link";
-
 namespace talon_swerve_drive_controller
 {
 
-TalonSwerveDriveController::TalonSwerveDriveController() :
-	wheel_radius_(0.0),
-	cmd_vel_timeout_(0.5), //Change to 5.0 for auto path planning testing
-	allow_multiple_cmd_vel_publishers_(true),
-	base_frame_id_("base_link"),
-	odom_frame_id_("odom"),
-	wheel_joints_size_(0)
+const std::string TalonSwerveDriveController::DEF_ODOM_FRAME = "odom";
+const std::string TalonSwerveDriveController::DEF_BASE_FRAME = "base_link";
+
+
+TalonSwerveDriveController::TalonSwerveDriveController()
+	: wheel_radius_(0.0)
 {
 }
 
@@ -99,7 +95,7 @@ bool TalonSwerveDriveController::init(hardware_interface::TalonCommandInterface 
 	steering_joints_.resize(wheel_joints_size_);
 
 	// Publish limited velocity:
-	controller_nh.param("publish_cmd", publish_cmd_, true);
+	controller_nh.param("publish_cmd", publish_cmd_, publish_cmd_);
 
 	// TODO : see if model_, driveRatios, units can be local instead of member vars
 	// If either parameter is not available, we need to look up the value in the URDF
@@ -329,7 +325,7 @@ bool TalonSwerveDriveController::init(hardware_interface::TalonCommandInterface 
 	{
 		odom_pub_period_ = ros::Duration(1 / odom_pub_freq);
 		controller_nh.param("publish_odometry_to_base_transform", pub_odom_to_base_,
-							DEF_PUB_ODOM_TO_BASE);
+							pub_odom_to_base_);
 
 		double init_x, init_y, init_yaw;
 		controller_nh.param("initial_x", init_x, DEF_INIT_X);
@@ -401,8 +397,9 @@ bool TalonSwerveDriveController::init(hardware_interface::TalonCommandInterface 
 		}
 	}
 
-	controller_nh.param("parking_config_time_delay", parking_config_time_delay_, DEF_PARKING_CONFIG_TIME_DELAY);
-	controller_nh.param("drive_speed_time_delay", drive_speed_time_delay_, DEF_DRIVE_SPEED_TIME_DELAY);
+	controller_nh.param("parking_config_time_delay", parking_config_time_delay_, parking_config_time_delay_);
+	controller_nh.param("drive_speed_time_delay", drive_speed_time_delay_, parking_config_time_delay_);
+	controller_nh.param("use_cos_scaling", use_cos_scaling_, false);
 
 	return true;
 }
@@ -588,8 +585,6 @@ void TalonSwerveDriveController::update(const ros::Time &time, const ros::Durati
 		}
 
 		speed_joints_[i].setPIDFSlot(0);
-		//speed_joints_[i].setClosedloopRamp(0);
-		//speed_joints_[i].setDemand1Value(0);
 
 	}
 
@@ -634,7 +629,7 @@ void TalonSwerveDriveController::update(const ros::Time &time, const ros::Durati
 	//Parse curr_cmd to get velocity vector and rotation (z axis)
 	//TODO: check unit conversions/coordinate frames
 
-	speeds_angles = swerveC_->motorOutputs(curr_cmd.lin, curr_cmd.ang, M_PI / 2.0, steer_angles, true, *(center_of_rotation_.readFromRT()));
+	speeds_angles = swerveC_->motorOutputs(curr_cmd.lin, curr_cmd.ang, M_PI / 2.0, steer_angles, true, *(center_of_rotation_.readFromRT()), use_cos_scaling_);
 
 	// Set wheel steering angles, as long as dont_set_angle_mode is false
 	for (size_t i = 0; !dont_set_angle_mode && (i < wheel_joints_size_); ++i)

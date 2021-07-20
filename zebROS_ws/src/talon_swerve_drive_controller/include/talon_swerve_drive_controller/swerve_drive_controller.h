@@ -117,7 +117,6 @@ class TalonSwerveDriveController
 
 	private:
 		static constexpr size_t WHEELCOUNT = 4;
-		int num_profile_slots_;
 
 		bool comp_odom_;
 		Eigen::Matrix2Xd wheel_pos_;
@@ -155,10 +154,10 @@ class TalonSwerveDriveController
 		std::atomic<bool> percent_out_drive_mode_;
 
 		realtime_tools::RealtimeBuffer<Commands> command_;
-		double brake_last_ = ros::Time::now().toSec();
-		double time_before_brake_ = 0;
-		double parking_config_time_delay_{DEF_PARKING_CONFIG_TIME_DELAY};
-		double drive_speed_time_delay_{DEF_DRIVE_SPEED_TIME_DELAY};
+		double brake_last_{ros::Time::now().toSec()};
+		double time_before_brake_{0};
+		double parking_config_time_delay_{0.1};
+		double drive_speed_time_delay_{0.1};
 
 		ros::Subscriber sub_command_;
 
@@ -191,29 +190,19 @@ class TalonSwerveDriveController
 		double f_s_s_;
 
 		/// Timeout to consider cmd_vel commands old:
-		double cmd_vel_timeout_;
+		double cmd_vel_timeout_{0.5};
 
 		/// Whether to allow multiple publishers on cmd_vel topic or not:
-		bool allow_multiple_cmd_vel_publishers_;
-
-		/// Frame to use for the robot base:
-		std::string base_frame_id_;
-
-		/// Frame to use for odometry and odom tf:
-		std::string odom_frame_id_;
+		bool allow_multiple_cmd_vel_publishers_{true};
 
 		/// Whether to publish odometry to tf or not:
 		//bool enable_odom_tf_;
 
 		/// Number of wheel joints:
-		size_t wheel_joints_size_;
-
-		/// Speed limiters:
-		//Commands last1_cmd_;
-		//Commands last0_cmd_;
+		size_t wheel_joints_size_{0};
 
 		/// Publish limited velocity:
-		bool publish_cmd_;
+		bool publish_cmd_{true};
 
 		/**
 		 * \brief Brakes the wheels, i.e. sets the velocity to 0
@@ -258,20 +247,17 @@ class TalonSwerveDriveController
 		                            bool lookup_wheel_radius);
 
 		 */
-		static constexpr double DEF_ODOM_PUB_FREQ{100};
-		static constexpr bool DEF_PUB_ODOM_TO_BASE{false};
+		static constexpr double DEF_ODOM_PUB_FREQ{100.};
 		static const std::string DEF_ODOM_FRAME;
 		static const std::string DEF_BASE_FRAME;
 		static constexpr double DEF_INIT_X{0};
 		static constexpr double DEF_INIT_Y{0};
 		static constexpr double DEF_INIT_YAW{0};
 		static constexpr double DEF_SD{0.01};
-		static constexpr double DEF_PARKING_CONFIG_TIME_DELAY{0.1};
-		static constexpr double DEF_DRIVE_SPEED_TIME_DELAY{0.1};
 
 		std::array<Eigen::Vector2d, WHEELCOUNT> wheel_coords_;
 
-		bool pub_odom_to_base_;       // Publish the odometry to base frame transform
+		bool pub_odom_to_base_{false};       // Publish the odometry to base frame transform
 		ros::Duration odom_pub_period_;    // Odometry publishing period
 		Eigen::Affine2d init_odom_to_base_;  // Initial odometry to base frame transform
 		Eigen::Affine2d odom_to_base_;       // Odometry to base frame transform
@@ -282,6 +268,12 @@ class TalonSwerveDriveController
 		realtime_tools::RealtimePublisher<tf::tfMessage> odom_tf_pub_;
 		ros::Time last_odom_pub_time_;
 		ros::Time last_odom_tf_pub_time_;
+
+
+		// Attempt to limit speed of wheels which are pointing further from
+		// their target angle. Should help to reduce the robot being pulled
+		// off course coming out of parking config or when making quick direction changes?
+		bool use_cos_scaling_{false};
 };
 
 PLUGINLIB_EXPORT_CLASS(talon_swerve_drive_controller::TalonSwerveDriveController, controller_interface::ControllerBase)

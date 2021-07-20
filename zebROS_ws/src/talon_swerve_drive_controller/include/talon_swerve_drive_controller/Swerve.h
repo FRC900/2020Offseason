@@ -79,7 +79,8 @@ class swerve
 														     double angle,
 														     const std::array<double, WHEELCOUNT> &positionsNew,
 														     bool norm,
-														     const Eigen::Vector2d &centerOfRotation = Eigen::Vector2d{0,0});
+														     const Eigen::Vector2d &centerOfRotation = Eigen::Vector2d{0,0},
+															 bool useCosScaling = false);
 		std::array<double, WHEELCOUNT> parkingAngles(const std::array<double, WHEELCOUNT> &positionsNew) const;
 
 		double getWheelAngle(int index, double pos) const;
@@ -99,7 +100,9 @@ class swerve
 			COMMAND_PARKING
 		};
 
-		// Used for filtering bad encoder values
+		// Used for filtering jittery encoder values - cache previous direction
+		// and continue moving that way even if the wheel pos temporarily glitches
+		// over a value which would reverse the nearest-90-degree calculation
 		mutable std::array<bool, WHEELCOUNT> lastReverse_{false};
 		mutable std::array<double, WHEELCOUNT> lastCommand_{0};
 		mutable std::array<COMMAND_STATE, WHEELCOUNT> lastCommandState_{COMMAND_INVALID};

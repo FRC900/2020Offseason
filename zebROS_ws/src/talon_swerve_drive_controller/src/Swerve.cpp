@@ -4,11 +4,10 @@
 
 #include <ros/console.h>
 
-using namespace std;
 using namespace Eigen;
 
 template<size_t WHEELCOUNT>
-swerve<WHEELCOUNT>::swerve(const array<Vector2d, WHEELCOUNT> &wheelCoordinates,
+swerve<WHEELCOUNT>::swerve(const std::array<Vector2d, WHEELCOUNT> &wheelCoordinates,
 			   const std::array<double, WHEELCOUNT> &offsets,
 			   const swerveVar::ratios &ratio,
 			   const swerveVar::encoderUnits &units,
@@ -23,14 +22,14 @@ swerve<WHEELCOUNT>::swerve(const array<Vector2d, WHEELCOUNT> &wheelCoordinates,
 }
 
 template<size_t WHEELCOUNT>
-array<Vector2d, WHEELCOUNT> swerve<WHEELCOUNT>::motorOutputs(Vector2d velocityVector,
+std::array<Vector2d, WHEELCOUNT> swerve<WHEELCOUNT>::motorOutputs(Vector2d velocityVector,
 												 double rotation,
 												 double angle,
-												 const array<double, WHEELCOUNT> &positionsNew,
+												 const std::array<double, WHEELCOUNT> &positionsNew,
 												 bool norm,
-												 const Eigen::Vector2d &centerOfRotation)
+												 const Eigen::Vector2d &centerOfRotation,
+												 bool useCosScaling)
 {
-	array<Vector2d, WHEELCOUNT> speedsAndAngles;
 	// See if the current centerOfRotation coords have been used before
 	// If not, calculate the multiplers and matRotRate for them
 	// If so, just reuse previously saved values
@@ -50,6 +49,7 @@ array<Vector2d, WHEELCOUNT> swerve<WHEELCOUNT>::motorOutputs(Vector2d velocityVe
 
 	//ROS_WARN_STREAM("max rate r/s: " <<  multiplierSets_[rotationCenterID].maxRotRate_);
 	//ROS_INFO_STREAM("vel: " << velocityVector[0] << " " << velocityVector[1] << " rot: " << rotation);
+	std::array<Vector2d, WHEELCOUNT> speedsAndAngles;
 	speedsAndAngles = swerveMath_.wheelSpeedsAngles(mult_it->second.multipliers_, velocityVector, rotation, angle, norm);
 	for (size_t i = 0; i < WHEELCOUNT; i++)
 	{
@@ -76,8 +76,17 @@ array<Vector2d, WHEELCOUNT> swerve<WHEELCOUNT>::motorOutputs(Vector2d velocityVe
 		}
 
 		//ROS_INFO_STREAM("wheel " << i << " currpos: " << currpos << " nearestangle: " << nearestangle << " reverse: " << reverse);
+		// Slow down wheels the further they are from their target
+		// angle. This will help to prevent wheels which are in the process
+		// of getting to the correct orientation from dragging the robot
+		// in random directions while turning to the expected direction
+		double cosScaling = 1.0;
+		if (useCosScaling)
+		{
+			cosScaling = cos(nearestangle * units_.steeringSet);
+		}
 
-		speedsAndAngles[i][0] *= ((drive_.maxSpeed / drive_.wheelRadius) / ratio_.encodertoRotations) * units_.rotationSetV * (reverse ? -1 : 1);
+		speedsAndAngles[i][0] *= ((drive_.maxSpeed / drive_.wheelRadius) / ratio_.encodertoRotations) * units_.rotationSetV * (reverse ? -1 : 1) * cosScaling;
 		speedsAndAngles[i][1] = nearestangle * units_.steeringSet + offsets_[i];
 		//ROS_INFO_STREAM("pos/vel in direc: " << speedsAndAngles[i][0] << " rot: " << speedsAndAngles[i][1] << " offset: " << offsets_[i] << " steeringSet: " << units_.steeringSet << " reverse: " << reverse);
 	}
@@ -85,9 +94,9 @@ array<Vector2d, WHEELCOUNT> swerve<WHEELCOUNT>::motorOutputs(Vector2d velocityVe
 }
 
 template<size_t WHEELCOUNT>
-array<double, WHEELCOUNT> swerve<WHEELCOUNT>::parkingAngles(const array<double, WHEELCOUNT> &positionsNew) const
+std::array<double, WHEELCOUNT> swerve<WHEELCOUNT>::parkingAngles(const std::array<double, WHEELCOUNT> &positionsNew) const
 {
-	array<double, WHEELCOUNT> retAngles;
+	std::array<double, WHEELCOUNT> retAngles;
 	for (size_t i = 0; i < WHEELCOUNT; i++)
 	{
 		const double currpos = getWheelAngle(i, positionsNew[i]);
