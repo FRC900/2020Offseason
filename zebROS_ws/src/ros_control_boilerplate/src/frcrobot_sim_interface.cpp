@@ -120,7 +120,12 @@ void FRCRobotSimInterface::match_data_callback(const frc_msgs::MatchSpecificData
 }
 
 void FRCRobotSimInterface::joystickCallback(const sensor_msgs::JoyConstPtr &msg, int32_t joystick_num) {
-	std::lock_guard<std::mutex> l(joystick_mutex_);
+	if (static_cast<size_t>(joystick_num) >= joystick_sim_write_mutex_.size())
+	{
+		ROS_WARN_STREAM_THROTTLE(2, "Sim joystick input for index " << joystick_num
+				<< " is bigger than configured joystick count ( " << joystick_sim_write_mutex_.size() << ")");
+		return;
+	}
 
 	HAL_JoystickAxes hal_axes;
 	hal_axes.count = std::min(msg->axes.size(), 6UL); // the last two entries (6,7) are for POV
@@ -141,11 +146,11 @@ void FRCRobotSimInterface::joystickCallback(const sensor_msgs::JoyConstPtr &msg,
 		hal_buttons.buttons = ((msg->buttons[i] ? 1 : 0) << i) | hal_buttons.buttons;
 	}
 
+	HAL_JoystickPOVs hal_povs;
+	hal_povs.count = 1;
+	std::memset(hal_povs.povs, -1, sizeof(hal_povs.povs));
 	if (msg->axes.size() >= 8)
 	{
-		HAL_JoystickPOVs hal_povs;
-		hal_povs.count = 1;
-		std::memset(hal_povs.povs, -1, sizeof(hal_povs.povs));
 		//TODO Do we have a standard epsilon somewhere in here?
 		//TODO - also check see if it needs to be < -1e-5
 		const bool direction_left = msg->axes[6] > 1e-5;
@@ -185,11 +190,12 @@ void FRCRobotSimInterface::joystickCallback(const sensor_msgs::JoyConstPtr &msg,
 		{
 			hal_povs.povs[0] = 315;
 		}
-		HALSIM_SetJoystickPOVs(joystick_num, &hal_povs);
 	}
 	//TODO check default pov?
 	//TODO do you need to set JoystickDescriptor?
 
+	std::lock_guard<std::mutex> l(*(joystick_sim_write_mutex_[joystick_num]));
+	HALSIM_SetJoystickPOVs(joystick_num, &hal_povs);
 	HALSIM_SetJoystickAxes(joystick_num, &hal_axes);
 	HALSIM_SetJoystickButtons(joystick_num,
 			&hal_buttons);

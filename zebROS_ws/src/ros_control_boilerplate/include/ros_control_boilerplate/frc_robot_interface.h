@@ -37,7 +37,8 @@
    simulation
 */
 
-#pragma once
+#ifndef FRC_ROBOT_INTERFACE_INC_
+#define FRC_ROBOT_INTERFACE_INC_
 
 #include <atomic>
 #include <thread>
@@ -54,6 +55,7 @@
 
 // ROS Controls
 #include "as726x_interface/as726x_interface.h"
+#include "frc_interfaces/joystick_interface.h"
 #include "frc_interfaces/match_data_interface.h"
 #include "frc_interfaces/pcm_state_interface.h"
 #include "frc_interfaces/pdp_state_interface.h"
@@ -211,6 +213,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		hardware_interface::RemotePDPStateInterface	           pdp_remote_state_interface_;
 		hardware_interface::PCMStateInterface	               pcm_state_interface_;
 		hardware_interface::RemotePCMStateInterface	           pcm_remote_state_interface_;
+		hardware_interface::JoystickStateInterface             joystick_state_interface_;
 		hardware_interface::MatchStateInterface                match_state_interface_;
 		hardware_interface::RemoteMatchStateInterface          match_remote_state_interface_;
 		hardware_interface::as726x::AS726xStateInterface       as726x_state_interface_;
@@ -354,8 +357,6 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 
 		std::vector<std::string> joystick_names_;
 		std::vector<int>         joystick_ids_; // pretty sure this is montonic increasing by default?
-		std::vector<bool>        joystick_locals_;
-		std::vector<std::string> joystick_types_;
 		std::size_t              num_joysticks_{0};
 
 		std::vector<std::string> as726x_names_;
@@ -392,10 +393,11 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<hardware_interface::PDPHWState> pdp_state_;
 		std::vector<hardware_interface::PCMState> pcm_state_;
 		hardware_interface::RobotControllerState robot_controller_state_;
+		std::vector<hardware_interface::JoystickState> joystick_state_;
 		hardware_interface::MatchHWState match_data_;
 	    std::vector<hardware_interface::OrchestraState> orchestra_state_;
 		std::mutex match_data_mutex_;
-		std::mutex joystick_mutex_;
+		std::vector<std::shared_ptr<std::mutex>> joystick_sim_write_mutex_;
 
 		// Each entry in the vector is an array. That array holds
 		// the data returned from one particular imu
@@ -434,13 +436,13 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 
 		std::vector<double> robot_ready_signals_;
 		bool                robot_code_ready_{false};
+		bool                last_robot_enabled_{false};
 
 		//certain data will be read at a slower rate than the main loop, for computational efficiency
 		//robot iteration calls - sending stuff to driver station
 		double t_prev_robot_iteration_;
 		double robot_iteration_hz_;
 
-		double t_prev_joystick_read_;
 		double joystick_read_hz_;
 
 		double t_prev_match_data_read_;
@@ -484,23 +486,11 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<std::shared_ptr<hardware_interface::PDPHWState>> pdp_read_thread_state_;
 		void pdp_read_thread(int32_t pdp, std::shared_ptr<hardware_interface::PDPHWState> state, std::shared_ptr<std::mutex> mutex, std::unique_ptr<Tracer> tracer);
 		std::vector<std::thread> pdp_thread_;
-		std::vector<int32_t> pdps_;
-		std::vector<std::shared_ptr<frc::Joystick>> joysticks_;
-		std::vector<bool> joystick_up_last_;
-		std::vector<bool> joystick_down_last_;
-		std::vector<bool> joystick_left_last_;
-		std::vector<bool> joystick_right_last_;
-		std::vector<frc_msgs::ButtonBoxState> prev_button_box_state_;
 
-		void joystick_pub_function(int i);
-		void button_box_pub_function(int i);
-		const std::unordered_map<std::string, std::function<void(int)>> joystick_fn_map_
-		{
-			{"joystick", std::bind(&FRCRobotInterface::joystick_pub_function, this, std::placeholders::_1)},
-			{"button_box", std::bind(&FRCRobotInterface::button_box_pub_function, this, std::placeholders::_1)}
-		};
-		std::vector<std::unique_ptr<realtime_tools::RealtimePublisher<frc_msgs::JoystickState>>> realtime_pub_joysticks_;
-		std::vector<std::unique_ptr<realtime_tools::RealtimePublisher<frc_msgs::ButtonBoxState>>> realtime_pub_button_boxes_;
+		std::vector<std::shared_ptr<std::mutex>> joystick_read_thread_mutexes_;
+		std::vector<std::shared_ptr<hardware_interface::JoystickState>> joystick_read_thread_state_;
+		void joystick_read_thread(const char *name, int id, std::shared_ptr<hardware_interface::JoystickState> state, std::shared_ptr<std::mutex> state_mutex, std::shared_ptr<std::mutex> joystick_mutex, std::unique_ptr<Tracer> tracer);
+		std::vector<std::thread> joystick_thread_;
 
 		std::unique_ptr<ROSIterativeRobot> robot_{nullptr};
 		Tracer read_tracer_;
@@ -510,3 +500,4 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 };  // class
 
 }  // namespace
+#endif
