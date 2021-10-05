@@ -103,8 +103,8 @@ sudo apt install -y \
 
 # Patch catkin tools/pkg for faster builds
 cd /usr/lib/python2.7/dist-packages
-sudo patch -p0 < ~/2020Offseason/catkin_pkg.patch
-sudo patch -p0 < ~/2020Offseason/catkin_tools.patch
+sudo patch -p0 < ~/2020Offseason/patches/catkin_pkg.patch
+sudo patch -p0 < ~/2020Offseason/patches/catkin_tools.patch
 
 # Fix bug in released version of catkin_tools - TODO check me
 sudo sed -i 's/ errno.EINTR/ errno.EINTR and e.errno != errno.EAGAIN/'  /usr/lib/python2.7/dist-packages/catkin_tools/execution/job_server.py

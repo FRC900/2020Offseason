@@ -78,9 +78,9 @@ catkin build -DCMAKE_TOOLCHAIN_FILE=$HOME/2020Offseason/zebROS_ws/rostoolchain.c
 # Add newly built cross-libs to git repo so they are
 # used for subsequent Rio imagings
 cd /home/ubuntu/wpilib/2021/roborio/arm-frc2021-linux-gnueabi
-rm ~/2020Offseason/roscore_roborio.tar.bz2
-tar -cf ~/2020Offseason/roscore_roborio.tar opt/ros/melodic
-bzip2 -9 ~/2020Offseason/roscore_roborio.tar
+rm ~/2020Offseason/scripts/roscore_roborio.tar.bz2
+tar -cf ~/2020Offseason/scripts/roscore_roborio.tar opt/ros/melodic
+bzip2 -9 ~/2020Offseason/scripts/roscore_roborio.tar
 
 # !!!NOTE!!! - important - copy roscore_melodic_roborio.tar.bz2 into the docker repo
 # so it gets picked up in subsequent builds
