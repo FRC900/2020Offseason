@@ -163,13 +163,13 @@ sudo bash -c "echo FallbackNTP=ntp.ubuntu.com >> /etc/systemd/timesyncd.conf"
 # and keys for connections to Rio
 mkdir -p ~/.ssh
 cd ~/.ssh
-tar -xjf ~/2020Offseason/jetson_setup/jetson_dot_ssh.tar.bz2 
+tar -xjf ~/2020Offseason/scripts/jetson_setup/jetson_dot_ssh.tar.bz2 
 chmod 640 authorized_keys
 cd ~
 chmod 700 .ssh
 
 sudo mkdir -p /root/.ssh
-sudo tar -xjf /home/ubuntu/2020Offseason/jetson_setup/jetson_dot_ssh.tar.bz2 -C /root/.ssh
+sudo tar -xjf /home/ubuntu/2020Offseason/scripts/jetson_setup/jetson_dot_ssh.tar.bz2 -C /root/.ssh
 sudo chmod 640 /root/.ssh/authorized_keys
 sudo chmod 700 /root/.ssh
 
@@ -260,7 +260,7 @@ mkdir -p ~/2020Offseason.dev/zebROS_ws
 
 sudo mkdir -p /usr/local/zed/settings
 sudo chmod 755 /usr/local/zed/settings
-sudo cp ~/2020Offseason/calibration_files/*.conf /usr/local/zed/settings
+sudo cp ~/2020Offseason/scripts/jetson_install/calibration_files/*.conf /usr/local/zed/settings
 sudo chmod 644 /usr/local/zed/settings/*
 
 cp ~/2020Offseason/.vimrc ~/2020Offseason/.gvimrc ~

@@ -20,5 +20,5 @@ else
 	roslaunch controller_node controller_slave.launch
 fi
 
-/home/ubuntu/2020Offseason/jetson_setup/clocks.sh &
+/home/ubuntu/2020Offseason/scripts/jetson_setup/clocks.sh &
 
