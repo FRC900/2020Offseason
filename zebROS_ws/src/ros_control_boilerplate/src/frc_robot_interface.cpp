@@ -37,15 +37,16 @@
 */
 #include <ros/ros.h>
 #include <ros_control_boilerplate/frc_robot_interface.h>
-#include <cerrno>                                     // for errno
 #include <ext/alloc_traits.h>                         // for __alloc_traits<...
 #ifdef __linux__
 #include <pthread.h>                                  // for pthread_self
 #include <sched.h>                                    // for sched_get_prior...
+#include <sstream>
 #endif
-#include <cstring>                                    // for size_t, strerror
 #include <algorithm>                                  // for max, all_of
 #include <cmath>                                      // for M_PI
+#include <cerrno>                                     // for errno
+#include <cstring>                                    // for size_t, strerror
 #include <cstdint>                                    // for uint8_t, int32_t
 #include <iostream>                                   // for operator<<, bas...
 #include "AHRS.h"                                     // for AHRS
@@ -88,16 +89,20 @@ void FRCRobotInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::motor
 											std::unique_ptr<Tracer> tracer)
 {
 #ifdef __linux__
-	pthread_setname_np(pthread_self(), "ctre_mc_read");
+	std::stringstream thread_name;
+	// Use abbreviations since pthread_setname will fail if name is >= 16 characters
+	thread_name << "ctre_mc_rd_" << state->getCANID();
+	pthread_setname_np(pthread_self(), thread_name.str().c_str());
 #endif
 	ros::Duration(2.75 + state->getCANID() * 0.05).sleep(); // Sleep for a few seconds to let CAN start up
+	ROS_INFO_STREAM("Starting ctre_mc " << state->getCANID() << " thread at " << ros::Time::now());
 	ros::Rate rate(100); // TODO : configure me from a file or
 						 // be smart enough to run at the rate of the fastest status update?
 
-	auto victor = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::IMotorController>(ctre_mc);
-	auto talon = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::IMotorControllerEnhanced>(ctre_mc);
-	auto talonsrx = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::can::TalonSRX>(ctre_mc);
-	auto talonfx = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::can::TalonFX>(ctre_mc);
+	const auto victor = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::IMotorController>(ctre_mc);
+	const auto talon = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::IMotorControllerEnhanced>(ctre_mc);
+	const auto talonsrx = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::can::TalonSRX>(ctre_mc);
+	const auto talonfx = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::can::TalonFX>(ctre_mc);
 
 	while(ros::ok())
 	{
@@ -372,6 +377,7 @@ void FRCRobotInterface::pdp_read_thread(int32_t pdp,
 	pthread_setname_np(pthread_self(), "pdp_read");
 #endif
 	ros::Duration(1.9).sleep(); // Sleep for a few seconds to let CAN start up
+	ROS_INFO_STREAM("Starting pdp read thread at " << ros::Time::now());
 	ros::Rate r(20); // TODO : Tune me?
 	int32_t status = 0;
 	HAL_ClearPDPStickyFaults(pdp, &status);
@@ -427,6 +433,7 @@ void FRCRobotInterface::joystick_read_thread(
 	pthread_setname_np(pthread_self(), "joystick_read");
 #endif
 	ros::Duration(2.4 + id / 10.0).sleep(); // Sleep for a few seconds to let CAN start up
+	ROS_INFO_STREAM("Starting joystick " << id << " thread at " << ros::Time::now());
 	ros::Rate r(joystick_read_hz_);
 	frc::Joystick joystick(id);
 	hardware_interface::JoystickState joystick_state(name, id);
@@ -442,7 +449,7 @@ void FRCRobotInterface::joystick_read_thread(
 			for (auto i = 0; i < joystick.GetAxisCount(); i++)
 				joystick_state.addAxis(joystick.GetRawAxis(i));
 			for (auto i = 0; i < joystick.GetButtonCount(); i++)
-				joystick_state.addButton(joystick.GetRawButton(i));
+				joystick_state.addButton(joystick.GetRawButton(i+1));
 			for (auto i = 0; i < joystick.GetPOVCount(); i++)
 				joystick_state.addPOV(joystick.GetPOV(i));
 		}
@@ -471,10 +478,13 @@ void FRCRobotInterface::pcm_read_thread(HAL_CompressorHandle compressor_handle, 
 										  std::unique_ptr<Tracer> tracer)
 {
 #ifdef __linux__
-	pthread_setname_np(pthread_self(), "pcm_read");
+	std::stringstream s;
+	s << "pcm_read_" << pcm_id;
+	pthread_setname_np(pthread_self(), s.str().c_str());
 #endif
 	ros::Duration(2.1 + pcm_id/10.).sleep(); // Sleep for a few seconds to let CAN start up
 	ros::Rate r(20); // TODO : Tune me?
+	ROS_INFO_STREAM("Starting pcm " << pcm_id << " read thread at " << ros::Time::now());
 	int32_t status = 0;
 	HAL_ClearAllPCMStickyFaults(pcm_id, &status);
 	if (status)
@@ -3383,7 +3393,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 			if (safeTalonCall(victor->SetSelectedSensorPosition(sensor_position / radians_scale, pidIdx, timeoutMs),
 						"SetSelectedSensorPosition"))
 			{
-				ROS_INFO_STREAM_THROTTLE(2, "Updated joint " << joint_id << "=" << can_ctre_mc_names_[joint_id] << " selected sensor position");
+				ROS_INFO_STREAM("Updated joint " << joint_id << "=" << can_ctre_mc_names_[joint_id] << " selected sensor position");
 			}
 			else
 			{
@@ -4138,6 +4148,7 @@ double FRCRobotInterface::getConversionFactor(int encoder_ticks_per_rotation,
 
 bool FRCRobotInterface::safeTalonCall(ctre::phoenix::ErrorCode error_code, const std::string &talon_method_name)
 {
+	return true;
 	//ROS_INFO_STREAM("safeTalonCall(" << talon_method_name << ") = " << error_code);
 	std::string error_name;
 	static bool error_sent = false;
