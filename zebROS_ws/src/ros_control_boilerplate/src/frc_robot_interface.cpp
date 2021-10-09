@@ -92,12 +92,14 @@ void FRCRobotInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::motor
 	std::stringstream thread_name;
 	// Use abbreviations since pthread_setname will fail if name is >= 16 characters
 	thread_name << "ctre_mc_rd_" << state->getCANID();
-	pthread_setname_np(pthread_self(), thread_name.str().c_str());
+	if (pthread_setname_np(pthread_self(), thread_name.str().c_str()))
+	{
+		ROS_ERROR_STREAM("Error setting thread name " << thread_name.str() << " " << errno);
+	}
 #endif
 	ros::Duration(2.75 + state->getCANID() * 0.05).sleep(); // Sleep for a few seconds to let CAN start up
 	ROS_INFO_STREAM("Starting ctre_mc " << state->getCANID() << " thread at " << ros::Time::now());
-	ros::Rate rate(100); // TODO : configure me from a file or
-						 // be smart enough to run at the rate of the fastest status update?
+	ros::Rate rate(ctre_mc_read_hz_); // TODO : be smart enough to run at the rate of the fastest status update?
 
 	const auto victor = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::IMotorController>(ctre_mc);
 	const auto talon = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::IMotorControllerEnhanced>(ctre_mc);
@@ -374,11 +376,14 @@ void FRCRobotInterface::pdp_read_thread(int32_t pdp,
 		std::unique_ptr<Tracer> tracer)
 {
 #ifdef __linux__
-	pthread_setname_np(pthread_self(), "pdp_read");
+	if (pthread_setname_np(pthread_self(), "pdp_read"))
+	{
+		ROS_ERROR_STREAM("Error setting thread name pdp_read " << errno);
+	}
 #endif
 	ros::Duration(1.9).sleep(); // Sleep for a few seconds to let CAN start up
 	ROS_INFO_STREAM("Starting pdp read thread at " << ros::Time::now());
-	ros::Rate r(20); // TODO : Tune me?
+	ros::Rate r(pdp_read_hz_);
 	int32_t status = 0;
 	HAL_ClearPDPStickyFaults(pdp, &status);
 	HAL_ResetPDPTotalEnergy(pdp, &status);
@@ -430,7 +435,10 @@ void FRCRobotInterface::joystick_read_thread(
 		std::unique_ptr<Tracer> tracer)
 {
 #ifdef __linux__
-	pthread_setname_np(pthread_self(), "joystick_read");
+	if (pthread_setname_np(pthread_self(), "joystick_read"))
+	{
+		ROS_ERROR_STREAM("Error setting thread name joystick_read " << errno);
+	}
 #endif
 	ros::Duration(2.4 + id / 10.0).sleep(); // Sleep for a few seconds to let CAN start up
 	ROS_INFO_STREAM("Starting joystick " << id << " thread at " << ros::Time::now());
@@ -480,10 +488,13 @@ void FRCRobotInterface::pcm_read_thread(HAL_CompressorHandle compressor_handle, 
 #ifdef __linux__
 	std::stringstream s;
 	s << "pcm_read_" << pcm_id;
-	pthread_setname_np(pthread_self(), s.str().c_str());
+	if (pthread_setname_np(pthread_self(), s.str().c_str()))
+	{
+		ROS_ERROR_STREAM("Error setting thread name " << s.str() << " " << errno);
+	}
 #endif
 	ros::Duration(2.1 + pcm_id/10.).sleep(); // Sleep for a few seconds to let CAN start up
-	ros::Rate r(20); // TODO : Tune me?
+	ros::Rate r(pcm_read_hz_);
 	ROS_INFO_STREAM("Starting pcm " << pcm_id << " read thread at " << ros::Time::now());
 	int32_t status = 0;
 	HAL_ClearAllPCMStickyFaults(pcm_id, &status);
@@ -1738,13 +1749,13 @@ void FRCRobotInterface::createInterfaces(void)
 	if (run_hal_robot_)
 	{
 		ROS_INFO_NAMED(name_, "FRCRobotInterface: Registering match data interface");
-		hardware_interface::MatchStateHandle msh("match_name", &match_data_);
+		hardware_interface::MatchStateHandle msh("match_data", &match_data_);
 		match_state_interface_.registerHandle(msh);
 	}
 	else
 	{
 		ROS_INFO_NAMED(name_, "FRCRobotInterface: Registering remote match data interface");
-		hardware_interface::MatchStateWritableHandle msh("match_name", &match_data_);
+		hardware_interface::MatchStateWritableHandle msh("match_data", &match_data_);
 		match_remote_state_interface_.registerHandle(msh);
 	}
 
@@ -2210,36 +2221,43 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 
 bool FRCRobotInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh)
 {
-	createInterfaces();
-	ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface Interfaces Ready.");
-	if (!initDevices(root_nh))
-		return false;
-	ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface Devices Ready.");
-
+	if(! root_nh.param("generic_hw_control_loop/ctre_mc_read_hz", ctre_mc_read_hz_, ctre_mc_read_hz_)) {
+		ROS_ERROR("Failed to read ctre_mc_read_hz in frc_robot_interface");
+	}
+	if(! root_nh.param("generic_hw_control_loop/pcm_read_hz", pcm_read_hz_, pcm_read_hz_)) {
+		ROS_ERROR("Failed to read pcm_read_hz in frc_robot_interface");
+	}
+	if(! root_nh.param("generic_hw_control_loop/pdp_read_hz", pdp_read_hz_, pdp_read_hz_)) {
+		ROS_ERROR("Failed to read pdp_read_hz in frc_robot_interface");
+	}
 	const double t_now = ros::Time::now().toSec();
-
 	t_prev_robot_iteration_ = t_now;
-	if(! root_nh.getParam("generic_hw_control_loop/robot_iteration_hz", robot_iteration_hz_)) {
+	if(! root_nh.param("generic_hw_control_loop/robot_iteration_hz", robot_iteration_hz_, robot_iteration_hz_)) {
 		ROS_ERROR("Failed to read robot_iteration_hz in frc_robot_interface");
-		robot_iteration_hz_ = 20;
 	}
 
-	if(! root_nh.getParam("generic_hw_control_loop/joystick_read_hz", joystick_read_hz_)) {
+	if(! root_nh.param("generic_hw_control_loop/joystick_read_hz", joystick_read_hz_, joystick_read_hz_)) {
 		ROS_ERROR("Failed to read joystick_read_hz in frc_robot_interface");
-		joystick_read_hz_ = 50;
 	}
 
 	t_prev_match_data_read_ = t_now;
-	if(! root_nh.getParam("generic_hw_control_loop/match_data_read_hz", match_data_read_hz_)) {
+	if(! root_nh.param("generic_hw_control_loop/match_data_read_hz", match_data_read_hz_, match_data_read_hz_)) {
 		ROS_ERROR("Failed to read match_data_read_hz in frc_robot_interface");
-		match_data_read_hz_ = 2;
 	}
 
 	t_prev_robot_controller_read_ = t_now;
-	if(! root_nh.getParam("generic_hw_control_loop/robot_controller_read_hz", robot_controller_read_hz_)) {
+	if(! root_nh.param("generic_hw_control_loop/robot_controller_read_hz", robot_controller_read_hz_, robot_controller_read_hz_)) {
 		ROS_ERROR("Failed to read robot_controller_read_hz in frc_robot_interface");
-		robot_controller_read_hz_ = 20;
 	}
+
+	ROS_INFO_STREAM("Controller Frequencies:" << std::endl <<
+			"\tctre_mc_read : " << ctre_mc_read_hz_ << std::endl <<
+			"\tpcm_read : " << pcm_read_hz_ << std::endl <<
+			"\tpdp_read : " << pdp_read_hz_ << std::endl <<
+			"\trobot_iteration : " << robot_iteration_hz_ << std::endl <<
+			"\tjoystick_read : " << joystick_read_hz_ << std::endl <<
+			"\tmatch_data_read : " << match_data_read_hz_ << std::endl <<
+			"\trobot_controller_read : " << robot_controller_read_hz_);
 
 #ifdef __linux__
 	struct sched_param schedParam{};
@@ -2249,8 +2267,16 @@ bool FRCRobotInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw
 	ROS_INFO_STREAM("pthread_setschedparam() returned " << rc
 			<< " priority = " << schedParam.sched_priority
 			<< " errno = " << errno << " (" << strerror(errno) << ")");
-	pthread_setname_np(pthread_self(), "hwi_main_loop");
+	if (pthread_setname_np(pthread_self(), "hwi_main_loop"))
+	{
+		ROS_ERROR_STREAM("Error setting thread name hwi_main_loop " << errno);
+	}
 #endif
+	createInterfaces();
+	ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface Create Interfaces Ready.");
+	if (!initDevices(root_nh))
+		return false;
+	ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface Devices Ready.");
 
 	ROS_INFO_NAMED("frc_robot_interface", "FRCRobotInterface Ready.");
 
@@ -2621,9 +2647,9 @@ void FRCRobotInterface::read(const ros::Time &time, const ros::Duration &period)
 
 		read_tracer_.start_unique("robot controller data");
 		//check if sufficient time has passed since last read
-		if(ros::Time::now().toSec() - t_prev_robot_controller_read_ > (1/robot_controller_read_hz_))
+		if(ros::Time::now().toSec() - t_prev_robot_controller_read_ > (1./robot_controller_read_hz_))
 		{
-			t_prev_robot_controller_read_ += 1/robot_controller_read_hz_;
+			t_prev_robot_controller_read_ += 1./robot_controller_read_hz_;
 
 			status = 0;
 			robot_controller_state_.SetFPGAVersion(HAL_GetFPGAVersion(&status));
@@ -4148,7 +4174,6 @@ double FRCRobotInterface::getConversionFactor(int encoder_ticks_per_rotation,
 
 bool FRCRobotInterface::safeTalonCall(ctre::phoenix::ErrorCode error_code, const std::string &talon_method_name)
 {
-	return true;
 	//ROS_INFO_STREAM("safeTalonCall(" << talon_method_name << ") = " << error_code);
 	std::string error_name;
 	static bool error_sent = false;

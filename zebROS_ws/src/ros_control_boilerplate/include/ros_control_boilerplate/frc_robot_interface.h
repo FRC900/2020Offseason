@@ -440,16 +440,19 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 
 		//certain data will be read at a slower rate than the main loop, for computational efficiency
 		//robot iteration calls - sending stuff to driver station
+		double ctre_mc_read_hz_{100};
+		double pcm_read_hz_{20};
+		double pdp_read_hz_{20};
 		double t_prev_robot_iteration_;
-		double robot_iteration_hz_;
+		double robot_iteration_hz_{50};
 
-		double joystick_read_hz_;
+		double joystick_read_hz_{50};
 
 		double t_prev_match_data_read_;
-		double match_data_read_hz_;
+		double match_data_read_hz_{2};
 
 		double t_prev_robot_controller_read_;
-		double robot_controller_read_hz_;
+		double robot_controller_read_hz_{20};
 
 		/* Get conversion factor for position, velocity, and closed-loop stuff */
 		double getConversionFactor(int encoder_ticks_per_rotation, hardware_interface::FeedbackDevice encoder_feedback, hardware_interface::TalonMode talon_mode) const;

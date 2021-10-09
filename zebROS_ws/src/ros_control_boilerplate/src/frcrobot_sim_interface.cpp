@@ -220,10 +220,12 @@ bool FRCRobotSimInterface::setlimit(ros_control_boilerplate::set_limit_switch::R
 
 bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh)
 {
-	skip_bus_voltage_temperature_  = true;
 	// Do base class init. This loads common interface info
 	// used by both the real and sim interfaces
 	ROS_WARN_STREAM(__PRETTY_FUNCTION__ << " line: " << __LINE__);
+
+	// Work around CTRE sim bug?
+	skip_bus_voltage_temperature_ = true;
 	if (!FRCRobotInterface::init(root_nh, robot_hw_nh))
 	{
 		ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << " failed");
@@ -335,7 +337,7 @@ void FRCRobotSimInterface::read(const ros::Time& time, const ros::Duration& peri
 	read_tracer_.start_unique("FeedEnable");
 	if (num_can_ctre_mcs_)
 	{
-		ctre::phoenix::unmanaged::Unmanaged::FeedEnable(100);
+		ctre::phoenix::unmanaged::Unmanaged::FeedEnable(2 * 1000./ctre_mc_read_hz_);
 	}
 	read_tracer_.start_unique("HAL_SimPeriodicBefore");
 	HAL_SimPeriodicBefore();
