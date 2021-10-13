@@ -42,7 +42,6 @@
 
 #include <atomic>
 #include <thread>
-#include <unordered_map>
 
 // ROS
 #include <controller_manager/controller_manager.h>
@@ -60,8 +59,6 @@
 #include "frc_interfaces/pcm_state_interface.h"
 #include "frc_interfaces/pdp_state_interface.h"
 #include "frc_interfaces/robot_controller_interface.h"
-#include "frc_msgs/ButtonBoxState.h"
-#include "frc_msgs/JoystickState.h"
 #include "remote_joint_interface/remote_joint_interface.h"
 #include "ros_control_boilerplate/ros_iterative_robot.h"
 #include "ros_control_boilerplate/talon_convert.h"
@@ -375,8 +372,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 
 		urdf::Model *urdf_model_{nullptr};
 
-		// Array holding master cached state of hardware
-		// resources
+		// Array holding master cached state of hardware resources
 		std::vector<hardware_interface::TalonHWState> talon_state_;
 		std::vector<hardware_interface::canifier::CANifierHWState> canifier_state_;
 		std::vector<hardware_interface::cancoder::CANCoderHWState> cancoder_state_;
@@ -411,8 +407,8 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<double> analog_input_state_;
 
 		std::vector<hardware_interface::as726x::AS726xState> as726x_state_;
-		// Same as above, but for pending commands to be
-		// written to the hardware
+
+		// Same as above, but for pending commands to be written to the hardware
 		std::vector<hardware_interface::TalonHWCommand> talon_command_;
 		std::vector<hardware_interface::canifier::CANifierHWCommand> canifier_command_;
 		std::vector<hardware_interface::cancoder::CANCoderHWCommand> cancoder_command_;
@@ -446,6 +442,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		double t_prev_robot_iteration_;
 		double robot_iteration_hz_{50};
 
+		double t_prev_joystick_read_;
 		double joystick_read_hz_{50};
 
 		double t_prev_match_data_read_;
@@ -468,7 +465,11 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<std::shared_ptr<hardware_interface::TalonHWState>> ctre_mc_read_thread_states_;
 		std::vector<std::thread> ctre_mc_read_threads_;
 		std::atomic<bool> skip_bus_voltage_temperature_{false};
-		void ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::motorcontrol::IMotorController> ctre_mc, std::shared_ptr<hardware_interface::TalonHWState> state, std::shared_ptr<std::mutex> mutex, std::unique_ptr<Tracer> tracer);
+		void ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::motorcontrol::IMotorController> ctre_mc,
+												 std::shared_ptr<hardware_interface::TalonHWState> state,
+												 std::shared_ptr<std::mutex> mutex,
+												 std::unique_ptr<Tracer> tracer,
+												 double poll_frequency);
 
 		std::vector<std::shared_ptr<frc::NidecBrushless>> nidec_brushlesses_;
 		std::vector<std::shared_ptr<frc::DigitalInput>> digital_inputs_;
@@ -481,19 +482,25 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 
 		std::vector<std::shared_ptr<std::mutex>> pcm_read_thread_mutexes_;
 		std::vector<std::shared_ptr<hardware_interface::PCMState>> pcm_read_thread_state_;
-		void pcm_read_thread(HAL_CompressorHandle compressor_handle, int32_t pcm_id, std::shared_ptr<hardware_interface::PCMState> state, std::shared_ptr<std::mutex> mutex, std::unique_ptr<Tracer> tracer);
-		std::vector<std::thread> pcm_thread_;
+		void pcm_read_thread(HAL_CompressorHandle compressor_handle,
+							 int32_t pcm_id,
+							 std::shared_ptr<hardware_interface::PCMState> state,
+							 std::shared_ptr<std::mutex> mutex,
+							 std::unique_ptr<Tracer> tracer,
+							 double poll_frequency);
+		std::vector<std::thread> pcm_threads_;
 		std::vector<HAL_CompressorHandle> compressors_;
 
 		std::vector<std::shared_ptr<std::mutex>> pdp_read_thread_mutexes_;
 		std::vector<std::shared_ptr<hardware_interface::PDPHWState>> pdp_read_thread_state_;
-		void pdp_read_thread(int32_t pdp, std::shared_ptr<hardware_interface::PDPHWState> state, std::shared_ptr<std::mutex> mutex, std::unique_ptr<Tracer> tracer);
-		std::vector<std::thread> pdp_thread_;
+		void pdp_read_thread(int32_t pdp,
+							 std::shared_ptr<hardware_interface::PDPHWState> state,
+							 std::shared_ptr<std::mutex> mutex,
+							 std::unique_ptr<Tracer> tracer,
+							 double poll_frequency);
+		std::vector<std::thread> pdp_threads_;
 
-		std::vector<std::shared_ptr<std::mutex>> joystick_read_thread_mutexes_;
-		std::vector<std::shared_ptr<hardware_interface::JoystickState>> joystick_read_thread_state_;
-		void joystick_read_thread(const char *name, int id, std::shared_ptr<hardware_interface::JoystickState> state, std::shared_ptr<std::mutex> state_mutex, std::shared_ptr<std::mutex> joystick_mutex, std::unique_ptr<Tracer> tracer);
-		std::vector<std::thread> joystick_thread_;
+		std::vector<std::shared_ptr<frc::Joystick>> joysticks_;
 
 		std::unique_ptr<ROSIterativeRobot> robot_{nullptr};
 		Tracer read_tracer_;

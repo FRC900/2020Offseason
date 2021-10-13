@@ -86,7 +86,8 @@ constexpr int timeoutMs = 0; //If nonzero, function will wait for config success
 void FRCRobotInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::motorcontrol::IMotorController> ctre_mc,
 											std::shared_ptr<hardware_interface::TalonHWState> state,
 											std::shared_ptr<std::mutex> mutex,
-											std::unique_ptr<Tracer> tracer)
+											std::unique_ptr<Tracer> tracer,
+											double poll_frequency)
 {
 #ifdef __linux__
 	std::stringstream thread_name;
@@ -99,7 +100,7 @@ void FRCRobotInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::motor
 #endif
 	ros::Duration(2.75 + state->getCANID() * 0.05).sleep(); // Sleep for a few seconds to let CAN start up
 	ROS_INFO_STREAM("Starting ctre_mc " << state->getCANID() << " thread at " << ros::Time::now());
-	ros::Rate rate(ctre_mc_read_hz_); // TODO : be smart enough to run at the rate of the fastest status update?
+	ros::Rate rate(poll_frequency); // TODO : be smart enough to run at the rate of the fastest status update?
 
 	const auto victor = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::IMotorController>(ctre_mc);
 	const auto talon = std::dynamic_pointer_cast<ctre::phoenix::motorcontrol::IMotorControllerEnhanced>(ctre_mc);
@@ -211,7 +212,6 @@ void FRCRobotInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::motor
 
 			closed_loop_target = victor->GetClosedLoopTarget(pidIdx) * closed_loop_scale;
 			safeTalonCall(victor->GetLastError(), "GetClosedLoopTarget");
-
 		}
 
 		// Targets Status 10 - 160 mSec default
@@ -373,7 +373,8 @@ void FRCRobotInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::motor
 void FRCRobotInterface::pdp_read_thread(int32_t pdp,
 		std::shared_ptr<hardware_interface::PDPHWState> state,
 		std::shared_ptr<std::mutex> mutex,
-		std::unique_ptr<Tracer> tracer)
+		std::unique_ptr<Tracer> tracer,
+		double poll_frequency)
 {
 #ifdef __linux__
 	if (pthread_setname_np(pthread_self(), "pdp_read"))
@@ -383,7 +384,7 @@ void FRCRobotInterface::pdp_read_thread(int32_t pdp,
 #endif
 	ros::Duration(1.9).sleep(); // Sleep for a few seconds to let CAN start up
 	ROS_INFO_STREAM("Starting pdp read thread at " << ros::Time::now());
-	ros::Rate r(pdp_read_hz_);
+	ros::Rate r(poll_frequency);
 	int32_t status = 0;
 	HAL_ClearPDPStickyFaults(pdp, &status);
 	HAL_ResetPDPTotalEnergy(pdp, &status);
@@ -421,69 +422,16 @@ void FRCRobotInterface::pdp_read_thread(int32_t pdp,
 	}
 }
 
-// Joystick reads happen in their own thread. Each thread
-// loops at 50Hz to match the update rate of joystick data
-// Each iteration, data read from the
-// joystick is copied to a state buffer shared with the main read
-// thread.
-void FRCRobotInterface::joystick_read_thread(
-		const char *name,
-		int id,
-		std::shared_ptr<hardware_interface::JoystickState> state,
-		std::shared_ptr<std::mutex> state_mutex,
-		std::shared_ptr<std::mutex> joystick_mutex,
-		std::unique_ptr<Tracer> tracer)
-{
-#ifdef __linux__
-	if (pthread_setname_np(pthread_self(), "joystick_read"))
-	{
-		ROS_ERROR_STREAM("Error setting thread name joystick_read " << errno);
-	}
-#endif
-	ros::Duration(2.4 + id / 10.0).sleep(); // Sleep for a few seconds to let CAN start up
-	ROS_INFO_STREAM("Starting joystick " << id << " thread at " << ros::Time::now());
-	ros::Rate r(joystick_read_hz_);
-	frc::Joystick joystick(id);
-	hardware_interface::JoystickState joystick_state(name, id);
-	while (ros::ok())
-	{
-		tracer->start("main loop");
-
-		//read info from the PDP hardware
-		joystick_state.clear();
-		// Avoid reading values if sim code is in the middle of an update
-		{
-			std::scoped_lock l(*joystick_mutex);
-			for (auto i = 0; i < joystick.GetAxisCount(); i++)
-				joystick_state.addAxis(joystick.GetRawAxis(i));
-			for (auto i = 0; i < joystick.GetButtonCount(); i++)
-				joystick_state.addButton(joystick.GetRawButton(i+1));
-			for (auto i = 0; i < joystick.GetPOVCount(); i++)
-				joystick_state.addPOV(joystick.GetPOV(i));
-		}
-
-		{
-			// Copy to state shared with read() thread
-			// Put this in a separate scope so lock_guard is released
-			// as soon as the state is finished copying
-			std::lock_guard<std::mutex> l(*state_mutex);
-			*state = joystick_state;
-		}
-
-		tracer->report(60);
-		r.sleep();
-	}
-}
-
 // The PCM state reads happen in their own thread. This thread
 // loops at 20Hz to match the update rate of PCM CAN
 // status messages.  Each iteration, data read from the
 // PCM is copied to a state buffer shared with the main read
 // thread.
 void FRCRobotInterface::pcm_read_thread(HAL_CompressorHandle compressor_handle, int32_t pcm_id,
-										  std::shared_ptr<hardware_interface::PCMState> state,
-										  std::shared_ptr<std::mutex> mutex,
-										  std::unique_ptr<Tracer> tracer)
+										std::shared_ptr<hardware_interface::PCMState> state,
+										std::shared_ptr<std::mutex> mutex,
+										std::unique_ptr<Tracer> tracer,
+										double poll_frequency)
 {
 #ifdef __linux__
 	std::stringstream s;
@@ -494,7 +442,7 @@ void FRCRobotInterface::pcm_read_thread(HAL_CompressorHandle compressor_handle, 
 	}
 #endif
 	ros::Duration(2.1 + pcm_id/10.).sleep(); // Sleep for a few seconds to let CAN start up
-	ros::Rate r(pcm_read_hz_);
+	ros::Rate r(poll_frequency);
 	ROS_INFO_STREAM("Starting pcm " << pcm_id << " read thread at " << ros::Time::now());
 	int32_t status = 0;
 	HAL_ClearAllPCMStickyFaults(pcm_id, &status);
@@ -1273,34 +1221,37 @@ FRCRobotInterface::FRCRobotInterface(ros::NodeHandle &nh, urdf::Model *urdf_mode
 
 FRCRobotInterface::~FRCRobotInterface()
 {
-	for (size_t i = 0; i < num_solenoids_; i++)
-		HAL_FreeSolenoidPort(solenoids_[i]);
-	for (size_t i = 0; i < num_double_solenoids_; i++)
+	auto safe_free_solenoid_ports = [](auto s)
 	{
-		HAL_FreeSolenoidPort(double_solenoids_[i].forward_);
-		HAL_FreeSolenoidPort(double_solenoids_[i].reverse_);
-	}
-
-	for (size_t i = 0; i < num_can_ctre_mcs_; i++)
-	{
-		if (can_ctre_mc_local_hardwares_[i])
+		if (s != HAL_kInvalidHandle)
 		{
-			ctre_mc_read_threads_[i].join();
+			HAL_FreeSolenoidPort(s);
 		}
+	};
+	for (auto &s : solenoids_)
+	{
+		safe_free_solenoid_ports(s);
+	}
+	for (auto &ds : double_solenoids_)
+	{
+		safe_free_solenoid_ports(ds.forward_);
+		safe_free_solenoid_ports(ds.reverse_);
 	}
 
-	for (size_t i = 0; i < num_compressors_; i++)
+	// Simple lambda function to wait for all valid threads to exit
+	auto join_threads = [](std::vector<std::thread> &threads)
 	{
-		pcm_thread_[i].join();
-	}
-	for (size_t i = 0; i < num_pdps_; i++)
-	{
-		pdp_thread_[i].join();
-	}
-	for (size_t i = 0; i < num_joysticks_; i++)
-	{
-		joystick_thread_[i].join();
-	}
+		for (auto &t : threads)
+		{
+			if (t.joinable())
+			{
+				t.join();
+			}
+		}
+	};
+	join_threads(ctre_mc_read_threads_);
+	join_threads(pcm_threads_);
+	join_threads(pdp_threads_);
 }
 
 void FRCRobotInterface::createInterfaces(void)
@@ -1894,7 +1845,8 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 			ctre_mc_read_threads_.emplace_back(std::thread(&FRCRobotInterface::ctre_mc_read_thread, this,
 											   ctre_mcs_[i], ctre_mc_read_thread_states_[i],
 											   ctre_mc_read_state_mutexes_[i],
-											   std::make_unique<Tracer>("ctre_mc_read_" + can_ctre_mc_names_[i] + " " + root_nh.getNamespace())));
+											   std::make_unique<Tracer>("ctre_mc_read_" + can_ctre_mc_names_[i] + " " + root_nh.getNamespace()),
+											   ctre_mc_read_hz_));
 		}
 		else
 		{
@@ -2145,10 +2097,11 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 				if (!status && (compressors_[i] != HAL_kInvalidHandle))
 				{
 					pcm_read_thread_mutexes_.push_back(std::make_shared<std::mutex>());
-					pcm_thread_.emplace_back(std::thread(&FRCRobotInterface::pcm_read_thread, this,
-											 compressors_[i], compressor_pcm_ids_[i], pcm_read_thread_state_[i],
-											 pcm_read_thread_mutexes_[i],
-											 std::make_unique<Tracer>("PCM " + compressor_names_[i] + " " + root_nh.getNamespace())));
+					pcm_threads_.emplace_back(std::thread(&FRCRobotInterface::pcm_read_thread, this,
+											  compressors_[i], compressor_pcm_ids_[i], pcm_read_thread_state_[i],
+											  pcm_read_thread_mutexes_[i],
+											  std::make_unique<Tracer>("PCM " + compressor_names_[i] + " " + root_nh.getNamespace()),
+											  pcm_read_hz_));
 					HAL_Report(HALUsageReporting::kResourceType_Compressor, compressor_pcm_ids_[i]);
 				}
 				else
@@ -2195,9 +2148,10 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 				else
 				{
 					pdp_read_thread_mutexes_.push_back(std::make_shared<std::mutex>());
-					pdp_thread_.emplace_back(std::thread(&FRCRobotInterface::pdp_read_thread, this,
-											 pdp_handle, pdp_read_thread_state_[i], pdp_read_thread_mutexes_[i],
-											 std::make_unique<Tracer>("PDP " + pdp_names_[i] + " " + root_nh.getNamespace())));
+					pdp_threads_.emplace_back(std::thread(&FRCRobotInterface::pdp_read_thread, this,
+											  pdp_handle, pdp_read_thread_state_[i], pdp_read_thread_mutexes_[i],
+											  std::make_unique<Tracer>("PDP " + pdp_names_[i] + " " + root_nh.getNamespace()),
+											  pdp_read_hz_));
 					HAL_Report(HALUsageReporting::kResourceType_PDP, pdp_modules_[i]);
 				}
 			}
@@ -2209,12 +2163,8 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 		ROS_INFO_STREAM_NAMED("frc_robot_interface",
 							  "Loading joint " << i << "=" << joystick_names_[i] <<
 							  " as joystick with ID " << joystick_ids_[i]);
-		joystick_read_thread_mutexes_.push_back(std::make_shared<std::mutex>());
-		joystick_read_thread_state_.push_back(std::make_shared<hardware_interface::JoystickState>(joystick_names_[i].c_str(), joystick_ids_[i]));
+		joysticks_.push_back(std::make_shared<frc::Joystick>(joystick_ids_[i]));
 		joystick_sim_write_mutex_.push_back(std::make_shared<std::mutex>());
-		joystick_thread_.emplace_back(std::thread(&FRCRobotInterface::joystick_read_thread, this,
-					joystick_names_[i].c_str(), joystick_ids_[i], joystick_read_thread_state_[i], joystick_read_thread_mutexes_[i],
-					joystick_sim_write_mutex_[i], std::make_unique<Tracer>("Joystick " + joystick_names_[i] + " " + root_nh.getNamespace())));
 	}
 	return true;
 }
@@ -2236,6 +2186,7 @@ bool FRCRobotInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw
 		ROS_ERROR("Failed to read robot_iteration_hz in frc_robot_interface");
 	}
 
+	t_prev_joystick_read_ = t_now;
 	if(! root_nh.param("generic_hw_control_loop/joystick_read_hz", joystick_read_hz_, joystick_read_hz_)) {
 		ROS_ERROR("Failed to read joystick_read_hz in frc_robot_interface");
 	}
@@ -2546,32 +2497,52 @@ void FRCRobotInterface::read(const ros::Time &time, const ros::Duration &period)
 	{
 		read_tracer_.start_unique("OneIteration");
 		//check if sufficient time has passed since last read
-		if(ros::Time::now().toSec() - t_prev_robot_iteration_ > (1./robot_iteration_hz_))
+		if(time.toSec() - t_prev_robot_iteration_ > (1./robot_iteration_hz_))
 		{
 			robot_->OneIteration();
 
 			t_prev_robot_iteration_ += 1./robot_iteration_hz_;
 		}
 
-		// In sim, the joystick input code will lock this mutex while
-		// it is writing the sim joystick values. If that is in progress
-		// skip the read of the joystick data this iteration
 		read_tracer_.start_unique("joysticks");
-		for (size_t i = 0; i < num_joysticks_; i++)
+		if(time.toSec() - t_prev_joystick_read_ > (1./joystick_read_hz_))
 		{
-			std::unique_lock<std::mutex> l(*(joystick_read_thread_mutexes_[i]), std::try_to_lock);
-			if (l.owns_lock())
+			// Only update the time count if all joystick state date is updated
+			// This will force another update next time through this loop if some
+			// of the joystick data wasn't published due to the sim layer holding
+			// the mutex for them.
+			bool updated_all = true;
+			for (size_t joystick = 0; joystick < num_joysticks_; joystick++)
 			{
-				joystick_state_[i] = *joystick_read_thread_state_[i];
+				// In sim, the joystick input code will lock this mutex while
+				// it is writing the sim joystick values. If that is in progress
+				// skip the read of the joystick data this iteration
+				std::unique_lock<std::mutex> l(*(joystick_sim_write_mutex_[joystick]), std::try_to_lock);
+				if (l.owns_lock())
+				{
+					joystick_state_.clear();
+					for (auto i = 0; i < joysticks_[joystick]->GetAxisCount(); i++)
+						joystick_state_[joystick].addAxis(joysticks_[joystick]->GetRawAxis(i));
+					for (auto i = 0; i < joysticks_[joystick]->GetButtonCount(); i++)
+						joystick_state_[joystick].addButton(joysticks_[joystick]->GetRawButton(i+1));
+					for (auto i = 0; i < joysticks_[joystick]->GetPOVCount(); i++)
+						joystick_state_[joystick].addPOV(joysticks_[joystick]->GetPOV(i));
+				}
+				else
+				{
+					updated_all = false;
+				}
 			}
+			if (updated_all)
+				t_prev_joystick_read_ += 1./joystick_read_hz_;
 		}
 
 		int32_t status = 0;
 		read_tracer_.start_unique("match data");
+		//check if sufficient time has passed since last read
 		if (match_data_mutex_.try_lock())
 		{
-			//check if sufficient time has passed since last read
-			if(ros::Time::now().toSec() - t_prev_match_data_read_ > (1./match_data_read_hz_))
+			if(time.toSec() - t_prev_match_data_read_ > (1./match_data_read_hz_))
 			{
 				t_prev_match_data_read_ += 1./match_data_read_hz_;
 
@@ -2647,7 +2618,7 @@ void FRCRobotInterface::read(const ros::Time &time, const ros::Duration &period)
 
 		read_tracer_.start_unique("robot controller data");
 		//check if sufficient time has passed since last read
-		if(ros::Time::now().toSec() - t_prev_robot_controller_read_ > (1./robot_controller_read_hz_))
+		if(time.toSec() - t_prev_robot_controller_read_ > (1./robot_controller_read_hz_))
 		{
 			t_prev_robot_controller_read_ += 1./robot_controller_read_hz_;
 

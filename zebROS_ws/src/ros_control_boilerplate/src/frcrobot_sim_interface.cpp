@@ -233,14 +233,6 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 	}
 	hal::init::InitializeDriverStationData();
 
-    //TODO fix joystick topic
-	for (size_t i = 0; i < HAL_kMaxJoysticks; i++)
-	{
-		std::stringstream s;
-		s << "js" << i << "_in";
-		joystick_subs_.push_back(root_nh.subscribe<sensor_msgs::Joy>(s.str(), 1, boost::bind(&FRCRobotSimInterface::joystickCallback, this, _1, i)));
-	}
-
 	for (size_t i = 0; i < num_canifiers_; i++)
 	{
 		ROS_INFO_STREAM_NAMED("frcrobot_sim_interface",
@@ -319,6 +311,15 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 	limit_switch_srv_ = root_nh.advertiseService("set_limit_switch",&FRCRobotSimInterface::setlimit, this);
 	linebreak_sensor_srv_ = root_nh.advertiseService("linebreak_service_set",&FRCRobotSimInterface::evaluateDigitalInput, this);
     match_data_sub_ = root_nh.subscribe("/frcrobot_rio/match_data_in", 1, &FRCRobotSimInterface::match_data_callback, this);
+
+    //TODO fix joystick topic names?
+	for (size_t i = 0; i < num_joysticks_; i++)
+	{
+		std::stringstream s;
+		s << "js" << i << "_in";
+		joystick_subs_.push_back(root_nh.subscribe<sensor_msgs::Joy>(s.str(), 1, boost::bind(&FRCRobotSimInterface::joystickCallback, this, _1, i)));
+	}
+
 
 	ROS_INFO_NAMED("frcrobot_sim_interface", "FRCRobotSimInterface Ready.");
 	return true;
