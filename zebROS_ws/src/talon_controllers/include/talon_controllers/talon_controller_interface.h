@@ -1160,19 +1160,19 @@ class TalonControllerInterface
 	public:
 		TalonControllerInterface(void)
 			: srv_mutex_{std::make_shared<boost::recursive_mutex>()}
-			, srv_update_thread_flag_{std::make_shared<std::atomic_flag>()}
-		    , srv_update_thread_active_{std::make_shared<std::atomic<bool>>(true)}
-		    , srv_update_thread_{nullptr}
+			, srv_update_thread_flag_{}
+		    , srv_update_thread_active_{false}
+		    , srv_update_thread_{}
 		{
-			srv_update_thread_flag_->test_and_set();
+			srv_update_thread_flag_.test_and_set();
 		}
 
 		virtual ~TalonControllerInterface()
 		{
-			if (srv_update_thread_ && srv_update_thread_->joinable())
+			if (srv_update_thread_.joinable())
 			{
-				*srv_update_thread_active_ = false;
-				srv_update_thread_->join();
+				srv_update_thread_active_ = false;
+				srv_update_thread_.join();
 			}
 		}
 
@@ -1767,9 +1767,9 @@ class TalonControllerInterface
 		// when vars are updated from calls to the interafce. This keeps the
 		// values in the dynamic reconfigure GUI in sync with the values set
 		// via functions called in this interface
-		std::shared_ptr<std::atomic_flag>                    srv_update_thread_flag_;
-		std::shared_ptr<std::atomic<bool>>                   srv_update_thread_active_;
-		std::shared_ptr<std::thread>                         srv_update_thread_;
+		std::atomic_flag                                     srv_update_thread_flag_;
+		std::atomic<bool>                                    srv_update_thread_active_;
+		std::thread                                          srv_update_thread_;
 
 		// List of follower talons associated with the master
 		// listed above
@@ -1830,7 +1830,7 @@ class TalonControllerInterface
 				srv->setCallback(boost::bind(&TalonControllerInterface::callback, this, _1, _2));
 
 				// Create a thread to update the server with new values written by users of this interface
-				srv_update_thread_ = std::make_shared<std::thread>(std::bind(&TalonControllerInterface::srvUpdateThread, this, srv));
+				srv_update_thread_ = std::thread(std::bind(&TalonControllerInterface::srvUpdateThread, this, srv));
 			}
 			ROS_WARN("init returning");
 
@@ -1851,7 +1851,7 @@ class TalonControllerInterface
 		// control loop by any significant amount.
 		void syncDynamicReconfigure()
 		{
-			srv_update_thread_flag_->clear();
+			srv_update_thread_flag_.clear();
 		}
 
 		// Loop forever, waiting for requests from the main thread
@@ -1867,16 +1867,16 @@ class TalonControllerInterface
 			ROS_INFO_STREAM("srvUpdateThread priority set for joint " << params_.joint_name_);
 #endif
 			TalonConfigConfig config;
-			*srv_update_thread_active_ = true;
+			srv_update_thread_active_ = true;
 			ros::Rate r(10);
-			while (*srv_update_thread_active_)
+			while (srv_update_thread_active_)
 			{
 				// Loop forever, periodically checking for the flag to be cleared
 				// Test and set returns the previous value of the variable and sets
 				// it, all in one atomic operation.  The set will reset the flag
 				// so after running updateConfig() the code will loop back and wait
 				// here for the next time the flag is cleared by syncDynamicReconfigure.
-				while (srv_update_thread_flag_->test_and_set())
+				while (srv_update_thread_flag_.test_and_set())
 				{
 					r.sleep();
 				}
