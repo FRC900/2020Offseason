@@ -1,5 +1,5 @@
-#ifndef INC_JOYSTICK_H_
-#define INC_JOYSTICK_H_
+#ifndef INC_JOYSTICK_INTERFACE_H_
+#define INC_JOYSTICK_INTERFACE_H_
 
 #include <string>
 #include <vector>
@@ -16,13 +16,13 @@ class JoystickState
 {
 	public:
 		JoystickState(const char *name, size_t id)
-			: name_(name)
-			, id_(id)
+			: id_(id)
+			, name_(name)
 		{
 		}
 		JoystickState(const JoystickState &other)
-			: name_(other.name_)
-			, id_(other.id_)
+			: id_(other.id_)
+			, name_(other.name_)
 			, axises_(other.axises_)
 			, buttons_(other.buttons_)
 			, povs_(other.povs_)
@@ -33,25 +33,25 @@ class JoystickState
 		{
 			if (this != &other)
 			{
-				axises_ = other.axises_;
+				axises_  = other.axises_;
 				buttons_ = other.buttons_;
-				povs_ = other.povs_;
+				povs_    = other.povs_;
 			}
 			return *this;
 		}
 
-		size_t getId(void) const     { return id_; }
+		size_t getId(void) const      { return id_; }
 
-		void   clearAxises(void)     { axises_.clear();  }
-		void   clearButtons(void)    { buttons_.clear(); }
-		void   clearPOVs(void)       { povs_.clear();    }
-		void   clear(void)           { clearAxises(); clearButtons(); clearPOVs(); }
+		void   clearAxises(void)      { axises_.clear();  }
+		void   clearButtons(void)     { buttons_.clear(); }
+		void   clearPOVs(void)        { povs_.clear();    }
+		void   clear(void)            { clearAxises(); clearButtons(); clearPOVs(); }
 
 		void   addAxis(float axis)    { axises_.push_back(axis);    }
 		void   addButton(bool button) { buttons_.push_back(button); }
-		void   addPOV(int pov)       { povs_.push_back(pov);       }
+		void   addPOV(int pov)        { povs_.push_back(pov);       }
 
-		bool   setAxis(size_t index, float axis)
+		bool setAxis(size_t index, float axis)
 		{
 			if (index >= axises_.size())
 				ROS_ERROR_STREAM("Error setting axis for JoystickState "
@@ -83,13 +83,13 @@ class JoystickState
 			return true;
 		}
 
-		const std::vector<float>& getAxises()  const { return axises_; }
+		const std::vector<float>& getAxises()  const { return axises_;  }
 		const std::vector<bool>&  getButtons() const { return buttons_; }
-		const std::vector<int>&   getPOVs()    const { return povs_; }
+		const std::vector<int>&   getPOVs()    const { return povs_;    }
 
-		size_t getAxisCount(void)    const {return axises_.size();  };
-		size_t getButtonCount(void)  const {return buttons_.size(); };
-		size_t getPOVCount(void)     const {return povs_.size();    };
+		size_t getAxisCount(void)              const { return axises_.size();  };
+		size_t getButtonCount(void)            const { return buttons_.size(); };
+		size_t getPOVCount(void)               const { return povs_.size();    };
 
 		// For these, don't flag an error, just return 0/false
 		// That gives a reasonable default when an
