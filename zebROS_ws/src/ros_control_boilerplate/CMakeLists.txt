@@ -95,7 +95,7 @@ set (FRCROBOT_HW_MAIN_SRCS
 	src/frcrobot_hw_interface.cpp
 )
 
-set (WPI_SYSROOT $ENV{HOME}/wpilib/2021/roborio/arm-frc2021-linux-gnueabi)
+set (WPI_SYSROOT $ENV{HOME}/wpilib/2022/roborio/arm-frc2022-linux-gnueabi)
 include_directories(
 	${catkin_INCLUDE_DIRS}
 	#	${WPI_SYSROOT}/include/wpilib
@@ -107,7 +107,7 @@ include_directories(
 set (WPI_BASE_LIB_DIR ${WPI_SYSROOT}/lib/wpilib/linux)
 
 # Rio-only code
-if ("${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi")
+if ("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/athena/shared)
 
 	# Link against wpi user libraries for CAN talon and navX-MXP code and
@@ -163,7 +163,7 @@ include_directories(${ALLWPILIB}/wpimath/src/main/native/include)
 include_directories(${ALLWPILIB}/wpiutil/src/main/native/include)
 include_directories(${WPI_SYSROOT}/include/wpilib)
 
-if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi")
+if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
     # Add socketcan library to everything but the Rio
     # This adds code to use linux CAN sockets to talk to
     # the CAN bus for the Jetson
@@ -182,34 +182,36 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi")
 		src/dummy_wpilib_common.cpp
 		src/dummy_wpilib_hw.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/CANAPI.cpp
-		${ALLWPILIB}/hal/src/main/native/athena/Compressor.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/HALInitializer.cpp
-		${ALLWPILIB}/hal/src/main/native/athena/PCMInternal.cpp
-		${ALLWPILIB}/hal/src/main/native/athena/PDP.cpp
+		#${ALLWPILIB}/hal/src/main/native/athena/PCMInternal.cpp
+		${ALLWPILIB}/hal/src/main/native/athena/CTREPCM.cpp
+		${ALLWPILIB}/hal/src/main/native/athena/CTREPDP.cpp
+		${ALLWPILIB}/hal/src/main/native/athena/REVPDH.cpp
+		${ALLWPILIB}/hal/src/main/native/athena/REVPH.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/SimDevice.cpp
-		${ALLWPILIB}/hal/src/main/native/athena/Solenoid.cpp
-		${ALLWPILIB}/hal/src/main/native/athena/ctre/CtreCanNode.cpp
-		${ALLWPILIB}/hal/src/main/native/athena/ctre/PCM.cpp
+		#${ALLWPILIB}/hal/src/main/native/athena/Solenoid.cpp
+		#${ALLWPILIB}/hal/src/main/native/athena/ctre/CtreCanNode.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/mockdata/MockHooks.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/mockdata/SimDeviceData.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/cpp/fpga_clock.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/handles/HandlesInternal.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/Compressor.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Joystick.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/MotorSafety.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Tracer.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Hashing.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ManagedStatic.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/NativeFormatting.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Path.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/NativeFormatting.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Path.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallPtrSet.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallVector.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringMap.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Twine.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Twine.cpp
 	)
 
 	if ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu") # Jetson TX1/TX2/Xaver AGX/Xavier NX
@@ -241,7 +243,7 @@ endif()
 # Don't build sim code for the Rio or Jetson -
 # saves time and space for something which will
 # never be run
-if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi") OR
+if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 	     ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") OR
 		 ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu") )) 
     # Sim version of main control
@@ -263,7 +265,7 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi") OR
 		${ALLWPILIB}/hal/src/main/native/sim/AnalogTrigger.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/CANAPI.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/CAN.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Compressor.cpp
+		${ALLWPILIB}/hal/src/main/native/sim/CTREPCM.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Constants.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Counter.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/DigitalInternal.cpp
@@ -283,14 +285,14 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi") OR
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/AnalogOutData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/AnalogTriggerData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/CanDataInternal.cpp
+		${ALLWPILIB}/hal/src/main/native/sim/mockdata/CTREPCMData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/DigitalPWMData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/DIOData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/DriverStationData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/DutyCycleData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/EncoderData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/I2CData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/PCMData.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/mockdata/PDPData.cpp
+		#${ALLWPILIB}/hal/src/main/native/sim/mockdata/PDPData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/PWMData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/RelayData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/RoboRioData.cpp
@@ -299,25 +301,26 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi") OR
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/SPIData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/MockHooks.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Notifier.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/PDP.cpp
+		#${ALLWPILIB}/hal/src/main/native/sim/PDP.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Ports.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Power.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/PWM.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Relay.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/SerialPort.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/SimDevice.cpp
-		${ALLWPILIB}/hal/src/main/native/sim/Solenoid.cpp
+		#${ALLWPILIB}/hal/src/main/native/sim/Solenoid.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/SPI.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Threads.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/AnalogInput.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/Compressor.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalInput.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalOutput.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/DriverStation.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/ErrorBase.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/Error.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/frc2/Timer.cpp
+		#${ALLWPILIB}/wpilibc/src/main/native/cpp/ErrorBase.cpp
+		#${ALLWPILIB}/wpilibc/src/main/native/cpp/Error.cpp
+		#${ALLWPILIB}/wpilibc/src/main/native/cpp/frc2/Timer.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/GenericHID.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/InterruptableSensorBase.cpp
+		#${ALLWPILIB}/wpilibc/src/main/native/cpp/InterruptableSensorBase.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/IterativeRobotBase.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Joystick.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/MotorSafety.cpp
@@ -325,23 +328,23 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2021-linux-gnueabi") OR
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotState.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Timer.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/Utility.cpp
+		#${ALLWPILIB}/wpilibc/src/main/native/cpp/Utility.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Watchdog.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/simulation/CallbackStore.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/simulation/FlywheelSim.cpp
+		#${ALLWPILIB}/wpilibc/src/main/native/cpp/simulation/FlywheelSim.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/simulation/RoboRioSim.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Hashing.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ManagedStatic.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/NativeFormatting.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Path.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/NativeFormatting.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Path.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallPtrSet.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallVector.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringMap.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp
-		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Twine.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp
+		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Twine.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/timestamp.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/unix/Demangle.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/unix/StackTrace.cpp

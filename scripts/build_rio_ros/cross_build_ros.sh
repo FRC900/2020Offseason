@@ -1,4 +1,5 @@
 # Actual ros build and install :
+# TODO - think about moving this to the dockerfile?
 
 sudo apt-get install -y python-rosdep python-rosinstall-generator python-wstool python-rosinstall build-essential ninja-build
 sudo rosdep init
@@ -59,25 +60,25 @@ sed -i -e '/<\/package>/i  <build_depend>urdfdom_headers<\/build_depend>' urdf/u
 # Add class_loader to src/urdf/urdf package.xml exec_depend and CMakeLists CATKIN_DEPENDS
 
 # In a docker container : 
-# docker run -it --user ubuntu -v /home/kjaget/2020Offseason:/home/ubuntu/2020Offseason -v ~/melodic_arm_cross_ws:/home/ubuntu/melodic_arm_cross_ws  frc900/zebros-2021-dev /bin/bash
+# docker run -it --user ubuntu -v /home/kjaget/2020Offseason:/home/ubuntu/2020Offseason -v ~/melodic_arm_cross_ws:/home/ubuntu/melodic_arm_cross_ws  frc900/zebros-2022-beta-dev /bin/bash
 
 # Then run the following from inside the container :
 
 cd ~/melodic_arm_cross_ws
 # Do a fresh build - kill off any lingering dependencies
-rm -rf ~/wpilib/2021/roborio/arm-frc2021-linux-gnueabi/opt/ros/melodic devel_isolated build_isolated
+rm -rf ~/wpilib/2021/roborio/arm-frc2022-linux-gnueabi/opt/ros/melodic devel_isolated build_isolated
 
 
 # Note - if this fails looking for gencpp*cmake, run from a new terminal
 # window where no ROS setup.bash has previously been sourced
 #./src/catkin/bin/catkin_make_isolated --install --use-ninja -DCMAKE_INSTALL_PREFIX=$HOME/wpilib/2021/roborio/arm-frc2021-linux-gnueabi/opt/ros/melodic -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=~/2020Offseason/zebROS_ws/rostoolchain.cmake -DCATKIN_ENABLE_TESTING=OFF
 
-catkin config --install --install-space $HOME/wpilib/2021/roborio/arm-frc2021-linux-gnueabi/opt/ros/melodic 
+catkin config --install --install-space $HOME/wpilib/2022/roborio/arm-frc2022-linux-gnueabi/opt/ros/melodic 
 catkin build -DCMAKE_TOOLCHAIN_FILE=$HOME/2020Offseason/zebROS_ws/rostoolchain.cmake -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_BUILD_TYPE=Release 
 
 # Add newly built cross-libs to git repo so they are
 # used for subsequent Rio imagings
-cd /home/ubuntu/wpilib/2021/roborio/arm-frc2021-linux-gnueabi
+cd /home/ubuntu/wpilib/2022/roborio/arm-frc2022-linux-gnueabi
 rm ~/2020Offseason/scripts/RIO_setup/roscore_roborio.tar.bz2
 tar -cf ~/2020Offseason/scripts/RIO_setup/roscore_roborio.tar opt/ros/melodic
 bzip2 -9 ~/2020Offseason/scripts/RIO_setup/roscore_roborio.tar

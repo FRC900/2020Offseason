@@ -277,6 +277,7 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 							  "Loading joint " << i << "=" << talon_orchestra_names_[i]);
 	}
 
+#if 0
 	// Hard-code a simulation for the shooter flywheel
 	shooter_sim_joint_index_ = std::numeric_limits<size_t>::max();
 	for (size_t i = 0; i < num_can_ctre_mcs_; ++i)
@@ -304,6 +305,7 @@ bool FRCRobotSimInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot
 		ROS_WARN("Couldn't find joint 'shooter_joint' in config, not running shooter sim");
 		shooter_sim_ = nullptr;
 	}
+#endif
 
 	// Do these last to prevent callbacks from triggering before data
 	// used by them is initialized
