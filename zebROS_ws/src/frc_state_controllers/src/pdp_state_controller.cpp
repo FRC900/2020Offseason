@@ -98,15 +98,6 @@ void PDPStateController::stopping(const ros::Time & )
 
 namespace state_listener_controller
 {
-PDPStateListenerController::PDPStateListenerController()
-{
-}
-
-PDPStateListenerController::~PDPStateListenerController()
-{
-	sub_command_.shutdown();
-}
-
 bool PDPStateListenerController::init(hardware_interface::RemotePDPStateInterface *hw, ros::NodeHandle &n)
 {
 	// Read list of hw, make a list, grab handles for them, plus allocate storage space

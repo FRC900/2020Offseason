@@ -12,10 +12,6 @@ namespace pdh_state_controller
 class PDHStateController: public controller_interface::Controller<hardware_interface::PDHStateInterface>
 {
 	public:
-		PDHStateController() : publish_rate_(20.0)
-		{
-        }
-
 		bool init(hardware_interface::PDHStateInterface *hw,
 				  ros::NodeHandle						&root_nh,
 				  ros::NodeHandle						&controller_nh) override;
@@ -27,7 +23,7 @@ class PDHStateController: public controller_interface::Controller<hardware_inter
 		hardware_interface::PDHStateHandle pdh_state_;
 		std::shared_ptr<realtime_tools::RealtimePublisher<frc_msgs::PDHData> > realtime_pub_;
 		ros::Time last_publish_time_;
-		double publish_rate_;
+		double publish_rate_{20};
 
 }; //class
 }

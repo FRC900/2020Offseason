@@ -12,10 +12,6 @@ namespace pdp_state_controller
 class PDPStateController: public controller_interface::Controller<hardware_interface::PDPStateInterface>
 {
 	public:
-		PDPStateController() : publish_rate_(20.0)
-		{
-        }
-
 		bool init(hardware_interface::PDPStateInterface *hw,
 				  ros::NodeHandle						&root_nh,
 				  ros::NodeHandle						&controller_nh) override;
@@ -27,7 +23,7 @@ class PDPStateController: public controller_interface::Controller<hardware_inter
 		hardware_interface::PDPStateHandle pdp_state_;
 		std::shared_ptr<realtime_tools::RealtimePublisher<frc_msgs::PDPData>> realtime_pub_;
 		ros::Time last_publish_time_;
-		double publish_rate_;
+		double publish_rate_{20};
 
 }; //class
 }
@@ -38,9 +34,6 @@ class PDPStateListenerController :
 	public controller_interface::Controller<hardware_interface::RemotePDPStateInterface>
 {
 	public:
-		PDPStateListenerController();
-		~PDPStateListenerController();
-
 		bool init(hardware_interface::RemotePDPStateInterface *hw, ros::NodeHandle &n) override;
 		void starting(const ros::Time & /*time*/) override;
 		void stopping(const ros::Time & /*time*/) override;

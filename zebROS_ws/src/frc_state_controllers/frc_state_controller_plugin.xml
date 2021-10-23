@@ -40,6 +40,12 @@
 		</description>
 	</class>
 
+	<class name="pdh_controller/PDHStateController" type="pdh_controller::PDHController" base_class_type="controller_interface::ControllerBase">
+		<description>
+			Interface for setting PDH switchable channel, and for triggering clear faults and identify PDH actions
+		</description>
+	</class>
+
 	<class name="state_listener_controller/PDHStateListenerController" type="state_listener_controller::PDHStateListenerController" base_class_type="controller_interface::ControllerBase">
 		<description>
 			Listens to frc_msgs::PDHData messages for joints marked as remote, writes their value to the local controller
