@@ -33,26 +33,26 @@
 #include <cstddef>
 
 #include <pluginlib/class_list_macros.h>
-#include "frc_state_controllers/pcm_state_controller.h"
+#include "frc_state_controllers/ph_state_controller.h"
 
-namespace pcm_state_controller
+namespace ph_state_controller
 {
 
-bool PCMStateController::init(hardware_interface::PCMStateInterface *hw,
+bool PHStateController::init(hardware_interface::PHStateInterface *hw,
 							  ros::NodeHandle                       &root_nh,
 							  ros::NodeHandle                       &controller_nh)
 {
-	ROS_INFO_NAMED("pcm_state_controller", "PCMStateController::init() called");
+	ROS_INFO_NAMED("ph_state_controller", "PHStateController::init() called");
 	// get all joint names from the hardware interface
-	const std::vector<std::string> &pcm_names = hw->getNames();
-	num_pcms_ = pcm_names.size();
-	if (num_pcms_ < 1)
+	const std::vector<std::string> &ph_names = hw->getNames();
+	num_phs_ = ph_names.size();
+	if (num_phs_ < 1)
 	{
-		ROS_ERROR_STREAM("Cannot initialize zero PCMs - need to add a compressor joint def?");
+		ROS_ERROR_STREAM("Cannot initialize zero PHs - need to add a ph joint def?");
 		return false;
 	}
-	for (size_t i = 0; i < num_pcms_; i++)
-		ROS_DEBUG("Got joint %s", pcm_names[i].c_str());
+	for (size_t i = 0; i < num_phs_; i++)
+		ROS_DEBUG("Got joint %s", ph_names[i].c_str());
 
 	// get publishing period
 	if (!controller_nh.getParam("publish_rate", publish_rate_))
@@ -63,41 +63,33 @@ bool PCMStateController::init(hardware_interface::PCMStateInterface *hw,
 
 	// realtime publisher
 	realtime_pub_.reset(new
-						realtime_tools::RealtimePublisher<frc_msgs::PCMState>(root_nh, "pcm_states", 4));
+						realtime_tools::RealtimePublisher<frc_msgs::PHState>(root_nh, "ph_states", 4));
 
 	// get joints and allocate message
 	auto &m = realtime_pub_->msg_;
-	for (size_t i = 0; i < num_pcms_; i++)
+	for (size_t i = 0; i < num_phs_; i++)
 	{
-		m.name.push_back(pcm_names[i]);
+		m.name.push_back(ph_names[i]);
 		m.id.push_back(-1);
 		m.compressor_enabled.push_back(false);
 		m.pressure_switch.push_back(false);
 		m.compressor_current.push_back(0.0);
+		m.analog_pressure.push_back(0.0);
 		m.closed_loop_control.push_back(false);
-		m.current_too_high.push_back(false);
-		m.current_too_high_sticky.push_back(false);
-		m.shorted.push_back(false);
-		m.shorted_sticky.push_back(false);
-		m.not_connected.push_back(false);
-		m.not_connected_sticky.push_back(false);
-		m.voltage_fault.push_back(false);
-		m.voltage_sticky_fault.push_back(false);
-		m.solenoid_blacklist.push_back(0);
 
-		pcm_state_.push_back(hw->getHandle(pcm_names[i]));
+		ph_state_.push_back(hw->getHandle(ph_names[i]));
 	}
 
 	return true;
 }
 
-void PCMStateController::starting(const ros::Time &time)
+void PHStateController::starting(const ros::Time &time)
 {
 	// initialize time
 	last_publish_time_ = time;
 }
 
-void PCMStateController::update(const ros::Time &time, const ros::Duration & /*period*/)
+void PHStateController::update(const ros::Time &time, const ros::Duration & /*period*/)
 {
 	// limit rate of publishing
 	if (publish_rate_ > 0.0 && last_publish_time_ + ros::Duration(1.0 / publish_rate_) < time)
@@ -110,32 +102,24 @@ void PCMStateController::update(const ros::Time &time, const ros::Duration & /*p
 
 			auto &m = realtime_pub_->msg_;
 			m.header.stamp = time;
-			for (unsigned i = 0; i < num_pcms_; i++)
+			for (unsigned i = 0; i < num_phs_; i++)
 			{
-				auto &pcms = pcm_state_[i];
-				m.id[i] = pcms->getId();
-				m.compressor_enabled[i] = pcms->getCompressorEnabled();
-				m.pressure_switch[i] = pcms->getPressureSwitch();
-				m.compressor_current[i] = pcms->getCompressorCurrent();
-				m.closed_loop_control[i] = pcms->getClosedLoopControl();
-				m.current_too_high[i] = pcms->getCurrentTooHigh();
-				m.current_too_high_sticky[i] = pcms->getCurrentTooHighSticky();
-				m.shorted[i] = pcms->getShorted();
-				m.shorted_sticky[i] = pcms->getShortedSticky();
-				m.not_connected[i] = pcms->getNotConnected();
-				m.not_connected_sticky[i] = pcms->getNotConnectedSticky();
-				m.voltage_fault[i] = pcms->getVoltageFault();
-				m.voltage_sticky_fault[i] = pcms->getVoltageSticky();
-				m.solenoid_blacklist[i] = pcms->getSolenoidBlacklist();
+				auto &phs = ph_state_[i];
+				m.id[i] = phs->getId();
+				m.compressor_enabled[i] = phs->getCompressorEnabled();
+				m.pressure_switch[i] = phs->getPressureSwitch();
+				m.compressor_current[i] = phs->getCompressorCurrent();
+				m.analog_pressure[i] = phs->getAnalogPressure();
+				m.closed_loop_control[i] = phs->getClosedLoopControl();
 			}
 			realtime_pub_->unlockAndPublish();
 		}
 	}
 }
 
-void PCMStateController::stopping(const ros::Time & /*time*/)
+void PHStateController::stopping(const ros::Time & /*time*/)
 {}
 
 }
 
-PLUGINLIB_EXPORT_CLASS(pcm_state_controller::PCMStateController, controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(ph_state_controller::PHStateController, controller_interface::ControllerBase)

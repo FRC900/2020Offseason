@@ -1,22 +1,22 @@
-#ifndef PDP_STATE_CONTROLLER_INC_
-#define PDP_STATE_CONTROLLER_INC_
+#ifndef PDH_STATE_CONTROLLER_INC_
+#define PDH_STATE_CONTROLLER_INC_
 
 #include <controller_interface/controller.h>
 #include <realtime_tools/realtime_buffer.h>
 #include <realtime_tools/realtime_publisher.h>
-#include <frc_msgs/PDPData.h>
-#include <frc_interfaces/pdp_state_interface.h>
+#include <frc_msgs/PDHData.h>
+#include <frc_interfaces/pdh_state_interface.h>
 
-namespace pdp_state_controller
+namespace pdh_state_controller
 {
-class PDPStateController: public controller_interface::Controller<hardware_interface::PDPStateInterface>
+class PDHStateController: public controller_interface::Controller<hardware_interface::PDHStateInterface>
 {
 	public:
-		PDPStateController() : publish_rate_(20.0)
+		PDHStateController() : publish_rate_(20.0)
 		{
         }
 
-		bool init(hardware_interface::PDPStateInterface *hw,
+		bool init(hardware_interface::PDHStateInterface *hw,
 				  ros::NodeHandle						&root_nh,
 				  ros::NodeHandle						&controller_nh) override;
 		void starting(const ros::Time &time) override;
@@ -24,8 +24,8 @@ class PDPStateController: public controller_interface::Controller<hardware_inter
 		void stopping(const ros::Time &time) override;
 
 	private:
-		hardware_interface::PDPStateHandle pdp_state_;
-		std::shared_ptr<realtime_tools::RealtimePublisher<frc_msgs::PDPData>> realtime_pub_;
+		hardware_interface::PDHStateHandle pdh_state_;
+		std::shared_ptr<realtime_tools::RealtimePublisher<frc_msgs::PDHData> > realtime_pub_;
 		ros::Time last_publish_time_;
 		double publish_rate_;
 
@@ -34,28 +34,28 @@ class PDPStateController: public controller_interface::Controller<hardware_inter
 
 namespace state_listener_controller
 {
-class PDPStateListenerController :
-	public controller_interface::Controller<hardware_interface::RemotePDPStateInterface>
+class PDHStateListenerController :
+	public controller_interface::Controller<hardware_interface::RemotePDHStateInterface>
 {
 	public:
-		PDPStateListenerController();
-		~PDPStateListenerController();
+		PDHStateListenerController();
+		~PDHStateListenerController();
 
-		bool init(hardware_interface::RemotePDPStateInterface *hw, ros::NodeHandle &n) override;
+		bool init(hardware_interface::RemotePDHStateInterface *hw, ros::NodeHandle &n) override;
 		void starting(const ros::Time & /*time*/) override;
 		void stopping(const ros::Time & /*time*/) override;
 		void update(const ros::Time & /*time*/, const ros::Duration & /*period*/) override;
 
 	private:
 		ros::Subscriber sub_command_;
-		hardware_interface::PDPWritableStateHandle handle_;
+		hardware_interface::PDHWritableStateHandle handle_;
 
 		// Real-time buffer holds the last command value read from the "command" topic.
-		realtime_tools::RealtimeBuffer<hardware_interface::PDPHWState> command_buffer_;
+		realtime_tools::RealtimeBuffer<hardware_interface::PDHHWState> command_buffer_;
 
 		// Iterate through each desired joint state.  If it is found in
 		// the message, save the value here in the realtime buffer.
-		virtual void commandCB(const frc_msgs::PDPDataConstPtr &msg);
+		virtual void commandCB(const frc_msgs::PDHDataConstPtr &msg);
 };
 } //namespace
 #endif

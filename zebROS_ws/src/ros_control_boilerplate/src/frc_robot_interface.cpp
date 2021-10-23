@@ -457,7 +457,7 @@ void FRCRobotInterface::pcm_read_thread(HAL_CompressorHandle compressor_handle, 
 
 		hardware_interface::PCMState pcm_state(pcm_id);
 		status = 0;
-		pcm_state.setEnabled(HAL_GetCompressor(compressor_handle, &status));
+		pcm_state.setCompressorEnabled(HAL_GetCompressor(compressor_handle, &status));
 		pcm_state.setPressureSwitch(HAL_GetCompressorPressureSwitch(compressor_handle, &status));
 		pcm_state.setCompressorCurrent(HAL_GetCompressorCurrent(compressor_handle, &status));
 		pcm_state.setClosedLoopControl(HAL_GetCompressorClosedLoopControl(compressor_handle, &status));
@@ -469,7 +469,7 @@ void FRCRobotInterface::pcm_read_thread(HAL_CompressorHandle compressor_handle, 
 		pcm_state.setNotConntected(HAL_GetCompressorNotConnectedFault(compressor_handle, &status));
 		pcm_state.setNotConnecteSticky(HAL_GetCompressorNotConnectedStickyFault(compressor_handle, &status));
 		pcm_state.setVoltageFault(HAL_GetPCMSolenoidVoltageFault(pcm_id, &status));
-		pcm_state.setVoltageStickFault(HAL_GetPCMSolenoidVoltageStickyFault(pcm_id, &status));
+		pcm_state.setVoltageSticky(HAL_GetPCMSolenoidVoltageStickyFault(pcm_id, &status));
 		pcm_state.setSolenoidBlacklist(HAL_GetPCMSolenoidBlackList(pcm_id, &status));
 
 		if (status)
