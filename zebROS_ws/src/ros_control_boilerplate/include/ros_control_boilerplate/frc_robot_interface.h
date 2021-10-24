@@ -56,7 +56,9 @@
 #include "as726x_interface/as726x_interface.h"
 #include "frc_interfaces/joystick_interface.h"
 #include "frc_interfaces/match_data_interface.h"
+#include "frc_interfaces/pch_state_interface.h"
 #include "frc_interfaces/pcm_state_interface.h"
+#include "frc_interfaces/ph_state_interface.h"
 #include "frc_interfaces/pdp_state_interface.h"
 #include "frc_interfaces/robot_controller_interface.h"
 #include "remote_joint_interface/remote_joint_interface.h"
@@ -207,10 +209,14 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		hardware_interface::canifier::RemoteCANifierStateInterface canifier_remote_state_interface_;
 		hardware_interface::cancoder::CANCoderStateInterface   cancoder_state_interface_;
 		hardware_interface::cancoder::RemoteCANCoderStateInterface cancoder_remote_state_interface_;
+		hardware_interface::PDPStateInterface	               pdh_state_interface_;
+		hardware_interface::RemotePDPStateInterface	           pdh_remote_state_interface_;
 		hardware_interface::PDPStateInterface	               pdp_state_interface_;
 		hardware_interface::RemotePDPStateInterface	           pdp_remote_state_interface_;
 		hardware_interface::PCMStateInterface	               pcm_state_interface_;
 		hardware_interface::RemotePCMStateInterface	           pcm_remote_state_interface_;
+		hardware_interface::PCMStateInterface	               ph_state_interface_;
+		hardware_interface::RemotePCMStateInterface	           ph_remote_state_interface_;
 		hardware_interface::JoystickStateInterface             joystick_state_interface_;
 		hardware_interface::MatchStateInterface                match_state_interface_;
 		hardware_interface::RemoteMatchStateInterface          match_remote_state_interface_;
@@ -321,6 +327,12 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<bool>        pcm_local_hardwares_;
 		std::size_t              num_pcms_{0};
 
+		std::vector<std::string> ph_names_;
+		std::vector<int>         ph_ids_;
+		std::vector<bool>        ph_local_updates_;
+		std::vector<bool>        ph_local_hardwares_;
+		std::size_t              num_phs_{0};
+
 		std::vector<std::string> pdp_names_;
 		std::vector<int32_t>     pdp_modules_;
 		std::vector<bool>        pdp_locals_;
@@ -387,8 +399,10 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<double> double_solenoid_state_;
 		std::vector<double> rumble_state_; //No actual data
 		std::vector<double> pcm_compressor_closed_loop_enable_state_;
+		std::vector<double> ph_compressor_closed_loop_enable_state_;
 		std::vector<hardware_interface::PDPHWState> pdp_state_;
 		std::vector<hardware_interface::PCMState> pcm_state_;
+		std::vector<hardware_interface::PHState> ph_state_;
 		hardware_interface::RobotControllerState robot_controller_state_;
 		std::vector<hardware_interface::JoystickState> joystick_state_;
 		hardware_interface::MatchHWState match_data_;
@@ -422,6 +436,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<double> double_solenoid_command_;
 		std::vector<double> rumble_command_;
 		std::vector<double> pcm_compressor_closed_loop_enable_command_;
+		std::vector<double> ph_compressor_closed_loop_enable_command_;
                 std::vector<hardware_interface::OrchestraCommand> orchestra_command_;
 
 		std::vector<double> dummy_joint_position_;
@@ -439,6 +454,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		//robot iteration calls - sending stuff to driver station
 		double ctre_mc_read_hz_{100};
 		double pcm_read_hz_{20};
+		double ph_read_hz_{20};
 		double pdp_read_hz_{20};
 		double t_prev_robot_iteration_;
 		double robot_iteration_hz_{50};
@@ -491,6 +507,17 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 							 double poll_frequency);
 		std::vector<std::thread> pcm_threads_;
 		std::vector<HAL_CTREPCMHandle> pcms_;
+
+		std::vector<std::shared_ptr<std::mutex>> ph_read_thread_mutexes_;
+		std::vector<std::shared_ptr<hardware_interface::PCMState>> ph_read_thread_state_;
+		void ph_read_thread(HAL_REVPHHandle ph_handle,
+							 int32_t ph_id,
+							 std::shared_ptr<hardware_interface::PHState> state,
+							 std::shared_ptr<std::mutex> mutex,
+							 std::unique_ptr<Tracer> tracer,
+							 double poll_frequency);
+		std::vector<std::thread> ph_threads_;
+		std::vector<HAL_CTREPCMHandle> phs_;
 
 		std::vector<std::shared_ptr<std::mutex>> pdp_read_thread_mutexes_;
 		std::vector<std::shared_ptr<hardware_interface::PDPHWState>> pdp_read_thread_state_;
