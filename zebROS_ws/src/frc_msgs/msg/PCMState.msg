@@ -14,4 +14,4 @@ bool[]    not_connected
 bool[]    not_connected_sticky
 bool[]    voltage_fault
 bool[]    voltage_sticky_fault
-uint32[]  solenoid_blacklist
+uint32[]  solenoid_disabled_list

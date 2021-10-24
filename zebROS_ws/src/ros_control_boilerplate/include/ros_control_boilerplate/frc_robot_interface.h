@@ -70,6 +70,7 @@
 #include "ros_control_boilerplate/tracer.h"
 
 // WPILIB stuff
+#include <hal/CTREPCM.h>
 #include <hal/FRCUsageReporting.h>
 #include <hal/HALBase.h>
 #include <hal/Types.h>
@@ -314,11 +315,11 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<bool>        double_solenoid_local_hardwares_;
 		std::size_t              num_double_solenoids_{0};
 
-		std::vector<std::string> compressor_names_;
-		std::vector<int>         compressor_pcm_ids_;
-		std::vector<bool>        compressor_local_updates_;
-		std::vector<bool>        compressor_local_hardwares_;
-		std::size_t              num_compressors_{0};
+		std::vector<std::string> pcm_names_;
+		std::vector<int>         pcm_ids_;
+		std::vector<bool>        pcm_local_updates_;
+		std::vector<bool>        pcm_local_hardwares_;
+		std::size_t              num_pcms_{0};
 
 		std::vector<std::string> pdp_names_;
 		std::vector<int32_t>     pdp_modules_;
@@ -385,7 +386,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<double> solenoid_pwm_state_;
 		std::vector<double> double_solenoid_state_;
 		std::vector<double> rumble_state_; //No actual data
-		std::vector<double> compressor_state_;
+		std::vector<double> pcm_compressor_closed_loop_enable_state_;
 		std::vector<hardware_interface::PDPHWState> pdp_state_;
 		std::vector<hardware_interface::PCMState> pcm_state_;
 		hardware_interface::RobotControllerState robot_controller_state_;
@@ -420,7 +421,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<hardware_interface::JointCommandModes> prev_solenoid_mode_;
 		std::vector<double> double_solenoid_command_;
 		std::vector<double> rumble_command_;
-		std::vector<double> compressor_command_;
+		std::vector<double> pcm_compressor_closed_loop_enable_command_;
                 std::vector<hardware_interface::OrchestraCommand> orchestra_command_;
 
 		std::vector<double> dummy_joint_position_;
@@ -482,14 +483,14 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 
 		std::vector<std::shared_ptr<std::mutex>> pcm_read_thread_mutexes_;
 		std::vector<std::shared_ptr<hardware_interface::PCMState>> pcm_read_thread_state_;
-		void pcm_read_thread(HAL_CompressorHandle compressor_handle,
+		void pcm_read_thread(HAL_CTREPCMHandle pcm_handle,
 							 int32_t pcm_id,
 							 std::shared_ptr<hardware_interface::PCMState> state,
 							 std::shared_ptr<std::mutex> mutex,
 							 std::unique_ptr<Tracer> tracer,
 							 double poll_frequency);
 		std::vector<std::thread> pcm_threads_;
-		std::vector<HAL_CompressorHandle> compressors_;
+		std::vector<HAL_CTREPCMHandle> pcms_;
 
 		std::vector<std::shared_ptr<std::mutex>> pdp_read_thread_mutexes_;
 		std::vector<std::shared_ptr<hardware_interface::PDPHWState>> pdp_read_thread_state_;

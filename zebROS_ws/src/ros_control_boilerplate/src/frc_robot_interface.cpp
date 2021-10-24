@@ -427,7 +427,7 @@ void FRCRobotInterface::pdp_read_thread(int32_t pdp,
 // status messages.  Each iteration, data read from the
 // PCM is copied to a state buffer shared with the main read
 // thread.
-void FRCRobotInterface::pcm_read_thread(HAL_CompressorHandle compressor_handle, int32_t pcm_id,
+void FRCRobotInterface::pcm_read_thread(HAL_CTREPCMHandle pcm_handle, int32_t pcm_id,
 										std::shared_ptr<hardware_interface::PCMState> state,
 										std::shared_ptr<std::mutex> mutex,
 										std::unique_ptr<Tracer> tracer,
@@ -445,7 +445,7 @@ void FRCRobotInterface::pcm_read_thread(HAL_CompressorHandle compressor_handle, 
 	ros::Rate r(poll_frequency);
 	ROS_INFO_STREAM("Starting pcm " << pcm_id << " read thread at " << ros::Time::now());
 	int32_t status = 0;
-	HAL_ClearAllPCMStickyFaults(pcm_id, &status);
+	HAL_ClearAllCTREPCMStickyFaults(pcm_id, &status);
 	if (status)
 	{
 		ROS_ERROR_STREAM("pcm_read_thread error clearing sticky faults : status = "
@@ -457,20 +457,20 @@ void FRCRobotInterface::pcm_read_thread(HAL_CompressorHandle compressor_handle, 
 
 		hardware_interface::PCMState pcm_state(pcm_id);
 		status = 0;
-		pcm_state.setCompressorEnabled(HAL_GetCompressor(compressor_handle, &status));
-		pcm_state.setPressureSwitch(HAL_GetCompressorPressureSwitch(compressor_handle, &status));
-		pcm_state.setCompressorCurrent(HAL_GetCompressorCurrent(compressor_handle, &status));
-		pcm_state.setClosedLoopControl(HAL_GetCompressorClosedLoopControl(compressor_handle, &status));
-		pcm_state.setCurrentTooHigh(HAL_GetCompressorCurrentTooHighFault(compressor_handle, &status));
-		pcm_state.setCurrentTooHighSticky(HAL_GetCompressorCurrentTooHighStickyFault(compressor_handle, &status));
+		pcm_state.setCompressorEnabled(HAL_GetCTREPCMCompressor(pcm_handle, &status));
+		pcm_state.setPressureSwitch(HAL_GetCTREPCMCompressorPressureSwitch(pcm_handle, &status));
+		pcm_state.setCompressorCurrent(HAL_GetCTREPCMCompressorCurrent(pcm_handle, &status));
+		pcm_state.setClosedLoopControl(HAL_GetCTREPCMCompressorClosedLoopControl(pcm_handle, &status));
+		pcm_state.setCurrentTooHigh(HAL_GetCTREPCMCompressorCurrentTooHighFault(pcm_handle, &status));
+		pcm_state.setCurrentTooHighSticky(HAL_GetCTREPCMCompressorCurrentTooHighStickyFault(pcm_handle, &status));
 
-		pcm_state.setShorted(HAL_GetCompressorShortedFault(compressor_handle, &status));
-		pcm_state.setShortedSticky(HAL_GetCompressorShortedStickyFault(compressor_handle, &status));
-		pcm_state.setNotConntected(HAL_GetCompressorNotConnectedFault(compressor_handle, &status));
-		pcm_state.setNotConnecteSticky(HAL_GetCompressorNotConnectedStickyFault(compressor_handle, &status));
-		pcm_state.setVoltageFault(HAL_GetPCMSolenoidVoltageFault(pcm_id, &status));
-		pcm_state.setVoltageSticky(HAL_GetPCMSolenoidVoltageStickyFault(pcm_id, &status));
-		pcm_state.setSolenoidBlacklist(HAL_GetPCMSolenoidBlackList(pcm_id, &status));
+		pcm_state.setShorted(HAL_GetCTREPCMCompressorShortedFault(pcm_handle, &status));
+		pcm_state.setShortedSticky(HAL_GetCTREPCMCompressorShortedStickyFault(pcm_handle, &status));
+		pcm_state.setNotConntected(HAL_GetCTREPCMCompressorNotConnectedFault(pcm_handle, &status));
+		pcm_state.setNotConnecteSticky(HAL_GetCTREPCMCompressorNotConnectedStickyFault(pcm_handle, &status));
+		pcm_state.setVoltageFault(HAL_GetCTREPCMPCMSolenoidVoltageFault(pcm_id, &status));
+		pcm_state.setVoltageSticky(HAL_GetCTREPCMPCMSolenoidVoltageStickyFault(pcm_id, &status));
+		pcm_state.setSolenoidDisabledList(HAL_GetCTREPCMPCMSolenoidDisabledList(pcm_id, &status));
 
 		if (status)
 			ROS_ERROR_STREAM("pcm_read_thread : status = " << status << ":" << HAL_GetErrorMessage(status));
@@ -1061,32 +1061,30 @@ void FRCRobotInterface::readConfig(ros::NodeHandle rpnh)
 			analog_input_analog_channels_.push_back(analog_input_analog_channel);
 			analog_input_locals_.push_back(local);
 		}
-		else if (joint_type == "compressor")
+		else if (joint_type == "pcm")
 		{
 			readJointLocalParams(joint_params, local, saw_local_keyword, local_update, local_hardware);
 
 			const bool has_pcm_id = joint_params.hasMember("pcm_id");
 			if (!local_hardware && has_pcm_id)
-				throw std::runtime_error("A compressor pcm id was specified for non-local hardware for joint " + joint_name);
-			int compressor_pcm_id = 0;
+				throw std::runtime_error("A PCM id was specified for non-local hardware for joint " + joint_name);
+			int pcm_id = 0;
 			if (local_hardware)
 			{
 				if (!has_pcm_id)
-					throw std::runtime_error("A compressor pcm id was not specified for joint " + joint_name);
-				XmlRpc::XmlRpcValue &xml_compressor_pcm_id = joint_params["pcm_id"];
-				if (!xml_compressor_pcm_id.valid() ||
-						xml_compressor_pcm_id.getType() != XmlRpc::XmlRpcValue::TypeInt)
-					throw std::runtime_error("An invalid compressor joint pcm id was specified (expecting an int) for joint " + joint_name);
-				compressor_pcm_id = xml_compressor_pcm_id;
-				auto it = std::find(compressor_pcm_ids_.cbegin(), compressor_pcm_ids_.cend(), compressor_pcm_id);
-				if (it != compressor_pcm_ids_.cend())
-					throw std::runtime_error("A duplicate compressor CAN id was specified for joint " + joint_name);
+					throw std::runtime_error("A PCM id was not specified for joint " + joint_name);
+				XmlRpc::XmlRpcValue &xml_pcm_id = joint_params["pcm_id"];
+				if (!xml_pcm_id.valid() || xml_pcm_id.getType() != XmlRpc::XmlRpcValue::TypeInt)
+					throw std::runtime_error("An PCM id was specified (expecting an int) for joint " + joint_name);
+				pcm_id = xml_pcm_id;
+				if (std::find(pcm_ids_.cbegin(), pcm_ids_.cend(), pcm_id) != pcm_ids_.cend())
+					throw std::runtime_error("A duplicate PCM id was specified for joint " + joint_name);
 			}
 
-			compressor_names_.push_back(joint_name);
-			compressor_pcm_ids_.push_back(compressor_pcm_id);
-			compressor_local_updates_.push_back(local_update);
-			compressor_local_hardwares_.push_back(local_hardware);
+			pcm_names_.push_back(joint_name);
+			pcm_ids_.push_back(pcm_id);
+			pcm_local_updates_.push_back(local_update);
+			pcm_local_hardwares_.push_back(local_hardware);
 		}
 		else if (joint_type == "pdp")
 		{
@@ -1588,32 +1586,36 @@ void FRCRobotInterface::createInterfaces(void)
 			joint_remote_interface_.registerHandle(aih);
 		}
 	}
-	num_compressors_ = compressor_names_.size();
-	compressor_state_.resize(num_compressors_);
-	compressor_command_.resize(num_compressors_);
-	for (size_t i = 0; i < num_compressors_; i++)
-		pcm_state_.emplace_back(hardware_interface::PCMState(compressor_pcm_ids_[i]));
-	for (size_t i = 0; i < num_compressors_; i++)
+	num_pcms_ = pcm_names_.size();
+	pcm_compressor_closed_loop_enable_state_.resize(num_pcms_);
+	pcm_compressor_closed_loop_enable_command_.resize(num_pcms_);
+	for (size_t i = 0; i < num_pcms_; i++)
+		pcm_state_.emplace_back(hardware_interface::PCMState(pcm_ids_[i]));
+	for (size_t i = 0; i < num_pcms_; i++)
 	{
-		ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface: Registering interface for compressor / PCM : " << compressor_names_[i] << " at pcm_id " << compressor_pcm_ids_[i]);
+		ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface: Registering interface for PCM : "
+				<< pcm_names_[i] << " at pcm_id " << pcm_ids_[i]);
 
-		// Default compressors to running
-		compressor_command_[i] = 1;
-		compressor_state_[i] = std::numeric_limits<double>::max();
+		// Default compressors to running and set state to a different
+		// value to force a write to HW the first write() iteration
+		pcm_compressor_closed_loop_enable_command_[i] = 1;
+		pcm_compressor_closed_loop_enable_state_[i] = std::numeric_limits<double>::max();
 
-		hardware_interface::JointStateHandle csh(compressor_names_[i], &compressor_state_[i], &compressor_state_[i], &compressor_state_[i]);
-		joint_state_interface_.registerHandle(csh);
+		hardware_interface::JointStateHandle csh(pcm_names_[i],
+												&pcm_compressor_closed_loop_enable_state_[i]
+												&pcm_compressor_closed_loop_enable_state_[i]
+												&pcm_compressor_closed_loop_enable_state_[i]);
 
-		hardware_interface::JointHandle cch(csh, &compressor_command_[i]);
+		hardware_interface::JointHandle cch(csh, &pcm_compressor_closed_loop_enable_command_[i]);
 		joint_position_interface_.registerHandle(cch);
-		if (!compressor_local_updates_[i])
+		if (!pcm_local_updates_[i])
 			joint_remote_interface_.registerHandle(cch);
 
-		hardware_interface::PCMStateHandle pcmsh(compressor_names_[i], &pcm_state_[i]);
+		hardware_interface::PCMStateHandle pcmsh(pcm_names_[i], &pcm_compressor_closed_loop_enable_state_[i]);
 		pcm_state_interface_.registerHandle(pcmsh);
-		if (!compressor_local_updates_[i])
+		if (!pcm_local_updates_[i])
 		{
-			hardware_interface::PCMWritableStateHandle rpcmsh(compressor_names_[i], &pcm_state_[i]);
+			hardware_interface::PCMWritableStateHandle rpcmsh(pcm_names_[i], &pcm_compressor_closed_loop_enable_state_[i]);
 			pcm_remote_state_interface_.registerHandle(rpcmsh);
 		}
 	}
@@ -2074,45 +2076,45 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 		else
 			analog_inputs_.push_back(nullptr);
 	}
-	for (size_t i = 0; i < num_compressors_; i++)
+	for (size_t i = 0; i < num_pcms_; i++)
 	{
 		ROS_INFO_STREAM_NAMED("frc_robot_interface",
-							  "Loading joint " << i << "=" << compressor_names_[i] <<
-							  (compressor_local_updates_[i] ? " local" : " remote") << " update, " <<
-							  (compressor_local_hardwares_[i] ? "local" : "remote") << " hardware" <<
-							  " as Compressor with pcm " << compressor_pcm_ids_[i]);
+							  "Loading joint " << i << "=" << pcm_names_[i] <<
+							  (pcm_local_updates_[i] ? " local" : " remote") << " update, " <<
+							  (pcm_local_hardwares_[i] ? "local" : "remote") << " hardware" <<
+							  " as Compressor with pcm " << pcm_ids_[i]);
 
-		pcm_read_thread_state_.push_back(std::make_shared<hardware_interface::PCMState>(compressor_pcm_ids_[i]));
-		if (compressor_local_hardwares_[i])
+		pcm_read_thread_state_.push_back(std::make_shared<hardware_interface::PCMState>(pcm_ids_[i]));
+		if (pcm_local_hardwares_[i])
 		{
-			if (!HAL_CheckCompressorModule(compressor_pcm_ids_[i]))
+			if (!HAL_CheckCompressorModule(pcm_ids_[i]))
 			{
-				ROS_ERROR("Invalid Compressor PCM ID");
-				compressors_.push_back(HAL_kInvalidHandle);
+				ROS_ERROR_STREAM("Invalid Compressor PCM ID " << pcm_ids_[i]);
+				pcms_.push_back(HAL_kInvalidHandle);
 			}
 			else
 			{
 				int32_t status = 0;
-				compressors_.push_back(HAL_InitializeCompressor(compressor_pcm_ids_[i], &status));
-				if (!status && (compressors_[i] != HAL_kInvalidHandle))
+				pcms_.push_back(HAL_InitializeiCTREPCM(pcm_ids_[i], &status));
+				if (!status && (pcms_[i] != HAL_kInvalidHandle))
 				{
 					pcm_read_thread_mutexes_.push_back(std::make_shared<std::mutex>());
 					pcm_threads_.emplace_back(std::thread(&FRCRobotInterface::pcm_read_thread, this,
-											  compressors_[i], compressor_pcm_ids_[i], pcm_read_thread_state_[i],
+											  pcms_[i], pcm_ids_[i], pcm_read_thread_state_[i],
 											  pcm_read_thread_mutexes_[i],
-											  std::make_unique<Tracer>("PCM " + compressor_names_[i] + " " + root_nh.getNamespace()),
+											  std::make_unique<Tracer>("PCM " + pcm_names_[i] + " " + root_nh.getNamespace()),
 											  pcm_read_hz_));
-					HAL_Report(HALUsageReporting::kResourceType_Compressor, compressor_pcm_ids_[i]);
+					HAL_Report(HALUsageReporting::kResourceType_Compressor, pcm_ids_[i]);
 				}
 				else
 				{
-					ROS_ERROR_STREAM("compressor init error : status = "
+					ROS_ERROR_STREAM("PCM init error : status = "
 							<< status << ":" << HAL_GetErrorMessage(status));
 				}
 			}
 		}
 		else
-			compressors_.push_back(HAL_kInvalidHandle);
+			pcms_.push_back(HAL_kInvalidHandle);
 	}
 
 	// No real init needed here, just report the config loaded for them
@@ -2900,10 +2902,10 @@ void FRCRobotInterface::read(const ros::Time &time, const ros::Duration &period)
 		}
 	}
 
-	read_tracer_.start_unique("compressors");
-	for (size_t i = 0; i < num_compressors_; i++)
+	read_tracer_.start_unique("pcms");
+	for (size_t i = 0; i < num_pcms_; i++)
 	{
-		if (compressor_local_updates_[i])
+		if (pcm_local_updates_[i])
 		{
 			std::unique_lock<std::mutex> l(*pcm_read_thread_mutexes_[i], std::try_to_lock);
 			if (l.owns_lock())
@@ -4046,21 +4048,22 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		}
 	}
 
-	for (size_t i = 0; i < num_compressors_; i++)
+	for (size_t i = 0; i < num_pcms_; i++)
 	{
-		if (compressor_command_[i] != compressor_state_[i])
+		if (pcm_compressor_closed_loop_enable_command_compressor_command_[i] != pcm_compressor_closed_loop_enable_state_
 		{
-			const bool setpoint = compressor_command_[i] > 0;
-			if (compressor_local_hardwares_[i])
+			if (pcm_local_hardwares_[i])
 			{
 				int32_t status = 0;
-				HAL_SetCompressorClosedLoopControl(compressors_[i], setpoint, &status);
+				const bool setpoint = pcm_compressor_closed_loop_enable_command_[i] > 0;
+				HAL_SetCTREPCMCompressorClosedLoopControl(pcms_[i], setpoint, &status);
 				if (status)
-					ROS_ERROR_STREAM("SetCompressorClosedLoopControl status:" << status
+					ROS_ERROR_STREAM("status: SetCTREPCMCompressorClosedLoopControl" << status
 							<< " " << HAL_GetErrorMessage(status));
 			}
-			compressor_state_[i] = compressor_command_[i];
-			ROS_INFO_STREAM("Wrote compressor " << i << "=" << setpoint);
+			// TODO - should we retry if status != 0?
+			pcm_compressor_closed_loop_enable_state_ = pcm_compressor_closed_loop_enable_command_compressor_command_[i];
+			ROS_INFO_STREAM("Wrote pcm " << i << " closedloop enable =" << setpoint);
 		}
 	}
 

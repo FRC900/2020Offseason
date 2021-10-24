@@ -60,9 +60,9 @@ void PDHController::update(const ros::Time &, const ros::Duration & )
 	// to false. If the read value was true, trigger the
 	// one shot action in the command interface
 	if (trigger_clear_faults_.exchange(false))
-		pdh_trigger_->setClearFaults();
+		pdh_command_->setClearFaults();
 	if (trigger_identify_pdh_.exchange(false))
-		pdh_trigger_->setIdentifyPDH();
+		pdh_command_->setIdentifyPDH();
 }
 
 void PDHController::stopping(const ros::Time & )

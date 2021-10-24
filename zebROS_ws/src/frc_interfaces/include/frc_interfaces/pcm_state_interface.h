@@ -27,21 +27,21 @@ class PCMState
 		bool     getNotConnectedSticky(void)   const { return not_connected_sticky_; }
 		bool     getVoltageFault(void)         const { return voltage_fault_; }
 		bool     getVoltageSticky(void)        const { return voltage_sticky_; }
-		uint32_t getSolenoidBlacklist(void)    const { return solenoid_blacklist_; }
+		uint32_t getSolenoidDisabledList(void) const { return solenoid_disabled_list_; }
 
-		void setCompressorEnabled(bool compressor_enabled)         { compressor_enabled_ = compressor_enabled; }
-		void setPressureSwitch(bool pressure_switch)               { pressure_switch_ = pressure_switch; }
-		void setCompressorCurrent(double compressor_current)       { compressor_current_ = compressor_current; }
-		void setClosedLoopControl(bool closed_loop_control)        { closed_loop_control_ = closed_loop_control; }
-		void setCurrentTooHigh(bool current_too_high)              { current_too_high_ = current_too_high; }
-		void setCurrentTooHighSticky(bool current_too_high_sticky) { current_too_high_sticky_ = current_too_high_sticky; }
-		void setShorted(bool shorted)                              { shorted_ = shorted; }
-		void setShortedSticky(bool shorted_sticky)                 { shorted_sticky_ = shorted_sticky; }
-		void setNotConntected(bool not_connected)                  { not_connected_ = not_connected; }
-		void setNotConnecteSticky(bool not_connected_sticky)       { not_connected_sticky_ = not_connected_sticky; }
-		void setVoltageFault(bool voltage_fault)                   { voltage_fault_ = voltage_fault; }
-		void setVoltageSticky(bool voltage_sticky)                 { voltage_sticky_ = voltage_sticky; }
-		void setSolenoidBlacklist(uint32_t solenoid_blacklist)     { solenoid_blacklist_ = solenoid_blacklist; }
+		void setCompressorEnabled(bool compressor_enabled)            { compressor_enabled_ = compressor_enabled; }
+		void setPressureSwitch(bool pressure_switch)                  { pressure_switch_ = pressure_switch; }
+		void setCompressorCurrent(double compressor_current)          { compressor_current_ = compressor_current; }
+		void setClosedLoopControl(bool closed_loop_control)           { closed_loop_control_ = closed_loop_control; }
+		void setCurrentTooHigh(bool current_too_high)                 { current_too_high_ = current_too_high; }
+		void setCurrentTooHighSticky(bool current_too_high_sticky)    { current_too_high_sticky_ = current_too_high_sticky; }
+		void setShorted(bool shorted)                                 { shorted_ = shorted; }
+		void setShortedSticky(bool shorted_sticky)                    { shorted_sticky_ = shorted_sticky; }
+		void setNotConntected(bool not_connected)                     { not_connected_ = not_connected; }
+		void setNotConnecteSticky(bool not_connected_sticky)          { not_connected_sticky_ = not_connected_sticky; }
+		void setVoltageFault(bool voltage_fault)                      { voltage_fault_ = voltage_fault; }
+		void setVoltageSticky(bool voltage_sticky)                    { voltage_sticky_ = voltage_sticky; }
+		void setSolenoidDisabledList(uint32_t solenoid_disabled_list) { solenoid_disabled_list_ = solenoid_disabled_list; }
 
 	private:
 		int32_t  id_;
@@ -57,7 +57,7 @@ class PCMState
 		bool     not_connected_sticky_{false};
 		bool     voltage_fault_{false};
 		bool     voltage_sticky_{false};
-		uint32_t solenoid_blacklist_{0};
+		uint32_t solenoid_disabled_list_{0};
 };
 
 typedef StateHandle<const PCMState> PCMStateHandle;

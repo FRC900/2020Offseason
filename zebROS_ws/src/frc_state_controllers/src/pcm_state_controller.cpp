@@ -83,7 +83,7 @@ bool PCMStateController::init(hardware_interface::PCMStateInterface *hw,
 		m.not_connected_sticky.push_back(false);
 		m.voltage_fault.push_back(false);
 		m.voltage_sticky_fault.push_back(false);
-		m.solenoid_blacklist.push_back(0);
+		m.solenoid_disabled_list.push_back(0);
 
 		pcm_state_.push_back(hw->getHandle(pcm_names[i]));
 	}
@@ -126,7 +126,7 @@ void PCMStateController::update(const ros::Time &time, const ros::Duration & /*p
 				m.not_connected_sticky[i] = pcms->getNotConnectedSticky();
 				m.voltage_fault[i] = pcms->getVoltageFault();
 				m.voltage_sticky_fault[i] = pcms->getVoltageSticky();
-				m.solenoid_blacklist[i] = pcms->getSolenoidBlacklist();
+				m.solenoid_disabled_list[i] = pcms->getSolenoidDisabledList();
 			}
 			realtime_pub_->unlockAndPublish();
 		}
