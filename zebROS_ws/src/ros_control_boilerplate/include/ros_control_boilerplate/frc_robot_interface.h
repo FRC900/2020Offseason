@@ -209,14 +209,14 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		hardware_interface::canifier::RemoteCANifierStateInterface canifier_remote_state_interface_;
 		hardware_interface::cancoder::CANCoderStateInterface   cancoder_state_interface_;
 		hardware_interface::cancoder::RemoteCANCoderStateInterface cancoder_remote_state_interface_;
-		hardware_interface::PDPStateInterface	               pdh_state_interface_;
-		hardware_interface::RemotePDPStateInterface	           pdh_remote_state_interface_;
-		hardware_interface::PDPStateInterface	               pdp_state_interface_;
-		hardware_interface::RemotePDPStateInterface	           pdp_remote_state_interface_;
 		hardware_interface::PCMStateInterface	               pcm_state_interface_;
 		hardware_interface::RemotePCMStateInterface	           pcm_remote_state_interface_;
-		hardware_interface::PCMStateInterface	               ph_state_interface_;
-		hardware_interface::RemotePCMStateInterface	           ph_remote_state_interface_;
+		hardware_interface::PDHStateInterface	               pdh_state_interface_;
+		hardware_interface::RemotePDHStateInterface	           pdh_remote_state_interface_;
+		hardware_interface::PDPStateInterface	               pdp_state_interface_;
+		hardware_interface::RemotePDPStateInterface	           pdp_remote_state_interface_;
+		hardware_interface::PHStateInterface	               ph_state_interface_;
+		hardware_interface::RemotePHStateInterface	           ph_remote_state_interface_;
 		hardware_interface::JoystickStateInterface             joystick_state_interface_;
 		hardware_interface::MatchStateInterface                match_state_interface_;
 		hardware_interface::RemoteMatchStateInterface          match_remote_state_interface_;
@@ -519,7 +519,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<HAL_CTREPCMHandle> pcms_;
 
 		std::vector<std::shared_ptr<std::mutex>> ph_read_thread_mutexes_;
-		std::vector<std::shared_ptr<hardware_interface::PCMState>> ph_read_thread_state_;
+		std::vector<std::shared_ptr<hardware_interface::PHState>> ph_read_thread_state_;
 		void ph_read_thread(HAL_REVPHHandle ph_handle,
 							 int32_t ph_id,
 							 std::shared_ptr<hardware_interface::PHState> state,
@@ -527,17 +527,17 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 							 std::unique_ptr<Tracer> tracer,
 							 double poll_frequency);
 		std::vector<std::thread> ph_threads_;
-		std::vector<HAL_CTREPCMHandle> phs_;
+		std::vector<HAL_REVPHHandle> phs_;
 
 		std::vector<std::shared_ptr<std::mutex>> pdh_read_thread_mutexes_;
-		std::vector<std::shared_ptr<hardware_interface::PDPHWState>> pdh_read_thread_state_;
+		std::vector<std::shared_ptr<hardware_interface::PDHHWState>> pdh_read_thread_state_;
 		void pdh_read_thread(int32_t pdh,
 							 std::shared_ptr<hardware_interface::PDHHWState> state,
 							 std::shared_ptr<std::mutex> mutex,
 							 std::unique_ptr<Tracer> tracer,
 							 double poll_frequency);
 		std::vector<std::thread> pdh_threads_;
-		std::vector<int32_t> pdh_;
+		std::vector<int32_t> pdhs_;
 
 
 		std::vector<std::shared_ptr<std::mutex>> pdp_read_thread_mutexes_;

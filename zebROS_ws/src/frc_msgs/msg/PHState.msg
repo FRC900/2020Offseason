@@ -5,5 +5,6 @@ int32[]   id
 bool[]    compressor_enabled
 bool[]    pressure_switch
 float64[] compressor_current
-float64[] analog_pressure
+float64[] analog_pressure0
+float64[] analog_pressure1
 bool[]    closed_loop_control

@@ -56,7 +56,6 @@ bool PDHStateController::init(hardware_interface::PDHStateInterface *hw,
 	m.firmwareFix = 0;
 	m.hardwareRev = 0;
 	m.switchableChannelState = false;
-	m.temperature = 0;
 	m.totalCurrent = 0;
 
 	for (size_t i = 0; i < m.current.size(); i++)
@@ -126,7 +125,6 @@ void PDHStateController::update(const ros::Time &time, const ros::Duration & )
 			m.firmwareFix = ps->getFirmwareiFix();
 			m.hardwareRev = ps->getHardwareRev();
 			m.switchableChannelState = ps->getSwitchableChannelState();
-			m.temperature = ps->getTemperature();
 			m.totalCurrent = ps->getTotalCurrent();
 
 			for (size_t i = 0; i < m.current.size(); i++)
@@ -216,7 +214,6 @@ void PDHStateListenerController::commandCB(const frc_msgs::PDHDataConstPtr &msg)
 	data.setFirmwareiFix(msg->firmwareFix);
 	data.setHardwareRev(msg->hardwareRev);
 	data.setSwitchableChannelState(msg->switchableChannelState);
-	data.setTemperature(msg->temperature);
 	data.setTotalCurrent(msg->totalCurrent);
 
 	for (size_t i = 0; i < msg->current.size(); i++)

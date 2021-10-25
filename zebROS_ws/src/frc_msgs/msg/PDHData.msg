@@ -1,7 +1,6 @@
 Header header
 
 float64 voltage
-float64 temperature
 float64 totalCurrent
 
 float64[20] current

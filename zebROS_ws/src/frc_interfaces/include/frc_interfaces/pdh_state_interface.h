@@ -33,7 +33,6 @@ class PDHHWState
 		uint32_t getFirmwareiFix(void) const           {return firmware_fix_;}
 		uint32_t getHardwareRev(void) const            {return hardware_rev_;}
 		uint32_t getUniqueID(void) const               {return unique_id_;}
-        double   getTemperature(void) const            {return temperature_;}
         double   getTotalCurrent(void) const           {return total_current_;}
         bool     getSwitchableChannelState(void) const {return switchable_channel_state_;};
         double   getChannelCurrent(size_t channel) const {
@@ -74,10 +73,9 @@ class PDHHWState
         void setStickyHasReset(bool sticky_has_reset)                 {sticky_has_reset_ = sticky_has_reset;}
 		void setFirmwareMajor(uint32_t firmware_major)                {firmware_major_= firmware_major;}
 		void setFirmwareMinor(uint32_t firmware_minor)                {firmware_minor_= firmware_minor;}
-		void setFirmwareiFix(uint32_t firmware_fix)                   {firmware_fix_= firmware_fix;}
+		void setFirmwareFix(uint32_t firmware_fix)                    {firmware_fix_= firmware_fix;}
 		void setHardwareRev(uint32_t firmware_fix)                    {firmware_fix_= firmware_fix;}
 		void setUniqueID(uint32_t unique_id)                          {unique_id_ = unique_id;}
-        void setTemperature(double temperature)                       {temperature_ = temperature;}
         void setTotalCurrent(double total_current)                    {total_current_ = total_current;}
         void setSwitchableChannelState(bool switchable_channel_state) {switchable_channel_state_ = switchable_channel_state;}
         void setChannelCurrent(double current, size_t channel) {
@@ -123,9 +121,8 @@ class PDHHWState
 		uint32_t firmware_fix_{0};
 		uint32_t hardware_rev_{0};
 		uint32_t unique_id_{0};
-        double temperature_{0.};
-        double total_current_{0.};
-        bool   switchable_channel_state_{false};
+        double   total_current_{0.};
+        bool     switchable_channel_state_{false};
         std::array<double, 20> current_{0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
         std::array<bool, 20>   channel_brownout_{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
         std::array<bool, 20>   sticky_channel_brownout_{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
