@@ -370,6 +370,86 @@ void FRCRobotInterface::ctre_mc_read_thread(std::shared_ptr<ctre::phoenix::motor
 // status messages.  Each iteration, data read from the
 // PDP is copied to a state buffer shared with the main read
 // thread.
+void FRCRobotInterface::pdh_read_thread(int32_t pdh,
+		std::shared_ptr<hardware_interface::PDHHWState> state,
+		std::shared_ptr<std::mutex> mutex,
+		std::unique_ptr<Tracer> tracer,
+		double poll_frequency)
+{
+#ifdef __linux__
+	if (pthread_setname_np(pthread_self(), "pdh_read"))
+	{
+		ROS_ERROR_STREAM("Error setting thread name pdh_read " << errno);
+	}
+#endif
+	ros::Duration(1.9).sleep(); // Sleep for a few seconds to let CAN start up
+	ROS_INFO_STREAM("Starting pdh read thread at " << ros::Time::now());
+	ros::Rate r(poll_frequency);
+	int32_t status = 0;
+	HAL_REV_ClearPDHFaults(pdh, &status);
+	if (status)
+		ROS_ERROR_STREAM("pdh_read_thread error clearing faults : status = " << status);
+	status = 0;
+	hardware_interface::PDHHWState pdh_state(HAL_REV_GetPDHModuleNumber(pdh, &status);
+	if (status)
+		ROS_ERROR_STREAM("pdh_read_thread error reading PDH module number: status = " << status);
+	status = 0;
+	const auto pdh_version = HAL_ERV_GetPDHVersion(pdh, &status);
+	if (status)
+		ROS_ERROR_STREAM("pdh_read_thread error reading PDH version : status = " << status);
+	pdh_state.setFirmwareMajor(pdh_version.firmwareMajor);
+	pdh_state.setFirmwareMinor(pdh_version.firmwareMinor);
+	pdh_state.setFirmwareFix(pdh_version.firmwareFix);
+	pdh_state.setHardwareRev(pdh_version.hardwareRev);
+	pdh_state.setUniqueID(pdh_version.uniqueID);
+	while (ros::ok())
+	{
+		tracer->start("main loop");
+
+		//read info from the PDH hardware
+		status = 0;
+		pdh_state.setEnabled(HAL_REV_IsPDHEnabled(pdh, &status));
+		pdh_state.setVoltage(HAL_REV_GetPDHSupplyVoltage(pdh, &status));
+		psh_state.setBrownout(HAL_REV_CheckPDHBrownout(pdhm &status));
+		psh_state.setStickyBrownout(HAL_REV_CheckPDHStickyBrownout(pdhm &status));
+		psh_state.setCANWarning(HAL_REV_CheckPDHCANWarning(pdhm &status));
+		psh_state.setStickyCANWarning(HAL_REV_CheckPDHStickyCANWarning(pdhm &status));
+		psh_state.setStickyCANBusOff(HAL_REV_CheckPDHStickyCANBusOff(pdhm &status));
+		psh_state.setHardwareFault(HAL_REV_CheckPDHHardwareFault(pdhm &status));
+		psh_state.setStickyHardwareFault(HAL_REV_CheckPDHStickyHardwareFault(pdhm &status));
+		psh_state.setStickyFirmwareFault(HAL_REV_CheckPDHStickyFirmwareFault(pdhm &status));
+		psh_state.setStickyHasReset(HAL_REV_CheckPDHStickyHasReset(pdhm &status));
+		pdh_state.setTemperature(HAL_GetPDHTemperature(pdh, &status));
+		pdh_state.setTotalCurrent(HAL_REV_GetPDHTotalCurrent(pdh, &status));
+		pdh_state.setSwitchableChannelState(HAL_REV_GetPDHSwitchableChannelState, &status));
+
+		for (size_t channel = 0; channel < 20; channel++)
+		{
+			pdh_state.setCurrent(HAL_REV_GetPDHChannelCurrent(pdh, channel, &status), channel);
+			pdh_state.setChannelBrownout(HAL_REV_CheckPDHChannelBrownout, channel, &status), channel);
+			pdh_state.setStickyChannelBrownout(HAL_REV_CheckPDHStickyChannelBrownout, channel, &status), channel);
+		}
+		if (status)
+			ROS_ERROR_STREAM("pdh_read_thread error : status = " << status << ":" << HAL_GetErrorMessage(status));
+
+		{
+			// Copy to state shared with read() thread
+			// Put this in a separate scope so lock_guard is released
+			// as soon as the state is finished copying
+			std::lock_guard<std::mutex> l(*mutex);
+			*state = pdh_state;
+		}
+
+		tracer->report(60);
+		r.sleep();
+	}
+}
+
+// The PDP reads happen in their own thread. This thread
+// loops at 20Hz to match the update rate of PDP CAN
+// status messages.  Each iteration, data read from the
+// PDP is copied to a state buffer shared with the main read
+// thread.
 void FRCRobotInterface::pdp_read_thread(int32_t pdp,
 		std::shared_ptr<hardware_interface::PDPHWState> state,
 		std::shared_ptr<std::mutex> mutex,
@@ -421,6 +501,7 @@ void FRCRobotInterface::pdp_read_thread(int32_t pdp,
 		r.sleep();
 	}
 }
+
 
 // The PCM state reads happen in their own thread. This thread
 // loops at 20Hz to match the update rate of PCM CAN
@@ -1144,6 +1225,29 @@ void FRCRobotInterface::readConfig(ros::NodeHandle rpnh)
 			pcm_local_updates_.push_back(local_update);
 			pcm_local_hardwares_.push_back(local_hardware);
 		}
+		else if (joint_type == "pdh")
+		{
+			readJointLocalParams(joint_params, local, saw_local_keyword, local_update, local_hardware);
+			int32_t pdh_module = 0;
+			if (joint_params.hasMember("module"))
+			{
+				if (!local)
+					throw std::runtime_error("A PDH id was specified for non-local hardware for joint " + joint_name);
+				XmlRpc::XmlRpcValue &xml_pdh_module = joint_params["module"];
+				if (!xml_pdh_module.valid() ||
+					 xml_pdh_module.getType() != XmlRpc::XmlRpcValue::TypeInt)
+					throw std::runtime_error("An invalid PDH joint module id was specified (expecting an int) for joint " + joint_name);
+				pdh_module = xml_pdh_module;
+				auto it = std::find(pdh_modules_.cbegin(), pdh_modules_.cend(), pdh_module);
+				if (it != pdh_modules_.cend())
+					throw std::runtime_error("A duplicate PDH module was specified for joint " + joint_name);
+			}
+
+			pdh_names_.push_back(joint_name);
+			pdh_local_updates_.push_back(local_update);
+			pdh_local_hardwares_.push_back(local_hardware);
+			pdh_modules_.push_back(pdh_module);
+		}
 		else if (joint_type == "pdp")
 		{
 			int32_t pdp_module = 0;
@@ -1287,6 +1391,7 @@ void FRCRobotInterface::readConfig(ros::NodeHandle rpnh)
 FRCRobotInterface::FRCRobotInterface(ros::NodeHandle &nh, urdf::Model *urdf_model) :
 	  name_("generic_hw_interface")
 	, read_tracer_("FRCRobotInterface " + nh.getNamespace() + "::read()")
+	, write_tracer_("FRCRobotInterface " + nh.getNamespace() + "::write()")
 {
 	// Check if the URDF model needs to be loaded
 	if (urdf_model == nullptr)
@@ -1598,8 +1703,8 @@ void FRCRobotInterface::createInterfaces(void)
 		hardware_interface::as726x::AS726xStateHandle ash(as726x_names_[i], &as726x_state_[i]);
 		as726x_state_interface_.registerHandle(ash);
 
-		hardware_interface::as726x::AS726xCommandHandle aoh(ash, &as726x_command_[i]);
-		as726x_command_interface_.registerHandle(aoh);
+		hardware_interface::as726x::AS726xCommandHandle ach(ash, &as726x_command_[i]);
+		as726x_command_interface_.registerHandle(ach);
 		if (!as726x_local_updates_[i])
 		{
 			hardware_interface::as726x::AS726xWritableStateHandle awsh(as726x_names_[i], &as726x_state_[i]); /// writing directly to state?
@@ -1735,6 +1840,28 @@ void FRCRobotInterface::createInterfaces(void)
 		{
 			hardware_interface::PHWritableStateHandle rphsh(ph_names_[i], &ph_compressor_closed_loop_enable_state_[i]);
 			ph_remote_state_interface_.registerHandle(rphsh);
+		}
+	}
+
+	num_pdhs_ = pdh_names_.size();
+	for (size_t i = 0; i < num_phs_; i++)
+	{
+		ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface: Registering interface for PDH : "
+				<< pdh_names_[i] << " at module ID " << pdh_ids_[i]);
+		pdh_state_.emplace_back(hardware_interface::PDHState(pdh_ids_[i]));
+	}
+	pdh_command_.resize(num_pdhs_);
+	for (size_t i = 0; i < num_pdhs_; i++)
+	{
+		hardware_interface::PDHStateHandle psh(pdh_names_[i], &pdh_state_[i]);
+		pdh_state_interface_.registerHandle(psh);
+
+		hardware_interface::PDHCommandHandle pch(psh, &pdh_command_[i]);
+		pdh_command_interface_.registerHandle(pch);
+		if (!pdh_local_updates_[i])
+		{
+			hardware_interface::PDHWritableStateHandle pwsh(pdh_names_[i], &pdh_state_[i]);
+			pdh_remote_state_interface_.registerHandle(pwsh);
 		}
 	}
 
@@ -1894,6 +2021,8 @@ void FRCRobotInterface::createInterfaces(void)
 	registerInterface(&joint_effort_interface_); // empty for now
 	registerInterface(&imu_interface_);
 	registerInterface(&pcm_state_interface_);
+	registerInterface(&pdh_state_interface_);
+	registerInterface(&pdh_command_interface_);
 	registerInterface(&pdp_state_interface_);
 	registerInterface(&ph_state_interface_);
 	registerInterface(&robot_controller_state_interface_);
@@ -1909,6 +2038,7 @@ void FRCRobotInterface::createInterfaces(void)
 	registerInterface(&cancoder_remote_state_interface_);
 	registerInterface(&joint_remote_interface_); // list of Joints defined as remote
 	registerInterface(&pcm_remote_state_interface_);
+	registerInterface(&pdh_remote_state_interface_);
 	registerInterface(&pdp_remote_state_interface_);
 	registerInterface(&ph_remote_state_interface_);
 	registerInterface(&imu_remote_interface_);
@@ -2288,6 +2418,46 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 							  (rumble_local_hardwares_[i] ? "local" : "remote") << " hardware" <<
 							  " as Rumble with port " << rumble_ports_[i]);
 
+	for (size_t i = 0; i < num_pdhs_; i++)
+	{
+		ROS_INFO_STREAM_NAMED("frc_robot_interface",
+							  "Loading joint " << i << "=" << pdh_names_[i] <<
+							  " local = " << pdh_locals_[i] <<
+							  " as PDH");
+
+		if (pdh_locals_[i])
+		{
+			if (!HAL_REV_CheckPDHModuleNumber(pdh_modules_[i]))
+			{
+				ROS_ERROR("Invalid PDH module number");
+				pdhs_.push_back(HAL_kInvalidHandle);
+			}
+			else
+			{
+				int32_t status = 0;
+				const auto pdh_handle = HAL_Rev_InitializePDH(pdh_modules_[i], __LINE__, &status);
+				phs_.push_back(pdh_handle);
+				pdh_read_thread_state_.push_back(std::make_shared<hardware_interface::PDHHWState>());
+				if ((pdh_handle == HAL_kInvalidHandle) || status)
+				{
+					ROS_ERROR_STREAM("Could not initialize PDH module, status = " << status);
+				}
+				else
+				{
+					pdh_read_thread_mutexes_.push_back(std::make_shared<std::mutex>());
+					pdh_threads_.emplace_back(std::thread(&FRCRobotInterface::pdh_read_thread, this,
+											  pdh_handle, pdh_read_thread_state_[i], pdh_read_thread_mutexes_[i],
+											  std::make_unique<Tracer>("PDH " + pdh_names_[i] + " " + root_nh.getNamespace()),
+											  pdh_read_hz_));
+					HAL_Report(HALUsageReporting::kResourceType_PDH, pdh_modules_[i]);
+				}
+			}
+		}
+		else
+		{
+			pdhs_.push_back(HAL_kInvalidHandle);
+		}
+	}
 	for (size_t i = 0; i < num_pdps_; i++)
 	{
 		ROS_INFO_STREAM_NAMED("frc_robot_interface",
@@ -2345,6 +2515,9 @@ bool FRCRobotInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw
 	if(! root_nh.param("generic_hw_control_loop/ph_read_hz", ph_read_hz_, ph_read_hz_)) {
 		ROS_ERROR("Failed to read ph_read_hz in frc_robot_interface");
 	}
+	if(! root_nh.param("generic_hw_control_loop/pdh_read_hz", pdh_read_hz_, pdh_read_hz_)) {
+		ROS_ERROR("Failed to read pdh_read_hz in frc_robot_interface");
+	}
 	if(! root_nh.param("generic_hw_control_loop/pdp_read_hz", pdp_read_hz_, pdp_read_hz_)) {
 		ROS_ERROR("Failed to read pdp_read_hz in frc_robot_interface");
 	}
@@ -2372,6 +2545,7 @@ bool FRCRobotInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw
 	ROS_INFO_STREAM("Controller Frequencies:" << std::endl <<
 			"\tctre_mc_read : " << ctre_mc_read_hz_ << std::endl <<
 			"\tpcm_read : " << pcm_read_hz_ << std::endl <<
+			"\tpdh_read : " << pdh_read_hz_ << std::endl <<
 			"\tpdp_read : " << pdp_read_hz_ << std::endl <<
 			"\tph_read : " << ph_read_hz_ << std::endl <<
 			"\trobot_iteration : " << robot_iteration_hz_ << std::endl <<
@@ -3082,6 +3256,19 @@ void FRCRobotInterface::read(const ros::Time &time, const ros::Duration &period)
 		}
 	}
 
+	read_tracer_.start_unique("pdhs");
+	for (size_t i = 0; i < num_pdhs_; i++)
+	{
+		if (pdh_locals_[i])
+		{
+			std::unique_lock<std::mutex> l(*pdh_read_thread_mutexes_[i], std::try_to_lock);
+			if (l.owns_lock())
+			{
+				pdh_state_[i] = *pdh_read_thread_state_[i];
+			}
+		}
+	}
+
 	read_tracer_.start_unique("pdps");
 	for (size_t i = 0; i < num_pdps_; i++)
 	{
@@ -3094,7 +3281,6 @@ void FRCRobotInterface::read(const ros::Time &time, const ros::Duration &period)
 			}
 		}
 	}
-	read_tracer_.report(60);
 
 	read_tracer_.start_unique("phs");
 	for (size_t i = 0; i < num_phs_; i++)
@@ -3109,11 +3295,13 @@ void FRCRobotInterface::read(const ros::Time &time, const ros::Duration &period)
 		}
 	}
 
+	read_tracer_.report(60);
 }
 
 void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period)
 {
 	// Was the robot enabled last time write was run?
+	write_tracer_.start_unique("read match data");
 	bool robot_enabled = false;
 	{
 		std::unique_lock<std::mutex> l(match_data_mutex_, std::try_to_lock);
@@ -3123,6 +3311,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 			robot_enabled = last_robot_enabled_;
 	}
 
+	write_tracer_.start_unique("ctre mc");
 	for (size_t joint_id = 0; joint_id < num_can_ctre_mcs_; ++joint_id)
 	{
 		if (!can_ctre_mc_local_hardwares_[joint_id])
@@ -3228,8 +3417,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 			tc.resetSensorInitializationStrategy();
 		}
 
-		bool enable_read_thread;
-		if (tc.enableReadThreadChanged(enable_read_thread))
+		if (bool enable_read_thread; tc.enableReadThreadChanged(enable_read_thread))
 			ts.setEnableReadThread(enable_read_thread);
 
 		hardware_interface::FeedbackDevice internal_feedback_device = hardware_interface::FeedbackDevice_Uninitialized;
@@ -4052,6 +4240,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 	}
 	last_robot_enabled_ = robot_enabled;
 
+	write_tracer_.start_unique("nidec");
 	for (size_t i = 0; i < num_nidec_brushlesses_; i++)
 	{
 		if (nidec_brushless_local_hardwares_[i])
@@ -4064,6 +4253,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		}
 	}
 
+	write_tracer_.start_unique("digital outputs");
 	for (size_t i = 0; i < num_digital_outputs_; i++)
 	{
 		// Only invert the desired output once, on the controller
@@ -4078,6 +4268,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		}
 	}
 
+	write_tracer_.start_unique("pwms");
 	for (size_t i = 0; i < num_pwms_; i++)
 	{
 		const int setpoint = pwm_command_[i] * ((pwm_inverts_[i] & pwm_local_updates_[i]) ? -1 : 1);
@@ -4092,6 +4283,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		}
 	}
 
+	write_tracer_.start_unique("solenoids");
 	for (size_t i = 0; i < num_solenoids_; i++)
 	{
 		// MODE_POSITION is standard on/off setting
@@ -4168,6 +4360,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		prev_solenoid_mode_[i] = solenoid_mode_[i];
 	}
 
+	write_tracer_.start_unique("double solenoids");
 	for (size_t i = 0; i < num_double_solenoids_; i++)
 	{
 		DoubleSolenoid::Value setpoint = DoubleSolenoid::Value::kOff;
@@ -4215,6 +4408,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		}
 	}
 
+	write_tracer_.start_unique("rumbles");
 	for (size_t i = 0; i < num_rumbles_; i++)
 	{
 		if (rumble_state_[i] != rumble_command_[i])
@@ -4229,6 +4423,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		}
 	}
 
+	write_tracer_.start_unique("pcms");
 	for (size_t i = 0; i < num_pcms_; i++)
 	{
 		if (pcm_compressor_closed_loop_enable_command_compressor_command_[i] != pcm_compressor_closed_loop_enable_state_
@@ -4248,6 +4443,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		}
 	}
 
+	write_tracer_.start_unique("phs");
 	for (size_t i = 0; i < num_phs_; i++)
 	{
 		if (ph_compressor_closed_loop_enable_command_compressor_command_[i] != ph_compressor_closed_loop_enable_state_
@@ -4267,7 +4463,76 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		}
 	}
 
+	write_tracer_.start_unique("pdhs");
+	for (size_t i = 0; i < num_pdhs_; i++)
+	{
+		auto &pc = pdh_command_[i];
+
+		if (bool enable; pc.switchableChannelEnableChanged(enable))
+		{
+			if (pdh_local_hardwares_[i])
+			{
+				int32_t status = 0;
+				HAL_REV_SetPDHSwitchableChannel(pdhs_[i], enable, &status);
+				if (status == 0)
+				{
+					ROS_INFO_STREAM("Set PDH " << pdh_names_[i]
+							<< " enable = " << static_cast<int>(enable));
+				}
+				else
+				{
+					ROS_ERROR_STREAM("Error setting PDH " << pdh_names_[i]
+							<< " enable = " << static_cast<int>(enable)
+							<< " : status = " << status
+							<< " : " << HAL_GetErrorMessage(status));
+					pc.resetSwitchableChannel();
+				}
+			}
+		}
+
+		if (pc.clearFaultsChanged())
+		{
+			if (pdh_local_hardwares_[i])
+			{
+				int32_t status = 0;
+				HAL_REV_ClearPDHFaults(pdhs_[i], &status);
+				if (status == 0)
+				{
+					ROS_INFO_STREAM("Cleared faults on PDH " << pdh_names_[i]);
+				}
+				else
+				{
+					ROS_ERROR_STREAM("Error clearing faults on " << pdh_names_[i]
+							<< " : status = " << status
+							<< " : " << HAL_GetErrorMessage(status));
+					pc.setClearFaults();
+				}
+			}
+		}
+
+		if (pc.identifyPDHChanged())
+		{
+			if (pdh_local_hardwares_[i])
+			{
+				int32_t status = 0;
+				HAL_REV_IdentifyPDH(pdhs_[i], &status);
+				if (status == 0)
+				{
+					ROS_INFO_STREAM("Identified PDH " << pdh_names_[i]);
+				}
+				else
+				{
+					ROS_ERROR_STREAM("Error identifying PDH " << pdh_names_[i]
+							<< " : status = " << status
+							<< " : " << HAL_GetErrorMessage(status));
+					pc.setIdentifyPDH();
+				}
+			}
+		}
+	}
+
 	// TODO : what to do about this?
+	write_tracer_.start_unique("dummy joints");
 	for (size_t i = 0; i < num_dummy_joints_; i++)
 	{
 		if (dummy_joint_locals_[i])
@@ -4293,6 +4558,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 			}
 		}
 	}
+	write_tracer_ireport(60);
 
 }
 

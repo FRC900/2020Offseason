@@ -39,7 +39,7 @@ class PDHHWCommand
 
 		void setIdentifyPDH(void) { identify_pdh_ = true; }
 		bool getIdentifyPDH(void) const { return identify_pdh_; }
-		bool clearIdentifyPDH(void)
+		bool identifyPDHChanged(void)
 		{
 			if (!identify_pdh_)
 				return false;

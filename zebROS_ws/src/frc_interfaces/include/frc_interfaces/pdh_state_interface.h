@@ -12,13 +12,18 @@ class PDHHWState
 {
     public:
         //access and set
+		PDHHWState(uint32_t module_number)
+			: module_number_(module_number)
+		{
+		}
+		int32_t  getModuleNumber(void) const           {return module_number_;}
 		bool     getEnabled(void) const                {return enabled_;}
         double   getVoltage(void) const                {return voltage_;}
 		bool     getBrownout(void) const               {return brownout_;}
 		bool     getStickyBrownout(void) const         {return sticky_brownout_;}
 		bool     getCANWarning(void) const             {return can_warning_;}
 		bool     getStickyCANWarning(void) const       {return sticky_can_warning_;}
-		bool     getCANBusOff(void) const              {return sticky_can_bus_off_;}
+		bool     getStickyCANBusOff(void) const        {return sticky_can_bus_off_;}
 		bool     getHardwareFault(void) const          {return hardware_fault_;}
 		bool     getStickyHardwareFault(void) const    {return sticky_hardware_fault_;}
 		bool     getStickyFirmwareFault(void) const    {return sticky_firmware_fault_;}
@@ -30,8 +35,6 @@ class PDHHWState
 		uint32_t getUniqueID(void) const               {return unique_id_;}
         double   getTemperature(void) const            {return temperature_;}
         double   getTotalCurrent(void) const           {return total_current_;}
-        double   getTotalPower(void) const             {return total_power_;}
-        double   getTotalEnergy(void) const            {return total_energy_;}
         bool     getSwitchableChannelState(void) const {return switchable_channel_state_;};
         double   getChannelCurrent(size_t channel) const {
             if(channel >= current_.size())
@@ -76,8 +79,6 @@ class PDHHWState
 		void setUniqueID(uint32_t unique_id)                          {unique_id_ = unique_id;}
         void setTemperature(double temperature)                       {temperature_ = temperature;}
         void setTotalCurrent(double total_current)                    {total_current_ = total_current;}
-        void setTotalPower(double total_power)                        {total_power_ = total_power;}
-        void setTotalEnergy(double total_energy)                      {total_energy_ = total_energy;}
         void setSwitchableChannelState(bool switchable_channel_state) {switchable_channel_state_ = switchable_channel_state;}
         void setChannelCurrent(double current, size_t channel) {
             if(channel >= current_.size())
@@ -105,17 +106,18 @@ class PDHHWState
         }
 
     private:
-		bool   enabled_{false};
-        double voltage_{0.};
-		bool   brownout_{false};
-		bool   sticky_brownout_{false};
-		bool   can_warning_{false};
-		bool   sticky_can_warning_{false};
-		bool   sticky_can_bus_off_{false};
-		bool   hardware_fault_{false};
-		bool   sticky_hardware_fault_{false};
-		bool   sticky_firmware_fault_{false};
-		bool   sticky_has_reset_{false};
+		int32_t  module_number_;
+		bool     enabled_{false};
+        double   voltage_{0.};
+		bool     brownout_{false};
+		bool     sticky_brownout_{false};
+		bool     can_warning_{false};
+		bool     sticky_can_warning_{false};
+		bool     sticky_can_bus_off_{false};
+		bool     hardware_fault_{false};
+		bool     sticky_hardware_fault_{false};
+		bool     sticky_firmware_fault_{false};
+		bool     sticky_has_reset_{false};
 		uint32_t firmware_major_{0};
 		uint32_t firmware_minor_{0};
 		uint32_t firmware_fix_{0};
@@ -123,8 +125,6 @@ class PDHHWState
 		uint32_t unique_id_{0};
         double temperature_{0.};
         double total_current_{0.};
-        double total_power_{0.};
-        double total_energy_{0.};
         bool   switchable_channel_state_{false};
         std::array<double, 20> current_{0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
         std::array<bool, 20>   channel_brownout_{false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};

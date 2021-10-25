@@ -50,6 +50,7 @@ bool PDHStateController::init(hardware_interface::PDHStateInterface *hw,
 	m.stickyHardwareFault = false;
 	m.stickyFirmwareFault = false;
 	m.stickyHasReset = false;
+	m.moduleNumber = 0;
 	m.firmwareMajor = 0;
 	m.firmwareMinor = 0;
 	m.firmwareFix = 0;
@@ -57,8 +58,6 @@ bool PDHStateController::init(hardware_interface::PDHStateInterface *hw,
 	m.switchableChannelState = false;
 	m.temperature = 0;
 	m.totalCurrent = 0;
-	m.totalPower = 0;
-	m.totalEnergy = 0;
 
 	for (size_t i = 0; i < m.current.size(); i++)
 	{
@@ -116,11 +115,12 @@ void PDHStateController::update(const ros::Time &time, const ros::Duration & )
 			m.stickyBrownout = ps->getStickyBrownout();
 			m.canWarning = ps->getCANWarning();
 			m.stickyCanWarning = ps->getStickyCANWarning();
-			m.stickyCanBusOff = ps->getCANBusOff();
+			m.stickyCanBusOff = ps->getStickyCANBusOff();
 			m.hardwareFault = ps->getHardwareFault();
 			m.stickyHardwareFault = ps->getStickyHardwareFault();
 			m.stickyFirmwareFault = ps->getStickyFirmwareFault();
 			m.stickyHasReset = ps->getStickyHasReset();
+			m.moduleNumber = ps->getModuleNumber();
 			m.firmwareMajor = ps->getFirmwareMajor();
 			m.firmwareMinor = ps->getFirmwareMinor();
 			m.firmwareFix = ps->getFirmwareiFix();
@@ -128,8 +128,6 @@ void PDHStateController::update(const ros::Time &time, const ros::Duration & )
 			m.switchableChannelState = ps->getSwitchableChannelState();
 			m.temperature = ps->getTemperature();
 			m.totalCurrent = ps->getTotalCurrent();
-			m.totalPower = ps->getTotalPower();
-			m.totalEnergy = ps->getTotalEnergy();
 
 			for (size_t i = 0; i < m.current.size(); i++)
 			{
@@ -150,6 +148,7 @@ void PDHStateController::stopping(const ros::Time & )
 namespace state_listener_controller
 {
 PDHStateListenerController::PDHStateListenerController()
+	: command_buffer_(hardware_interface::PDHHWState(-1))
 {
 }
 
@@ -199,7 +198,7 @@ void PDHStateListenerController::update(const ros::Time & /*time*/, const ros::D
 // the message, save the value here in the realtime buffer.
 void PDHStateListenerController::commandCB(const frc_msgs::PDHDataConstPtr &msg)
 {
-	hardware_interface::PDHHWState data;
+	hardware_interface::PDHHWState data(msg->moduleNumber);
 
 	data.setEnabled(msg->enabled);
 	data.setVoltage(msg->voltage);
@@ -219,8 +218,6 @@ void PDHStateListenerController::commandCB(const frc_msgs::PDHDataConstPtr &msg)
 	data.setSwitchableChannelState(msg->switchableChannelState);
 	data.setTemperature(msg->temperature);
 	data.setTotalCurrent(msg->totalCurrent);
-	data.setTotalPower(msg->totalPower);
-	data.setTotalEnergy(msg->totalEnergy);
 
 	for (size_t i = 0; i < msg->current.size(); i++)
 	{

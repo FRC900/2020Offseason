@@ -56,9 +56,9 @@
 #include "as726x_interface/as726x_interface.h"
 #include "frc_interfaces/joystick_interface.h"
 #include "frc_interfaces/match_data_interface.h"
-#include "frc_interfaces/pch_state_interface.h"
 #include "frc_interfaces/pcm_state_interface.h"
 #include "frc_interfaces/ph_state_interface.h"
+#include "frc_interfaces/pdh_command_interface.h"
 #include "frc_interfaces/pdp_state_interface.h"
 #include "frc_interfaces/robot_controller_interface.h"
 #include "remote_joint_interface/remote_joint_interface.h"
@@ -232,6 +232,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		hardware_interface::TalonCommandInterface          talon_command_interface_;
 		hardware_interface::canifier::CANifierCommandInterface canifier_command_interface_;
 		hardware_interface::cancoder::CANCoderCommandInterface cancoder_command_interface_;
+		hardware_interface::PDHCommandInterface            pdh_command_interface_;
 		hardware_interface::as726x::AS726xCommandInterface as726x_command_interface_;
 		hardware_interface::ImuSensorInterface             imu_interface_;
 		hardware_interface::RemoteImuSensorInterface       imu_remote_interface_;
@@ -333,6 +334,12 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<bool>        ph_local_hardwares_;
 		std::size_t              num_phs_{0};
 
+		std::vector<std::string> pdh_names_;
+		std::vector<int32_t>     pdh_modules_;
+		std::vector<bool>        pdh_local_updates_;
+		std::vector<bool>        pdh_local_hardwares_;
+		std::size_t              num_pdhs_{0};
+
 		std::vector<std::string> pdp_names_;
 		std::vector<int32_t>     pdp_modules_;
 		std::vector<bool>        pdp_locals_;
@@ -400,8 +407,9 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<double> rumble_state_; //No actual data
 		std::vector<double> pcm_compressor_closed_loop_enable_state_;
 		std::vector<double> ph_compressor_closed_loop_enable_state_;
-		std::vector<hardware_interface::PDPHWState> pdp_state_;
 		std::vector<hardware_interface::PCMState> pcm_state_;
+		std::vector<hardware_interface::PDHHWState> pdh_state_;
+		std::vector<hardware_interface::PDPHWState> pdp_state_;
 		std::vector<hardware_interface::PHState> ph_state_;
 		hardware_interface::RobotControllerState robot_controller_state_;
 		std::vector<hardware_interface::JoystickState> joystick_state_;
@@ -427,6 +435,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<hardware_interface::TalonHWCommand> talon_command_;
 		std::vector<hardware_interface::canifier::CANifierHWCommand> canifier_command_;
 		std::vector<hardware_interface::cancoder::CANCoderHWCommand> cancoder_command_;
+		std::vector<hardware_interface::PDHHWCommand> pdh_command_;
 		std::vector<double> brushless_command_;
 		std::vector<double> digital_output_command_;
 		std::vector<double> pwm_command_;
@@ -455,6 +464,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		double ctre_mc_read_hz_{100};
 		double pcm_read_hz_{20};
 		double ph_read_hz_{20};
+		double pdh_read_hz_{20};
 		double pdp_read_hz_{20};
 		double t_prev_robot_iteration_;
 		double robot_iteration_hz_{50};
@@ -519,6 +529,17 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<std::thread> ph_threads_;
 		std::vector<HAL_CTREPCMHandle> phs_;
 
+		std::vector<std::shared_ptr<std::mutex>> pdh_read_thread_mutexes_;
+		std::vector<std::shared_ptr<hardware_interface::PDPHWState>> pdh_read_thread_state_;
+		void pdh_read_thread(int32_t pdh,
+							 std::shared_ptr<hardware_interface::PDHHWState> state,
+							 std::shared_ptr<std::mutex> mutex,
+							 std::unique_ptr<Tracer> tracer,
+							 double poll_frequency);
+		std::vector<std::thread> pdh_threads_;
+		std::vector<int32_t> pdh_;
+
+
 		std::vector<std::shared_ptr<std::mutex>> pdp_read_thread_mutexes_;
 		std::vector<std::shared_ptr<hardware_interface::PDPHWState>> pdp_read_thread_state_;
 		void pdp_read_thread(int32_t pdp,
@@ -532,6 +553,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 
 		std::unique_ptr<ROSIterativeRobot> robot_{nullptr};
 		Tracer read_tracer_;
+		Tracer write_tracer_;
 
 		talon_convert::TalonConvert talon_convert_;
 

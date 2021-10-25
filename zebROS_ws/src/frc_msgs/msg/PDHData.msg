@@ -3,8 +3,6 @@ Header header
 float64 voltage
 float64 temperature
 float64 totalCurrent
-float64 totalPower
-float64 totalEnergy
 
 float64[20] current
 string[20] thingsPluggedIn
@@ -22,6 +20,7 @@ bool    hardwareFault
 bool    stickyHardwareFault
 bool    stickyFirmwareFault
 bool    stickyHasReset
+int32   moduleNumber
 uint32  firmwareMajor
 uint32  firmwareMinor
 uint32  firmwareFix
