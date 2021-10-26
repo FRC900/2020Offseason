@@ -207,12 +207,12 @@ float  AHRS::GetDisplacementZ()
 	ROS_ERROR("Called GetDisplacementZ() on unsupported platform");
 	return std::numeric_limits<float>::max();
 }
-double AHRS::GetAngle()
+double AHRS::GetAngle() const
 {
 	ROS_ERROR("Called GetAngle() on unsupported platform");
 	return std::numeric_limits<double>::max();
 }
-double AHRS::GetRate()
+double AHRS::GetRate() const
 {
 	ROS_ERROR("Called GetRate() on unsupported platform");
 	return std::numeric_limits<double>::max();
@@ -343,14 +343,9 @@ int AHRS::ThreadFunc(IIOProvider *)
 	ROS_ERROR("Called int AHRS::ThreadFunc(IIOProvider *io_provider) on unsupported platform");
 	return -1;
 }
-void AHRS::InitSendable(frc::SendableBuilder&)
+void AHRS::InitSendable(wpi::SendableBuilder&)
 {
-	ROS_ERROR("Called AHRS::InitSendable(frc::SendableBuilder&) on unsupported platform");
-}
-double AHRS::PIDGet()
-{
-	ROS_ERROR("Called AHRS::PIDGet() on unsupported platform");
-	return std::numeric_limits<double>::max();
+	ROS_ERROR("Called AHRS::InitSendable(wpi::SendableBuilder&) on unsupported platform");
 }
 uint8_t AHRS::GetActualUpdateRateInternal(uint8_t)
 {
@@ -358,7 +353,7 @@ uint8_t AHRS::GetActualUpdateRateInternal(uint8_t)
 	return std::numeric_limits<uint8_t>::max();
 }
 
-#include <frc/NidecBrushless.h>
+#include <frc/motorcontrol/NidecBrushless.h>
 frc::NidecBrushless::NidecBrushless(int pwmChannel, int dioChannel) : m_dio(dioChannel), m_pwm(pwmChannel)
 {
 	ROS_ERROR("Called NidecBrushless::NidecBrushless(int, int) on unsupported platform");
@@ -396,12 +391,7 @@ void frc::NidecBrushless::Enable()
 	ROS_ERROR("Called ::NidecBrushless::Enable() on unsupported platform");
 }
 
-void frc::NidecBrushless::PIDWrite(double)
-{
-	ROS_ERROR("Called ::NidecBrushless::PIDWrite(double output) on unsupported platform");
-}
-
-void frc::NidecBrushless::GetDescription(wpi::raw_ostream&) const
+std::string frc::NidecBrushless::GetDescription() const
 {
 	ROS_ERROR("Called ::NidecBrushless::GetDescription(wpi::raw_ostream& desc) const on unsupported platform");
 }
@@ -412,13 +402,13 @@ int frc::NidecBrushless::GetChannel() const
 	return -1;
 }
 
-void frc::NidecBrushless::InitSendable(SendableBuilder&)
+void frc::NidecBrushless::InitSendable(wpi::SendableBuilder&)
 {
 	ROS_ERROR("Called ::NidecBrushless::InitSendable(SendableBuilder& builder) on unsupported platform");
 }
 
 #include <frc/PWM.h>
-frc::PWM::PWM(int)
+frc::PWM::PWM(int, bool)
 {
 	ROS_ERROR("Called PWM::PWM(int) on unsupported platform");
 }
@@ -481,19 +471,9 @@ void frc::PWM::GetRawBounds(int32_t*, int32_t*, int32_t*, int32_t*, int32_t*)
 {
 	ROS_ERROR("Called PWM::GetRawBounds(int32_t* max, int32_t* deadbandMax, int32_t* center, int32_t* deadbandMin, int32_t* min) on unsupported platform");
 }
-void frc::PWM::InitSendable(SendableBuilder&)
+void frc::PWM::InitSendable(wpi::SendableBuilder&)
 {
-	ROS_ERROR("Called PWM::InitSendable(SendableBuilder& builder) on unsupported platform");
-}
-
-void frc::PWM::StopMotor()
-{
-	ROS_ERROR("Called PWM::StopMotor() on unsupported platform");
-}
-
-void frc::PWM::GetDescription(wpi::raw_ostream &) const
-{
-	ROS_ERROR("Called PWM::GetDescription(wpi::raw_ostream &) on unsupported platform");
+	ROS_ERROR("Called PWM::InitSendable(wpi::SendableBuilder& builder) on unsupported platform");
 }
 
 #include <frc/RobotBase.h>
@@ -513,13 +493,9 @@ bool frc::RobotBase::IsOperatorControl() const
 	return false;
 }
 #include <frc/DriverStation.h>
-frc::RobotBase::RobotBase() : m_ds(DriverStation::GetInstance())
+frc::RobotBase::RobotBase()
 {
 	ROS_ERROR("Called RobotBase::RobotBase() on unsupported platform");
-}
-frc::RobotBase::~RobotBase()
-{
-	ROS_ERROR("Called RobotBase::~RobotBase() on unsupported platform");
 }
 
 #include <frc/PIDSource.h>
@@ -553,9 +529,10 @@ void frc::SpeedController::SetVoltage(units::volt_t /*output*/)
 // The plan is bypassing the default WPIlib code will let us get rid of a lot of other
 // unused functions - networktables, etc.
 //
-#include "frc/smartdashboard/SendableRegistry.h"
+#if 0
+#include "wpi/sendable/SendableRegistry.h"
 
-namespace frc {
+namespace wpi{
 
 struct SendableRegistry::Impl
 {
@@ -568,7 +545,6 @@ SendableRegistry& SendableRegistry::GetInstance()
 	return s;
 }
 
-#if 0
 void SendableRegistry::Add(Sendable* sendable, const wpi::Twine& name)
 {
 }
@@ -587,11 +563,9 @@ void SendableRegistry::Add(Sendable* sendable, const wpi::Twine& subsystem, cons
 
 void AddLW(Sendable* sendable, const wpi::Twine& name);
 
-#endif
 void SendableRegistry::AddLW(Sendable* /*sendable*/, const wpi::Twine& /*moduleType*/, int /*channel*/)
 {
 }
-#if 0
 
 void AddLW(Sendable* sendable, const wpi::Twine& moduleType, int moduleNumber,
 		 int channel);
@@ -603,12 +577,10 @@ void AddChild(Sendable* parent, Sendable* child);
 
 void AddChild(Sendable* parent, void* child);
 
-#endif
 bool SendableRegistry::Remove(Sendable* /*sendable*/)
 {
 return true;
 }
-#if 0
 
 void Move(Sendable* to, Sendable* from);
 
@@ -617,13 +589,11 @@ bool Contains(const Sendable* sendable) const
 std::string GetName(const Sendable* sendable) const
 
 void SetName(Sendable* sendable, const wpi::Twine& name);
-#endif
 
 void SendableRegistry::SetName(Sendable* /*sendable*/, const wpi::Twine& /*moduleType*/, int /*channel*/)
 {
 }
 
-#if 0
 void SetName(Sendable* sendable, const wpi::Twine& moduleType,
 		   int moduleNumber, int channel);
 
@@ -659,14 +629,13 @@ void ForeachLiveWindow(
   int dataHandle,
   wpi::function_ref<void(CallbackData& cbdata)> callback) const
 
-#endif
 SendableRegistry::SendableRegistry()
 {
 }
 
 }  // namespace frc
 
-#include "frc/smartdashboard/SendableBase.h"
+#include "wpi/sendable/SendableBase.h"
 namespace frc
 {
 
@@ -674,7 +643,9 @@ namespace frc
 	{
 	}
 }
+#endif
 
+#if 0
 #include "ntcore_cpp.h"
 #include "networktables/NetworkTable.h"
 #include "networktables/NetworkTableInstance.h"
@@ -903,6 +874,7 @@ StringRef NetworkTable::GetPath() const
 {
 	return StringRef();
 }
+#endif
 
 /*
 const char* NetworkTable::SaveEntries(const Twine& filename) const
@@ -917,6 +889,7 @@ const char* LoadEntries(
 	return nullptr;
 }
 */
+#if 0
 void NetworkTable::AddTableListener(ITableListener* /*listener*/)
 {
 }
@@ -966,3 +939,4 @@ std::shared_ptr<NetworkTable> NetworkTableInstance::GetTable(const Twine& /*key*
 
 } // namespace nt
 
+#endif

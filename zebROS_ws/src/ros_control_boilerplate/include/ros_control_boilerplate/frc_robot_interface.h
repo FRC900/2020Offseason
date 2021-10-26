@@ -72,6 +72,7 @@
 #include "ros_control_boilerplate/tracer.h"
 
 // WPILIB stuff
+#include <frc/PneumaticsModuleType.h>
 #include <hal/CTREPCM.h>
 #include <hal/FRCUsageReporting.h>
 #include <hal/HALBase.h>
@@ -88,6 +89,7 @@ namespace frc { class DigitalInput; }
 namespace frc { class DigitalOutput; }
 namespace frc { class Joystick; }
 namespace frc { class NidecBrushless; }
+namespace frc { class PneumaticsBase; }
 namespace frc { class PWM; }
 
 namespace ros_control_boilerplate
@@ -248,11 +250,18 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		void custom_profile_write(int joint_id);
 		void custom_profile_set_talon(hardware_interface::TalonMode mode, double setpoint, double fTerm, int joint_id, int pidSlot, bool zeroPos);
 
-		void readJointLocalParams(XmlRpc::XmlRpcValue joint_params,
+		void readJointLocalParams(const XmlRpc::XmlRpcValue &joint_params,
 								  const bool local,
 								  const bool saw_local_keyword,
 								  bool &local_update,
 								  bool &local_hardware);
+		int readIntParam(const XmlRpc::XmlRpcValue &joint_params,
+						 bool local_hardware,
+						 const char *key,
+						 const std::string& joint_name);
+		frc::PneumaticsModuleType readSolenoidModuleType(const XmlRpc::XmlRpcValue &joint_params,
+														 bool local_hardware,
+														 const std::string &joint_name);
 		void readConfig(ros::NodeHandle rpnh);
 		void createInterfaces(void);
 		bool initDevices(ros::NodeHandle root_nh);
@@ -307,20 +316,22 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<bool>        pwm_local_hardwares_;
 		std::size_t              num_pwms_{0};
 
-		std::vector<std::string> solenoid_names_;
-		std::vector<int>         solenoid_ids_;
-		std::vector<int>         solenoid_pcms_;
-		std::vector<bool>        solenoid_local_updates_;
-		std::vector<bool>        solenoid_local_hardwares_;
-		std::size_t              num_solenoids_{0};
+		std::vector<std::string>               solenoid_names_;
+		std::vector<int>                       solenoid_channels_;
+		std::vector<frc::PneumaticsModuleType> solenoid_module_types_;
+		std::vector<int>                       solenoid_module_ids_;
+		std::vector<bool>                      solenoid_local_updates_;
+		std::vector<bool>                      solenoid_local_hardwares_;
+		std::size_t                            num_solenoids_{0};
 
-		std::vector<std::string> double_solenoid_names_;
-		std::vector<int>         double_solenoid_forward_ids_;
-		std::vector<int>         double_solenoid_reverse_ids_;
-		std::vector<int>         double_solenoid_pcms_;
-		std::vector<bool>        double_solenoid_local_updates_;
-		std::vector<bool>        double_solenoid_local_hardwares_;
-		std::size_t              num_double_solenoids_{0};
+		std::vector<std::string>               double_solenoid_names_;
+		std::vector<int>                       double_solenoid_forward_channels_;
+		std::vector<int>                       double_solenoid_reverse_channels_;
+		std::vector<frc::PneumaticsModuleType> double_solenoid_module_types_;
+		std::vector<int>                       double_solenoid_module_ids_;
+		std::vector<bool>                      double_solenoid_local_updates_;
+		std::vector<bool>                      double_solenoid_local_hardwares_;
+		std::size_t                            num_double_solenoids_{0};
 
 		std::vector<std::string> pcm_names_;
 		std::vector<int>         pcm_ids_;
@@ -502,8 +513,8 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<std::shared_ptr<frc::DigitalInput>> digital_inputs_;
 		std::vector<std::shared_ptr<frc::DigitalOutput>> digital_outputs_;
 		std::vector<std::shared_ptr<frc::PWM>> PWMs_;
-		std::vector<HAL_SolenoidHandle> solenoids_;
-		std::vector<DoubleSolenoidHandle> double_solenoids_;
+		std::vector<std::shared_ptr<frc::PneumaticsBase>> pneumatics_;
+		std::vector<std::shared_ptr<frc::PneumaticsBase>> double_pneumatics_;
 		std::vector<std::shared_ptr<AHRS>> navXs_;
 		std::vector<std::shared_ptr<frc::AnalogInput>> analog_inputs_;
 

@@ -36,7 +36,7 @@ bool frc::DigitalInput::IsAnalogTrigger() const
 	ROS_ERROR("Called frc::DigitalInput::IsAnalogTrigger() const on unsupported platform");
 	return false;
 }
-void frc::DigitalInput::InitSendable(SendableBuilder&)
+void frc::DigitalInput::InitSendable(wpi::SendableBuilder&)
 {
 	ROS_ERROR("Called frc::DigitalInput::InitSendable(SendableBuilder& builder) on unsupported platform");
 }
@@ -54,7 +54,7 @@ void frc::DigitalOutput::Set(bool)
 {
 	ROS_ERROR("Called DigitalOutput::set(bool) on unsupported platform");
 }
-void frc::DigitalOutput::InitSendable(SendableBuilder&)
+void frc::DigitalOutput::InitSendable(wpi::SendableBuilder&)
 {
 	ROS_ERROR("Called frc::DigitalOutput::InitSendable(SendableBuilder& builder) on unsupported platform");
 }
@@ -80,6 +80,7 @@ int frc::DigitalOutput::GetChannel() const
 	return std::numeric_limits<int>::max();
 }
 
+#if 0
 #include <frc/ErrorBase.h>
 frc::ErrorBase::ErrorBase()
 {
@@ -137,3 +138,4 @@ void frc::ErrorBase::SetGlobalError(int, wpi::Twine const&, wpi::StringRef, wpi:
 	ROS_ERROR_STREAM("Called " << __PRETTY_FUNCTION__ << "on unsupported platform");
 }
 
+#endif

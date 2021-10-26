@@ -154,11 +154,10 @@ bool FRCRobotHWInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_
 	{
 		// This is for non Rio-based robots.  Call init for the wpilib HAL code we've "borrowed" before using them
 		hal::init::InitializeCANAPI();
-		hal::init::InitializeCompressor();
-		hal::init::InitializePCMInternal();
-		hal::init::InitializePDP();
-		hal::init::InitializeSolenoid();
-
+		hal::init::InitializeCTREPCM();
+		hal::init::InitializeCTREPDP();
+		hal::init::InitializeREVPDH();
+		hal::init::InitializeREVPH();
 		errorQueue = std::make_unique<ErrorQueue>();
 		const auto rc = ctre::phoenix::platform::can::SetCANInterface(can_interface_.c_str());
 		if (rc != 0)

@@ -211,7 +211,7 @@ void PDHStateListenerController::commandCB(const frc_msgs::PDHDataConstPtr &msg)
 	data.setStickyHasReset(msg->stickyHasReset);
 	data.setFirmwareMajor(msg->firmwareMajor);
 	data.setFirmwareMinor(msg->firmwareMinor);
-	data.setFirmwareiFix(msg->firmwareFix);
+	data.setFirmwareFix(msg->firmwareFix);
 	data.setHardwareRev(msg->hardwareRev);
 	data.setSwitchableChannelState(msg->switchableChannelState);
 	data.setTotalCurrent(msg->totalCurrent);

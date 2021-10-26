@@ -61,6 +61,8 @@
 #include "frc/DriverStation.h"                        // for DriverStation
 #include "frc/Joystick.h"                             // for Joystick
 #include "frc/motorcontrol/NidecBrushless.h"          // for NidecBrushless
+#include "frc/PneumaticsBase.h"
+#include "frc/PneumaticsModuleType.h"
 #include "frc/PWM.h"                                  // for PWM
 #include "hal/CAN.h"                                  // for HAL_CAN_GetCANS...
 #include "hal/CTREPCM.h"
@@ -613,7 +615,7 @@ void FRCRobotInterface::ph_read_thread(HAL_REVPHHandle ph_handle, int32_t ph_id,
 	}
 }
 
-void FRCRobotInterface::readJointLocalParams(XmlRpc::XmlRpcValue joint_params,
+void FRCRobotInterface::readJointLocalParams(const XmlRpc::XmlRpcValue &joint_params,
 											 const bool local,
 											 const bool saw_local_keyword,
 											 bool &local_update,
@@ -624,7 +626,7 @@ void FRCRobotInterface::readJointLocalParams(XmlRpc::XmlRpcValue joint_params,
 	{
 		if (saw_local_keyword)
 			throw std::runtime_error("local can't be combined with local_update");
-		XmlRpc::XmlRpcValue &xml_joint_local_update = joint_params["local_update"];
+		const XmlRpc::XmlRpcValue &xml_joint_local_update = joint_params["local_update"];
 		if (!xml_joint_local_update.valid() ||
 			xml_joint_local_update.getType() != XmlRpc::XmlRpcValue::TypeBoolean)
 			throw std::runtime_error("An invalid joint local_update was specified (expecting a boolean).");
@@ -635,12 +637,62 @@ void FRCRobotInterface::readJointLocalParams(XmlRpc::XmlRpcValue joint_params,
 	{
 		if (saw_local_keyword)
 			throw std::runtime_error("local can't be combined with local_hardware");
-		XmlRpc::XmlRpcValue &xml_joint_local_hardware = joint_params["local_hardware"];
+		const XmlRpc::XmlRpcValue &xml_joint_local_hardware = joint_params["local_hardware"];
 		if (!xml_joint_local_hardware.valid() ||
 			xml_joint_local_hardware.getType() != XmlRpc::XmlRpcValue::TypeBoolean)
 			throw std::runtime_error("An invalid joint local_hardware was specified (expecting a boolean).");
 		local_hardware = xml_joint_local_hardware;
 	}
+}
+
+int FRCRobotInterface::readIntParam(const XmlRpc::XmlRpcValue &joint_params,
+		bool local_hardware,
+		const char *key,
+		const std::string &joint_name)
+{
+	const bool has_key = joint_params.hasMember(key);
+	if (!local_hardware && has_key)
+		throw std::runtime_error(std::string("A ") + key +
+				" was specified for non-local hardware for joint " + joint_name);
+	int ret_val = 0;
+	if (local_hardware)
+	{
+		if (!has_key)
+			throw std::runtime_error(std::string("A ") + key + " was not specified for joint " + joint_name);
+		const XmlRpc::XmlRpcValue &param_val = joint_params[key];
+		if (!param_val.valid() || (param_val.getType() != XmlRpc::XmlRpcValue::TypeInt))
+			throw std::runtime_error(std::string("An invalid ") + key +
+					" was specified (expecting an int) for joint " + joint_name);
+		ret_val = param_val;
+	}
+	return ret_val;
+}
+
+frc::PneumaticsModuleType FRCRobotInterface::readSolenoidModuleType(const XmlRpc::XmlRpcValue &joint_params,
+		bool local_hardware,
+		const std::string &joint_name)
+{
+	const bool has_module_type = joint_params.hasMember("module_type");
+	if (!local_hardware && has_module_type)
+		throw std::runtime_error("A module_type was specified for non-local hardware for joint " + joint_name);
+	frc::PneumaticsModuleType solenoid_module_type;
+	if (local_hardware)
+	{
+		if (!has_module_type)
+			throw std::runtime_error("A module_type was not specified for joint " + joint_name);
+		XmlRpc::XmlRpcValue &xml_solenoid_module_type = joint_params["module_type"];
+		if (!xml_solenoid_module_type.valid() ||
+				xml_solenoid_module_type.getType() != XmlRpc::XmlRpcValue::TypeString)
+			throw std::runtime_error("An invalid module_type was specified (expecting a string) for joint " + joint_name);
+		std::string solenoid_module_string = xml_solenoid_module_type;
+		if (solenoid_module_string == "ctrepcm")
+			solenoid_module_type = frc::PneumaticsModuleType::CTREPCM;
+		else if (solenoid_module_string == "revph")
+			solenoid_module_type = frc::PneumaticsModuleType::REVPH;
+		else
+			throw std::runtime_error("Unknown module_type for " + joint_name + ", expecting \"ctrepcm\" or \"revph\"");
+	}
+	return solenoid_module_type;
 }
 
 void FRCRobotInterface::readConfig(ros::NodeHandle rpnh)
@@ -952,48 +1004,31 @@ void FRCRobotInterface::readConfig(ros::NodeHandle rpnh)
 		{
 			readJointLocalParams(joint_params, local, saw_local_keyword, local_update, local_hardware);
 
-			const bool has_id = joint_params.hasMember("id");
-			if (!local_hardware && has_id)
-				throw std::runtime_error("A solenoid id was specified for non-local hardware for joint " + joint_name);
-			int solenoid_id = 0;
-			if (local_hardware)
-			{
-				if (!has_id)
-					throw std::runtime_error("A solenoid id was not specified");
-				XmlRpc::XmlRpcValue &xml_solenoid_id = joint_params["id"];
-				if (!xml_solenoid_id.valid() ||
-					xml_solenoid_id.getType() != XmlRpc::XmlRpcValue::TypeInt)
-					throw std::runtime_error("An invalid joint solenoid id was specified (expecting an int) for joint " + joint_name);
-				solenoid_id = xml_solenoid_id;
-			}
+			const int solenoid_channel = readIntParam(joint_params, local_hardware, "channel", joint_name);
+			const frc::PneumaticsModuleType solenoid_module_type = readSolenoidModuleType(joint_params, local_hardware, joint_name);
+			const int solenoid_module_id = readIntParam(joint_params, local_hardware, "module_id", joint_name);
 
-			const bool has_pcm = joint_params.hasMember("pcm");
-			if (!local_hardware && has_pcm)
-				throw std::runtime_error("A solenoid pcm was specified for non-local hardware for joint " + joint_name);
-			int solenoid_pcm = 0;
 			if (local_hardware)
 			{
-				if (!has_pcm)
-					throw std::runtime_error("A solenoid pcm was not specified for joint " + joint_name);
-				XmlRpc::XmlRpcValue &xml_solenoid_pcm = joint_params["pcm"];
-				if (!xml_solenoid_pcm.valid() ||
-						xml_solenoid_pcm.getType() != XmlRpc::XmlRpcValue::TypeInt)
-					throw std::runtime_error("An invalid joint solenoid pcm was specified (expecting an int) for joint " + joint_name);
-				solenoid_pcm = xml_solenoid_pcm;
-				for (size_t j = 0; j < solenoid_pcms_.size(); j++)
-					if ((solenoid_pcms_[j] == solenoid_pcm) &&
-					    (solenoid_ids_[j] == solenoid_id))
-					throw std::runtime_error("Duplicate solenoid pcm & id was specified for joint " + joint_name);
-				for (size_t j = 0; j < double_solenoid_pcms_.size(); j++)
-					if ((double_solenoid_pcms_[j] == solenoid_pcm) &&
-					   ((double_solenoid_forward_ids_[j] == solenoid_id) ||
-						(double_solenoid_reverse_ids_[j] == solenoid_id) ))
-					throw std::runtime_error("Duplicate solenoid pcm & id was specified for joint " + joint_name);
+				for (size_t j = 0; j < solenoid_module_ids_.size(); j++)
+					if ((solenoid_module_ids_[j] == solenoid_module_id) &&
+						(solenoid_module_types_[j] == solenoid_module_type) &&
+					    (solenoid_channels_[j] == solenoid_channel))
+					throw std::runtime_error("Duplicate solenoid module_id & id was specified for joint " + joint_name +
+							" (previously used in " + solenoid_names_[j] + ")");
+				for (size_t j = 0; j < double_solenoid_module_ids_.size(); j++)
+					if ((double_solenoid_module_ids_[j] == solenoid_module_id) &&
+						(solenoid_module_types_[j] == solenoid_module_type) &&
+					   ((double_solenoid_forward_channels_[j] == solenoid_channel) ||
+						(double_solenoid_reverse_channels_[j] == solenoid_channel) ))
+					throw std::runtime_error("Duplicate solenoid module & channel was reused in joint " + joint_name +
+							" (previously used in " + double_solenoid_names_[j] + ")");
 			}
 
 			solenoid_names_.push_back(joint_name);
-			solenoid_ids_.push_back(solenoid_id);
-			solenoid_pcms_.push_back(solenoid_pcm);
+			solenoid_channels_.push_back(solenoid_channel);
+			solenoid_module_types_.push_back(solenoid_module_type);
+			solenoid_module_ids_.push_back(solenoid_module_id);
 			solenoid_local_updates_.push_back(local_update);
 			solenoid_local_hardwares_.push_back(local_hardware);
 		}
@@ -1001,68 +1036,41 @@ void FRCRobotInterface::readConfig(ros::NodeHandle rpnh)
 		{
 			readJointLocalParams(joint_params, local, saw_local_keyword, local_update, local_hardware);
 
-			const bool has_forward_id = joint_params.hasMember("forward_id");
-			if (!local_hardware && has_forward_id)
-				throw std::runtime_error("A double solenoid forward_id was specified for non-local hardware for joint " + joint_name);
-			int double_solenoid_forward_id = 0;
+			const int double_solenoid_forward_channel = readIntParam(joint_params, local_hardware, "forward_channel", joint_name);
+			const int double_solenoid_reverse_channel = readIntParam(joint_params, local_hardware, "reverse_channel", joint_name);
+			const frc::PneumaticsModuleType double_solenoid_module_type = readSolenoidModuleType(joint_params, local_hardware, joint_name);
+			const int double_solenoid_module_id = readIntParam(joint_params, local_hardware, "solenoid", joint_name);
+
 			if (local_hardware)
 			{
-				if (!has_forward_id)
-					throw std::runtime_error("A double solenoid forward_id was not specified for joint " + joint_name);
-				XmlRpc::XmlRpcValue &xml_double_solenoid_forward_id = joint_params["forward_id"];
-				if (!xml_double_solenoid_forward_id.valid() ||
-					xml_double_solenoid_forward_id.getType() != XmlRpc::XmlRpcValue::TypeInt)
-					throw std::runtime_error("An invalid joint double solenoid forward_id was specified (expecting an int) for joint " + joint_name);
-				double_solenoid_forward_id = xml_double_solenoid_forward_id;
-			}
+				if (double_solenoid_forward_channel == double_solenoid_reverse_channel)
+					throw std::runtime_error("Double solenoid " + joint_name +
+							" delcared with the same forward and reverse channel");
 
-			const bool has_reverse_id = joint_params.hasMember("reverse_id");
-			if (!local_hardware && has_reverse_id)
-				throw std::runtime_error("A double solenoid reverse_id was specified for non-local hardware for joint " + joint_name);
-					int double_solenoid_reverse_id = 0;
-			if (local_hardware)
-			{
-				if (!has_reverse_id)
-					throw std::runtime_error("A double solenoid reverse_id was not specified for joint " + joint_name);
-				XmlRpc::XmlRpcValue &xml_double_solenoid_reverse_id = joint_params["reverse_id"];
-				if (!xml_double_solenoid_reverse_id.valid() ||
-					xml_double_solenoid_reverse_id.getType() != XmlRpc::XmlRpcValue::TypeInt)
-					throw std::runtime_error("An invalid joint double solenoid reverse_id was specified (expecting an int) for joint " + joint_name);
-				double_solenoid_reverse_id = xml_double_solenoid_reverse_id;
-			}
+				for (size_t j = 0; j < solenoid_module_ids_.size(); j++)
+					if ((solenoid_module_ids_[j] == double_solenoid_module_id) &&
+					    (solenoid_module_types_[j] == double_solenoid_module_type) &&
+					    ((solenoid_channels_[j] == double_solenoid_forward_channel) ||
+						 (solenoid_channels_[j] == double_solenoid_reverse_channel) ))
+					throw std::runtime_error("Duplicate solenoid module_id & channel was specified for joint "
+							+ joint_name + " (previously used in " + solenoid_names_[j] + ")");
 
-			const bool has_pcm = joint_params.hasMember("pcm");
-			if (!local_hardware && has_pcm)
-				throw std::runtime_error("A double solenoid pcm was specified for non-local hardware for joint " + joint_name);
-			int double_solenoid_pcm = 0;
-			if (local_hardware)
-			{
-				if (!has_pcm)
-					throw std::runtime_error("A double solenoid pcm was not specified for joint " + joint_name);
-				XmlRpc::XmlRpcValue &xml_double_solenoid_pcm = joint_params["pcm"];
-				if (!xml_double_solenoid_pcm.valid() ||
-						xml_double_solenoid_pcm.getType() != XmlRpc::XmlRpcValue::TypeInt)
-					throw std::runtime_error("An invalid joint double solenoid pcm was specified (expecting an int) for joint " + joint_name);
-				double_solenoid_pcm = xml_double_solenoid_pcm;
-
-				for (size_t j = 0; j < solenoid_pcms_.size(); j++)
-					if ((solenoid_pcms_[j] == double_solenoid_pcm) &&
-					    ((solenoid_ids_[j] == double_solenoid_forward_id) ||
-						 (solenoid_ids_[j] == double_solenoid_reverse_id) ))
-					throw std::runtime_error("Duplicate solenoid pcm & id was specified for joint " + joint_name);
-				for (size_t j = 0; j < double_solenoid_pcms_.size(); j++)
-					if ((double_solenoid_pcms_[j] == double_solenoid_pcm) &&
-					   ((double_solenoid_forward_ids_[j] == double_solenoid_forward_id) ||
-					    (double_solenoid_forward_ids_[j] == double_solenoid_reverse_id) ||
-					    (double_solenoid_reverse_ids_[j] == double_solenoid_forward_id) ||
-					    (double_solenoid_reverse_ids_[j] == double_solenoid_reverse_id) ))
-					throw std::runtime_error("Duplicate solenoid pcm & id was specified for joint " + joint_name);
+				for (size_t j = 0; j < double_solenoid_module_ids_.size(); j++)
+					if ((double_solenoid_module_ids_[j] == double_solenoid_module_id) &&
+					     (solenoid_module_types_[j] == double_solenoid_module_type) &&
+					   ((double_solenoid_forward_channels_[j] == double_solenoid_forward_channel) ||
+					    (double_solenoid_forward_channels_[j] == double_solenoid_reverse_channel) ||
+					    (double_solenoid_reverse_channels_[j] == double_solenoid_forward_channel) ||
+					    (double_solenoid_reverse_channels_[j] == double_solenoid_reverse_channel) ))
+					throw std::runtime_error("Duplicate solenoid module_id & channel was specified for joint "
+							+ joint_name + " (previously used in " + double_solenoid_names_[j] + ")");
 			}
 
 			double_solenoid_names_.push_back(joint_name);
-			double_solenoid_forward_ids_.push_back(double_solenoid_forward_id);
-			double_solenoid_reverse_ids_.push_back(double_solenoid_reverse_id);
-			double_solenoid_pcms_.push_back(double_solenoid_pcm);
+			double_solenoid_forward_channels_.push_back(double_solenoid_forward_channel);
+			double_solenoid_reverse_channels_.push_back(double_solenoid_reverse_channel);
+			double_solenoid_module_types_.push_back(double_solenoid_module_type);
+			double_solenoid_module_ids_.push_back(double_solenoid_module_id);
 			double_solenoid_local_updates_.push_back(local_update);
 			double_solenoid_local_hardwares_.push_back(local_hardware);
 		}
@@ -1394,24 +1402,8 @@ FRCRobotInterface::FRCRobotInterface(ros::NodeHandle &nh, urdf::Model *urdf_mode
 
 FRCRobotInterface::~FRCRobotInterface()
 {
-	auto safe_free_solenoid_ports = [](auto s)
-	{
-		if (s != HAL_kInvalidHandle)
-		{
-			HAL_FreeSolenoidPort(s);
-		}
-	};
-	for (auto &s : solenoids_)
-	{
-		safe_free_solenoid_ports(s);
-	}
-	for (auto &ds : double_solenoids_)
-	{
-		safe_free_solenoid_ports(ds.forward_);
-		safe_free_solenoid_ports(ds.reverse_);
-	}
-
-	// Simple lambda function to wait for all valid threads to exit
+	// Simple lambda function to wait for
+	// all valid threads in a vector to exit
 	auto join_threads = [](std::vector<std::thread> &threads)
 	{
 		for (auto &t : threads)
@@ -1619,7 +1611,11 @@ void FRCRobotInterface::createInterfaces(void)
 	prev_solenoid_mode_.resize(num_solenoids_);
 	for (size_t i = 0; i < num_solenoids_; i++)
 	{
-		ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface: Registering interface for : " << solenoid_names_[i] << " at id " << solenoid_ids_[i] << " at pcm " << solenoid_pcms_[i]);
+		ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface: Registering interface for : "
+				<< solenoid_names_[i] <<
+				" at channel " << solenoid_channels_[i] <<
+				" at " << (solenoid_module_types_[i] == frc::PneumaticsModuleType::CTREPCM ? "ctrepcm" : "revph") <<
+				" id " << solenoid_module_ids_[i]);
 
 		solenoid_state_[i] = std::numeric_limits<double>::max();
 		solenoid_pwm_state_[i] = 0;
@@ -1646,7 +1642,12 @@ void FRCRobotInterface::createInterfaces(void)
 	double_solenoid_command_.resize(num_double_solenoids_);
 	for (size_t i = 0; i < num_double_solenoids_; i++)
 	{
-		ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface: Registering interface for : " << double_solenoid_names_[i] << " at forward id " << double_solenoid_forward_ids_[i] << " at reverse id " << double_solenoid_reverse_ids_[i] << " at pcm " << double_solenoid_pcms_[i]);
+		ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface: Registering interface for : "
+				<< double_solenoid_names_[i] <<
+				" at forward channel " << double_solenoid_forward_channels_[i] <<
+				" & reverse channel " << double_solenoid_reverse_channels_[i] <<
+				" at " << (double_solenoid_module_types_[i] == frc::PneumaticsModuleType::CTREPCM ? "ctrepcm" : "revph") <<
+				" id " << double_solenoid_module_ids_[i]);
 
 		double_solenoid_state_[i] = std::numeric_limits<double>::max();
 		double_solenoid_command_[i] = 0;
@@ -2195,7 +2196,7 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 		if (pwm_local_hardwares_[i])
 		{
 			PWMs_.push_back(std::make_shared<frc::PWM>(pwm_pwm_channels_[i]));
-			PWMs_[i]->SetSafetyEnabled(true);
+			//PWMs_[i]->SetSafetyEnabled(true);
 		}
 		else
 			PWMs_.push_back(nullptr);
@@ -2206,64 +2207,69 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 							  "Loading joint " << i << "=" << solenoid_names_[i] <<
 							  (solenoid_local_updates_[i] ? " local" : " remote") << " update, " <<
 							  (solenoid_local_hardwares_[i] ? "local" : "remote") << " hardware" <<
-							  " as Solenoid " << solenoid_ids_[i]
-							  << " with pcm " << solenoid_pcms_[i]);
+							  " as solenoid at channel " << solenoid_channels_[i] <<
+							  " at " << (solenoid_module_types_[i] == frc::PneumaticsModuleType::CTREPCM ? "ctrepcm" : "revph") <<
+							  " id " << solenoid_module_ids_[i]);
 
 		// Need to have 1 solenoid instantiated on the Rio to get
 		// support for compressor and so on loaded?
 		if (solenoid_local_hardwares_[i])
 		{
-			int32_t status = 0;
-			solenoids_.push_back(HAL_InitializeSolenoidPort(HAL_GetPortWithModule(solenoid_pcms_[i], solenoid_ids_[i]), &status));
-			if (solenoids_.back() == HAL_kInvalidHandle)
-				ROS_ERROR_STREAM("Error intializing solenoid : status=" << status);
-			else
-				HAL_Report(HALUsageReporting::kResourceType_Solenoid,
-						solenoid_ids_[i], solenoid_pcms_[i]);
+			pneumatics_.push_back(frc::PneumaticsBase::GetForType(solenoid_module_ids_[i], solenoid_module_types_[i]));
+			if (pneumatics_.back()->CheckSolenoidChannel(solenoid_channels_[i]))
+			{
+				ROS_ERROR_STREAM("Solenoid channel out of range in joint " << solenoid_names_[i]);
+			}
+			else if (pneumatics_.back()->CheckAndReserveSolenoids(1U << solenoid_channels_[i]))
+			{
+				ROS_ERROR_STREAM("Solenoid channel already allocated in joint " << solenoid_names_[i]);
+			}
+
+			HAL_Report(HALUsageReporting::kResourceType_Solenoid, solenoid_channels_[i] + 1,
+					pneumatics_.back()->GetModuleNumber() + 1);
 		}
 		else
-			solenoids_.push_back(HAL_kInvalidHandle);
+			pneumatics_.push_back(HAL_kInvalidHandle);
 	}
+
 	for (size_t i = 0; i < num_double_solenoids_; i++)
 	{
 		ROS_INFO_STREAM_NAMED("frc_robot_interface",
 							  "Loading joint " << i << "=" << double_solenoid_names_[i] <<
 							  (double_solenoid_local_updates_[i] ? " local" : " remote") << " update, " <<
 							  (double_solenoid_local_hardwares_[i] ? "local" : "remote") << " hardware" <<
-							  " as Double Solenoid forward " << double_solenoid_forward_ids_[i] <<
-							  " reverse " << double_solenoid_reverse_ids_[i]
-							  << " with pcm " << double_solenoid_pcms_[i]);
+							  " as double solenoid at forward channel " << double_solenoid_forward_channels_[i] <<
+							  " & reverse channel " << double_solenoid_reverse_channels_[i] <<
+							  " at " << (double_solenoid_module_types_[i] == frc::PneumaticsModuleType::CTREPCM ? "ctrepcm" : "revph") <<
+							  " id " << double_solenoid_module_ids_[i]);
 
 		if (double_solenoid_local_hardwares_[i])
 		{
-			int32_t forward_status = 0;
-			int32_t reverse_status = 0;
-			auto forward_handle = HAL_InitializeSolenoidPort(
-					HAL_GetPortWithModule(double_solenoid_pcms_[i], double_solenoid_forward_ids_[i]),
-					&forward_status);
-			auto reverse_handle = HAL_InitializeSolenoidPort(
-					HAL_GetPortWithModule(double_solenoid_pcms_[i], double_solenoid_reverse_ids_[i]),
-					&reverse_status);
-			if ((forward_handle != HAL_kInvalidHandle) &&
-			    (reverse_handle != HAL_kInvalidHandle) )
+			double_pneumatics_.push_back(frc::PneumaticsBase::GetForType(solenoid_module_ids_[i], solenoid_module_types_[i]));
+			if (double_pneumatics_.back()->CheckSolenoidChannel(double_solenoid_forward_channels_[i]))
 			{
-				double_solenoids_.emplace_back(DoubleSolenoidHandle(forward_handle, reverse_handle));
-				HAL_Report(HALUsageReporting::kResourceType_Solenoid,
-						double_solenoid_forward_ids_[i], double_solenoid_pcms_[i]);
-				HAL_Report(HALUsageReporting::kResourceType_Solenoid,
-						double_solenoid_reverse_ids_[i], double_solenoid_pcms_[i]);
+				ROS_ERROR_STREAM("Double solenoid forward channel out of range in joint " << solenoid_names_[i]);
 			}
-			else
+			else if (double_pneumatics_.back()->CheckAndReserveSolenoids(1U << double_solenoid_forward_channels_[i]))
 			{
-				ROS_ERROR_STREAM("Error intializing double solenoid : status=" << forward_status << " : " << reverse_status);
-				double_solenoids_.emplace_back(DoubleSolenoidHandle(HAL_kInvalidHandle, HAL_kInvalidHandle));
-				HAL_FreeSolenoidPort(forward_handle);
-				HAL_FreeSolenoidPort(reverse_handle);
+				ROS_ERROR_STREAM("Double solenoid forward channel already allocated in joint " << solenoid_names_[i]);
 			}
+			if (double_pneumatics_.back()->CheckSolenoidChannel(double_solenoid_reverse_channels_[i]))
+			{
+				ROS_ERROR_STREAM("Double solenoid reverse channel out of range in joint " << solenoid_names_[i]);
+			}
+			else if (double_pneumatics_.back()->CheckAndReserveSolenoids(1U << double_solenoid_reverse_channels_[i]))
+			{
+				ROS_ERROR_STREAM("Double solenoid reverse channel already allocated in joint " << solenoid_names_[i]);
+			}
+			HAL_Report(HALUsageReporting::kResourceType_Solenoid, double_solenoid_forward_channels_[i] + 1,
+					pneumatics_.back()->GetModuleNumber() + 1);
+			HAL_Report(HALUsageReporting::kResourceType_Solenoid, double_solenoid_reverse_channels_[i] + 1,
+					pneumatics_.back()->GetModuleNumber() + 1);
 		}
 		else
 		{
-			double_solenoids_.emplace_back(DoubleSolenoidHandle(HAL_kInvalidHandle, HAL_kInvalidHandle));
+			double_pneumatics_.push_back(nullptr);
 		}
 	}
 
@@ -2360,7 +2366,7 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 		if (ph_local_hardwares_[i])
 		{
 			int32_t status = 0;
-			phs_.push_back(HAL_InitializeREVPH(ph_ids_[i], &status));
+			phs_.push_back(HAL_InitializeREVPH(ph_ids_[i], __FUNCTION__, &status));
 			if (!status && (phs_[i] != HAL_kInvalidHandle))
 			{
 				ph_read_thread_mutexes_.push_back(std::make_shared<std::mutex>());
@@ -3139,17 +3145,9 @@ void FRCRobotInterface::read(const ros::Time &time, const ros::Duration &period)
 	{
 		if (solenoid_local_hardwares_[i])
 		{
-			int32_t status = 0;
-			const auto state = HAL_GetSolenoid(solenoids_[i], &status);
-			if (status == 0)
-			{
-				solenoid_state_[i] = state;
-			}
-			else
-			{
-				ROS_ERROR_STREAM("Error reading solenoid status : name="
-						<< solenoid_names_[i] << ", id=" << solenoid_ids_[i] << ", status=" << status);
-			}
+			unsigned int solenoids = pneumatics_[i]->GetSolenoids();
+			bool state = (solenoids & (1U << solenoid_channels_[i])) != 0;
+			solenoid_state_[i] = state;
 		}
 	}
 
@@ -4262,27 +4260,21 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		// MODE_POSITION is standard on/off setting
 		if (solenoid_mode_[i] == hardware_interface::JointCommandModes::MODE_POSITION)
 		{
-			const bool setpoint = solenoid_command_[i] > 0;
-			if ((solenoid_mode_[i] != prev_solenoid_mode_[i]) || (solenoid_state_[i] != setpoint))
+			const bool on = solenoid_command_[i] > 0;
+			if ((solenoid_mode_[i] != prev_solenoid_mode_[i]) || (solenoid_state_[i] != on))
 			{
 				int32_t status = 0;
 				if (solenoid_local_hardwares_[i])
 				{
-					HAL_SetSolenoid(solenoids_[i], setpoint, &status);
+					int mask = 1 << solenoid_channels_[i];
+					int value = on ? (0xFFFF & mask) : 0;
+					pneumatics_[i]->SetSolenoids(mask, value);
 				}
-				if (status != 0)
-				{
-					ROS_ERROR_STREAM("Error setting solenoid " << solenoid_names_[i] <<
-							" to " << setpoint << " status = " << status);
-				}
-				else
-				{
-					ROS_INFO_STREAM("Solenoid " << solenoid_names_[i] <<
-							" at id " << solenoid_ids_[i] <<
-							" / pcm " << solenoid_pcms_[i] <<
-							" = " << static_cast<int>(setpoint));
-					solenoid_state_[i] = setpoint;
-				}
+				ROS_INFO_STREAM_NAMED(name_, "Solenoid " << solenoid_names_[i] <<
+						" at channel " << solenoid_channels_[i] <<
+						" at " << (solenoid_module_types_[i] == frc::PneumaticsModuleType::CTREPCM ? "ctrepcm" : "revph") <<
+						" id " << solenoid_module_ids_[i] <<
+						" = " << static_cast<int>(on));
 			}
 		}
 		// MODE_EFFORT is PWM via one-shot duration pulses
@@ -4294,36 +4286,21 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 				if (solenoid_local_hardwares_[i])
 				{
 					// TODO - do we need to wait for previous one-shot to expire before sending another one?
-					HAL_SetOneShotDuration(solenoids_[i], solenoid_command_[i], &status);
-					if (status != 0)
-					{
-						ROS_ERROR_STREAM("Error setting solenoid " << solenoid_names_[i] <<
-								" one shot duration to " << solenoid_command_[i] << " status = " << status);
-					}
-					else
-					{
-						HAL_FireOneShot(solenoids_[i], &status);
-						if (status != 0)
-						{
-							ROS_ERROR_STREAM("Error setting solenoid " << solenoid_names_[i] <<
-									" fire one shot, status = " << status);
-						}
-					}
+					pneumatics_[i]->SetOneShotDuration(solenoid_channels_[i], static_cast<units::second_t>(solenoid_command_[i]));
+					pneumatics_[i]->FireOneShot(solenoid_channels_[i]);
 				}
-				if (status == 0)
-				{
-					ROS_INFO_STREAM("Solenoid one shot " << solenoid_names_[i] <<
-							" at id " << solenoid_ids_[i] <<
-							" / pcm " << solenoid_pcms_[i] <<
-							" = " << solenoid_command_[i]);
-					// TODO - should we re-load this saved pwm command after the previous
-					// one expires, or require a controller to monitor and reload?
-					solenoid_pwm_state_[i] = solenoid_command_[i];
-					// TODO - this will be polled in the read() function on interface local
-					// to the hardware. How will the remote interface get that state update?
-					solenoid_state_[i] = 1;
-					solenoid_command_[i] = 0;
-				}
+				ROS_INFO_STREAM_NAMED(name_, "Solenoid one shot " << solenoid_names_[i] <<
+						" at channel " << solenoid_channels_[i] <<
+						" at " << (solenoid_module_types_[i] == frc::PneumaticsModuleType::CTREPCM ? "ctrepcm" : "revph") <<
+						" id " << solenoid_module_ids_[i] <<
+						" = " << solenoid_command_[i]);
+				// TODO - should we re-load this saved pwm command after the previous
+				// one expires, or require a controller to monitor and reload?
+				solenoid_pwm_state_[i] = solenoid_command_[i];
+				// TODO - this will be polled in the read() function on interface local
+				// to the hardware. How will the remote interface get that state update?
+				solenoid_state_[i] = 1;
+				solenoid_command_[i] = 0;
 			}
 		}
 		else
@@ -4336,48 +4313,36 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 	write_tracer_.start_unique("double solenoids");
 	for (size_t i = 0; i < num_double_solenoids_; i++)
 	{
-		DoubleSolenoid::Value setpoint = DoubleSolenoid::Value::kOff;
-		if (double_solenoid_command_[i] >= 1.0)
-			setpoint = DoubleSolenoid::Value::kForward;
-		else if (double_solenoid_command_[i] <= -1.0)
-			setpoint = DoubleSolenoid::Value::kReverse;
-
 		// Not sure if it makes sense to store command values
 		// in state or wpilib enum values
 		if (double_solenoid_state_[i] != double_solenoid_command_[i])
 		{
 			if (double_solenoid_local_hardwares_[i])
 			{
-				bool forward = false;
-				bool reverse = false;
-				if (setpoint == DoubleSolenoid::Value::kForward)
-					forward = true;
-				else if (setpoint == DoubleSolenoid::Value::kReverse)
-					reverse = true;
+				int value;
+				int forward_mask = 1 << double_solenoid_forward_channels_[i];
+				int reverse_mask = 1 << double_solenoid_reverse_channels_[i];
+				if (double_solenoid_command_[i] >= 1.0)
+					value = forward_mask;
+				else if (double_solenoid_command_[i] <= -1.0)
+					value = reverse_mask;
+				else
+					value = 0;
 
-				int32_t status = 0;
-				HAL_SetSolenoid(double_solenoids_[i].forward_, forward, &status);
-				if (status != 0)
-					ROS_ERROR_STREAM("Error setting double solenoid " << double_solenoid_names_[i] <<
-							" forward to " << forward << " status = " << status);
-				else
-					ROS_INFO_STREAM("Setting double solenoid " << double_solenoid_names_[i] <<
-							" forward to " << forward);
-				status = 0;
-				HAL_SetSolenoid(double_solenoids_[i].reverse_, reverse, &status);
-				if (status != 0)
-					ROS_ERROR_STREAM("Error setting double solenoid " << double_solenoid_names_[i] <<
-							" reverse to " << reverse << " status = " << status);
-				else
-					ROS_INFO_STREAM("Setting double solenoid " << double_solenoid_names_[i] <<
-							" reverse to " << reverse);
+				double_pneumatics_[i]->SetSolenoids(forward_mask | reverse_mask, value);
+
+				ROS_INFO_STREAM("Setting double solenoid " << double_solenoid_names_[i] <<
+						" forward to " << (value & forward_mask) ? 1 : 0);
+				ROS_INFO_STREAM("Setting double solenoid " << double_solenoid_names_[i] <<
+						" reverse to " << (value & reverse_mask) ? 1 : 0);
 			}
 			double_solenoid_state_[i] = double_solenoid_command_[i];
-			ROS_INFO_STREAM("Double solenoid " << double_solenoid_names_[i] <<
-					" at forward id " << double_solenoid_forward_ids_[i] <<
-					" / reverse id " << double_solenoid_reverse_ids_[i] <<
-					" / pcm " << double_solenoid_pcms_[i] <<
-					" = " << setpoint);
+			ROS_INFO_STREAM_NAMED(name_, "Double solenoid " << double_solenoid_names_[i] <<
+					" at forward channel " << double_solenoid_forward_channels_[i] <<
+					" & reverse channel " << double_solenoid_reverse_channels_[i] <<
+					" at " << (double_solenoid_module_types_[i] == frc::PneumaticsModuleType::CTREPCM ? "ctrepcm" : "revph") <<
+					" id " << double_solenoid_module_ids_[i] <<
+					" = " << double_solenoid_command_[i]);
 		}
 	}
 
