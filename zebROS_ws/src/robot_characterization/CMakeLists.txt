@@ -141,19 +141,31 @@ include_directories(
 # Add network table source code
 set (ALLWPILIB ../../../allwpilib)
 include_directories(${ALLWPILIB}/wpiutil/src/main/native/include)
-file(GLOB
-	ntcore_native_src ${ALLWPILIB}/ntcore/src/main/native/cpp/*.cpp
-	ntcore_native_src ${ALLWPILIB}/ntcore/src/main/native/cpp/networktables/*.cpp
-	ntcore_native_src ${ALLWPILIB}/ntcore/src/main/native/cpp/tables/*.cpp
-)
 
 set (WPILIBSRC
-	${ntcore_native_src}
+	${ALLWPILIB}/ntcore/src/main/native/cpp/Message.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/LoggerImpl.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/Storage_save.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/WireDecoder.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/NetworkConnection.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/Storage_load.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/InstanceImpl.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/ntcore_cpp.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/WireEncoder.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/ntcore_c.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/Value.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/Dispatcher.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/Storage.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/SequenceNumber.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/EntryNotifier.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/ConnectionNotifier.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/RpcServer.cpp
+	${ALLWPILIB}/ntcore/src/main/native/cpp/DsClient.cpp
+
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/fs.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/leb128.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_istream.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_istream.cpp
-	${ALLWPILIB}/wpiutil/src/main/native/cpp/raw_socket_ostream.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/timestamp.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/Base64.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/Logger.cpp
@@ -167,8 +179,6 @@ set (WPILIBSRC
 	${ALLWPILIB}/wpiutil/src/main/native/fmtlib/src/format.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
-	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Hashing.cpp
-	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ManagedStatic.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallPtrSet.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallVector.cpp
 	${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringMap.cpp
