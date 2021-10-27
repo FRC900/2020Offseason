@@ -117,18 +117,13 @@ if ("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 		${WPI_SHARED_LIB_DIR}/libntcore.so
 		${WPI_SHARED_LIB_DIR}/libwpilibc.so
 		${WPI_SHARED_LIB_DIR}/libwpiHal.so
+		${WPI_SHARED_LIB_DIR}/libwpimath.so
 		${WPI_SHARED_LIB_DIR}/libwpiutil.so
-		${WPI_SHARED_LIB_DIR}/libvisa.so
-		${WPI_SHARED_LIB_DIR}/libFRC_NetworkCommunication.so.20.0.0
-		${WPI_SHARED_LIB_DIR}/libNiFpga.so.19.0.0
-		${WPI_SHARED_LIB_DIR}/libNiFpgaLv.so.19.0.0
-		${WPI_SHARED_LIB_DIR}/libRoboRIO_FRC_ChipObject.so.20.0.0
-		${WPI_SHARED_LIB_DIR}/libNiRioSrv.so.19.0.0
-		${WPI_SHARED_LIB_DIR}/libniriodevenum.so.19.0.0
-		${WPI_SHARED_LIB_DIR}/libniriosession.so.18.0.0
-		${WPI_SHARED_LIB_DIR}/libni_emb.so.12.0.0
-		${WPI_SHARED_LIB_DIR}/libnirio_emb_can.so.16.0.0
-		${WPI_SHARED_LIB_DIR}/libni_rtlog.so.2.8.0
+		${WPI_SHARED_LIB_DIR}/libvisa.so.21.0.0
+		${WPI_SHARED_LIB_DIR}/libembcanshim.so
+		${WPI_SHARED_LIB_DIR}/libfpgalvshim.so
+		${WPI_SHARED_LIB_DIR}/libFRC_NetworkCommunication.so.22.0.0
+		${WPI_SHARED_LIB_DIR}/libRoboRIO_FRC_ChipObject.so.22.0.0
 		${WPI_SYSROOT}/lib/navx/linux/athena/static/libnavx_frc.a
 	)
 	set (FRCROBOT_HW_MAIN_SRCS ${FRCROBOT_HW_MAIN_SRCS}
@@ -147,10 +142,12 @@ endif()
 # All platforms need these, they just live
 # in different dirs for different architectures
 set (CTRE_USER_LIBS
-	${CTRE_LIB_DIR}/../static/libCTRE_Phoenix_WPI.a
-	${CTRE_LIB_DIR}/../static/libCTRE_Phoenix.a
-	${CTRE_LIB_DIR}/libCTRE_PhoenixCore.so
-	${CTRE_LIB_DIR}/libCTRE_PhoenixDiagnostics.so
+	#${CTRE_LIB_DIR}/../static/libCTRE_Phoenix_WPI.a
+	#${CTRE_LIB_DIR}/../static/libCTRE_Phoenix.a
+	${CTRE_LIB_DIR}/libCTRE_Phoenix_WPI.so
+	${CTRE_LIB_DIR}/libCTRE_Phoenix.so
+	#${CTRE_LIB_DIR}/libCTRE_PhoenixCore.so
+	#${CTRE_LIB_DIR}/libCTRE_PhoenixDiagnostics.so
 )
 
 # Used to find HALInitializer from wpilib internal repo
