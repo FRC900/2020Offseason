@@ -197,9 +197,9 @@ void callback(const field_obj::TFDetectionConstPtr &objDetectionMsg, const senso
 
 
 void testAvgOfDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
-	// the message will be a filepath to a monochrome bitmap file for testing
+	// the message will be a filepath to an image file for testing
 	ROS_INFO_STREAM("Received " << msg->data);
-	cv::Mat depth = cv::imread(msg->data, cv::IMREAD_UNCHANGED); // read monochrome bitmap
+	cv::Mat depth = cv::imread(msg->data, cv::IMREAD_GRAYSCALE); // read image as grayscale
 	depth.convertTo(depth, 5); // type 32FC1, the constant wasn't coming up
 	depth /= 128.0; // 0-255 -> ~0-2 (meters)
 	depth += 0.5; // ~0-2 -> ~0-2.5
