@@ -46,12 +46,13 @@ double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3
 	double prevCentroids[k];
 	std::vector<float> clusters[k];
 
-	while (true) { // once the algorithm converges this returns
-		for (int i = 0; i < k; i++) {
-			// assign random depth values to centroids (Forgy method of initializing k-means)
-			centroids[i] = depth.at<float>(distX(engine), distY(engine));
-		}
+	// initialize random centroids
+	for (int i = 0; i < k; i++) {
+		// assign random depth values to centroids (Forgy method of initializing k-means)
+		centroids[i] = depth.at<float>(distX(engine), distY(engine));
+	}
 
+	while (true) { // once the algorithm converges this returns
 		for (int j = bound_rect.tl().y+1; j < bound_rect.br().y; j++) // for each row
 		{
 			const float *ptr_depth = depth.ptr<float>(j);
