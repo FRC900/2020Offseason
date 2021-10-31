@@ -31,11 +31,9 @@ void camera_info_callback(const sensor_msgs::CameraInfoConstPtr &info)
 
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle
-double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3, float tolerance = 1e-2)
+double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3, float tolerance = 1e-3, bool debug = false)
 {
-	// TODO figure out why the difference is sometimes nan
-
-	// setup randomizing (to initialize k-means)
+	// setup randomizing (for initialization of k-means)
 	std::random_device seeder;
 	std::mt19937 engine(seeder());
 	std::uniform_int_distribution<int> distX(bound_rect.tl().x+1, bound_rect.br().x-1);
@@ -66,13 +64,14 @@ double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3
 					for (int c = 0; c < k; c++) {
 						diffs[c] = abs(centroids[c] - ptr_depth[i]);
 					}
-					clusters[std::distance(diffs, std::min_element(diffs, diffs+k))].push_back(ptr_depth[i]);
-					// NOTE can probably implement this faster with modifying min_element to subtract ptr_depth[i] for us
+					int closestCentroid = std::distance(diffs, std::min_element(diffs, diffs+k));
+					// Append the pixel's value to the cluster corresponding to that centroid
+					clusters[closestCentroid].push_back(ptr_depth[i]);
 				}
 			}
 		}
 
-		// Recalculate centroids using the average of the cluster closest to a centroid
+		// Recalculate centroids using the average of the cluster closest to each centroid
 		for (int i = 0; i < k; i++) {
 			double sum = 0;
 			for (float f : clusters[i]) {
@@ -88,7 +87,9 @@ double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3
 		for (int i = 0; i < k; i++) {
 			diff += abs(centroids[i] - prevCentroids[i]);
 		}
-		ROS_INFO_STREAM("diff: " << diff);
+		if (debug) {
+			ROS_INFO_STREAM("diff: " << diff);
+		}
 
 		// If the difference is less than the tolerance, return the closest centroid
 		if (diff <= tolerance) {
@@ -201,13 +202,20 @@ void testAvgOfDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
 	ROS_INFO_STREAM("Received " << msg->data);
 	cv::Mat depth = cv::imread(msg->data, cv::IMREAD_GRAYSCALE); // read image as grayscale
 	depth.convertTo(depth, 5); // type 32FC1, the constant wasn't coming up
-	depth /= 128.0; // 0-255 -> ~0-2 (meters)
-	depth += 0.5; // ~0-2 -> ~0-2.5
 
 	// Add random noise
 	cv::Mat noise(depth.size(), depth.type());
-	cv::randn(noise, 0, 0.1);
+	cv::randn(noise, 0, 5);
+	cv::Mat double_noise(depth.size(), depth.type());
+	cv::randn(double_noise, 1, 0.1);
+	depth /= double_noise;
 	depth += noise;
+
+	// Show noisy image
+	cv::Mat destination;
+	cv::normalize(depth, destination, 0, 1, cv::NORM_MINMAX);
+	cv::imshow("noisy depth", destination);
+	cv::waitKey(0);
 
  	// Calculate the most useful depth and print it
 	cv::Rect depth_rect = cv::Rect(0, 0, depth.size().width, depth.size().height);
