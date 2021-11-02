@@ -29,79 +29,98 @@ void camera_info_callback(const sensor_msgs::CameraInfoConstPtr &info)
 	caminfovalid = true;
 }
 
+// Find the median of a continuous cv::Mat
+float findMedianOfMat(const cv::Mat mat) {
+	float median = 0;
+	if (mat.isContinuous()) {
+		// copy matrix data to a vector
+		size_t vec_size = mat.rows*mat.cols*mat.channels();
+		std::vector<float> vec(vec_size);
+		vec.assign(mat.data, mat.data + mat.total()*mat.channels());
+		// remove 999 (when this is called, values that are masked are 999)
+		std::remove(vec.begin(), vec.end(), 999);
+		// and reset size
+		vec_size = vec.size();
+		// sort vector
+		std::sort(vec.begin(), vec.end()); // forgot this earlier
+		if ((vec.size() % 2) != 0) { // if odd
+			auto it = vec.begin() + vec.size()/2;
+			std::nth_element(vec.begin(), it, vec.end());
+			median = vec[vec.size()/2];
+		} else { // if even
+			auto it = vec.begin() + vec.size()/2;
+			std::nth_element(vec.begin(), it, vec.end());
+			median += vec[vec.size()/2];
+			it = vec.begin() + vec.size()/2 - 1;
+			std::nth_element(vec.begin(), it, vec.end());
+			median += vec[vec.size()/2];
+			median = ((float)median/2.0d);
+		}
+	}
+	return median;
+}
+
+
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle
 double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3, float tolerance = 1e-3, bool debug = false)
 {
-	// setup randomizing (for initialization of k-means)
-	std::random_device seeder;
-	std::mt19937 engine(seeder());
-	std::uniform_int_distribution<int> distX(bound_rect.tl().x+1, bound_rect.br().x-1);
-	std::uniform_int_distribution<int> distY(bound_rect.tl().y+1, bound_rect.br().y-1);
+	cv::Mat destination;
+	cv::normalize(depth, destination, 0, 255, cv::NORM_MINMAX);
+	destination.convertTo(destination, CV_8UC1);
+	cv::imshow("Depth", destination);
+	cv::waitKey(0);
 
-	// initialize arrays (and a vector) for k-means
-	double centroids[k];
-	double prevCentroids[k];
-	std::vector<float> clusters[k];
+	cv::Mat depth_different_format;
+	cv::normalize(depth, depth_different_format, 0, 255, cv::NORM_MINMAX);
+	depth_different_format.convertTo(depth_different_format, CV_8UC1, 1);
+	cv::blur(depth_different_format, depth_different_format, cv::Size(20, 20));
+	//float median = findMedianOfMat(depth_different_format);
 
-	// initialize random centroids
-	for (int i = 0; i < k; i++) {
-		// assign random depth values to centroids (Forgy method of initializing k-means)
-		centroids[i] = depth.at<float>(distX(engine), distY(engine));
+	cv::Mat thresh_output;
+	cv::threshold(depth_different_format, thresh_output, cv::mean(depth_different_format)[0], 1, cv::THRESH_BINARY_INV);
+
+	std::vector<std::vector<cv::Point>> contours;
+	std::vector<cv::Vec4i> hierarchy;
+	cv::findContours(thresh_output, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+
+	cv::Mat mask = cv::Mat::zeros(thresh_output.size(), CV_8UC1);
+	for (size_t i = 0; i < contours.size(); i++)
+	{
+			cv::Scalar color = cv::Scalar(255);
+			cv::drawContours(mask, contours, (int)i, color, -1, cv::LINE_8, hierarchy, 0);
 	}
 
-	while (true) { // once the algorithm converges this returns
-		for (int j = bound_rect.tl().y+1; j < bound_rect.br().y; j++) // for each row
-		{
-			const float *ptr_depth = depth.ptr<float>(j);
+	cv::Mat masked = cv::Mat::zeros(depth.size(), depth.type());
+	depth.copyTo(masked, mask);
 
-			for (int i = bound_rect.tl().x+1; i < bound_rect.br().x; i++) // for each pixel in row
-			{
-				if (!(isnan(ptr_depth[i]) || isinf(ptr_depth[i]) || (ptr_depth[i] <= 0)))
-				{
-					// Calculate which centroid/mean the current pixel is closest to
-					float diffs[k];
-					for (int c = 0; c < k; c++) {
-						diffs[c] = abs(centroids[c] - ptr_depth[i]);
-					}
-					int closestCentroid = std::distance(diffs, std::min_element(diffs, diffs+k));
-					// Append the pixel's value to the cluster corresponding to that centroid
-					clusters[closestCentroid].push_back(ptr_depth[i]);
-				}
-			}
-		}
+	destination = cv::Mat::zeros(depth.size(), depth.type());
+	depth.copyTo(destination, mask);
 
-		// Recalculate centroids using the average of the cluster closest to each centroid
-		for (int i = 0; i < k; i++) {
-			double sum = 0;
-			for (float f : clusters[i]) {
-				sum += f;
-			}
-			centroids[i] = sum / (double)clusters[i].size();
-			clusters[i].clear(); // Clear clusters
-		}
+	cv::normalize(destination, destination, 0, 255, cv::NORM_MINMAX);
+	destination.convertTo(destination, CV_8UC1);
+	cv::imshow("Masked", destination);
+	cv::waitKey(0);
 
-		// Calculate and print the difference between the current and previous centroids
-		// this lets us see when the difference is very low (in which case the algorithm will be done)
-		float diff = 0;
-		for (int i = 0; i < k; i++) {
-			diff += abs(centroids[i] - prevCentroids[i]);
-		}
-		if (debug) {
-			ROS_INFO_STREAM("diff: " << diff);
-		}
-
-		// If the difference is less than the tolerance, return the closest centroid
-		if (diff <= tolerance) {
-			return *std::min_element(centroids, centroids+k);
-		}
-
-		// If the above statement didn't return, copy centroids to prevCentroids and
-		// re-run the algorithm
-		memcpy(prevCentroids, centroids, sizeof(prevCentroids));
-	}
+	//return findMedianOfMat(masked);
+	return cv::mean(depth, mask)[0];
 }
 
+void depthCallback(const sensor_msgs::ImageConstPtr &depthMsg) {
+	cv_bridge::CvImageConstPtr cvDepth = cv_bridge::toCvShare(depthMsg, sensor_msgs::image_encodings::TYPE_32FC1);
+	cv::Mat depth = cvDepth->image;
+	depth.convertTo(depth, 24); // CV_8UC4
+	cv::normalize(depth, depth, 0, 255, cv::NORM_MINMAX);
+	cv::imshow("depth", depth);
+	cv::waitKey(1);
+	ROS_INFO_STREAM(avgOfDepthMat(cvDepth->image, cv::Rect(0, 0, cvDepth->image.size().width, cvDepth->image.size().height)));
+}
+
+void colorCallback(const sensor_msgs::ImageConstPtr &colorMsg) {
+	cv_bridge::CvImageConstPtr color = cv_bridge::toCvShare(colorMsg, sensor_msgs::image_encodings::BGRA8);
+	cv::imshow("color", color->image);
+	cv::waitKey(1);
+}
 
 // For each object in objDetectionMsg, look up the depth reported in depthMsg at the center of the
 // object's bounding rectangle. Use that to convert from 2D screen coordinates to 3D world coordinates
@@ -201,25 +220,26 @@ void testAvgOfDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
 	// the message will be a filepath to an image file for testing
 	ROS_INFO_STREAM("Received " << msg->data);
 	cv::Mat depth = cv::imread(msg->data, cv::IMREAD_GRAYSCALE); // read image as grayscale
-	depth.convertTo(depth, 5); // type 32FC1, the constant wasn't coming up
+	depth.convertTo(depth, CV_32FC1);
 
 	// Add random noise
 	cv::Mat noise(depth.size(), depth.type());
 	cv::randn(noise, 0, 5);
 	cv::Mat double_noise(depth.size(), depth.type());
 	cv::randn(double_noise, 1, 0.1);
-	depth /= double_noise;
-	depth += noise;
+	// depth /= double_noise;
+	// depth += noise;
+	depth += 0.001;
 
 	// Show noisy image
-	cv::Mat destination;
-	cv::normalize(depth, destination, 0, 1, cv::NORM_MINMAX);
-	cv::imshow("noisy depth", destination);
-	cv::waitKey(0);
+	//cv::Mat destination;
+	//cv::normalize(depth, destination, 0, 1, cv::NORM_MINMAX);
+	//cv::imshow("noisy depth", destination);
+	//cv::waitKey(0);
 
  	// Calculate the most useful depth and print it
 	cv::Rect depth_rect = cv::Rect(0, 0, depth.size().width, depth.size().height);
-	ROS_INFO_STREAM("Calculated depth is " << avgOfDepthMat(depth, depth_rect));
+	ROS_INFO_STREAM("Calculated depth is " << avgOfDepthMat(depth, depth_rect, 3, 1e-3, true));
 }
 
 
@@ -247,7 +267,13 @@ int main (int argc, char **argv)
 	obj_depth_sync->registerCallback(boost::bind(callback, _1, _2));
 
 	// Set up a simple subscriber to capture camera info
-	ros::Subscriber camera_info_sub_ = nh.subscribe("/zed_objdetect/left/camera_info", 2, camera_info_callback);
+	ros::Subscriber camera_info_sub_ = nh.subscribe("/zed_node/left/camera_info", 2, camera_info_callback);
+
+	// Set up a subscriber for bagged data (don't have a CUDA-capable device right now)
+	ros::Subscriber depth_for_rosbag = nh.subscribe("/zed_node/depth/depth_registered", 100, depthCallback);
+
+	// Set up a subscriber for bagged data (don't have a CUDA-capable device right now)
+	//ros::Subscriber color_for_rosbag = nh.subscribe("/zed_node/left/image_rect_color", 100, colorCallback);
 
 	// And a publisher to published converted 3d coords
 	pub = nh.advertise<field_obj::Detection>("object_detection_world", 2);
