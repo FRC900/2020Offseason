@@ -63,45 +63,75 @@ float findMedianOfMat(cv::Mat mat) {
 // the supplied bounding rectangle
 double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3, float tolerance = 1e-3, bool debug = false)
 {
-	cv::Mat destination;
-	cv::normalize(depth, destination, 0, 255, cv::NORM_MINMAX);
-	destination.convertTo(destination, CV_8UC1);
-	cv::imshow("Depth", destination);
-	cv::waitKey(0);
+	// convert depth to a 0-255 grayscale image (for contour finding)
+	cv::Mat depthDifferentFormat;
+	cv::normalize(depth, depthDifferentFormat, 0, 255, cv::NORM_MINMAX);
+	depthDifferentFormat.convertTo(depthDifferentFormat, CV_8UC1, 1);
+	cv::blur(depthDifferentFormat, depthDifferentFormat, cv::Size(20, 20));
 
-	cv::Mat depth_different_format;
-	cv::normalize(depth, depth_different_format, 0, 255, cv::NORM_MINMAX);
-	depth_different_format.convertTo(depth_different_format, CV_8UC1, 1);
-	cv::blur(depth_different_format, depth_different_format, cv::Size(20, 20));
-	float median = findMedianOfMat(depth_different_format);
+	// Find the median of the image
+	float median = findMedianOfMat(depthDifferentFormat);
 
-	cv::Mat thresh_output;
-	cv::threshold(depth_different_format, thresh_output, median, 1, cv::THRESH_BINARY_INV);
+	// use adaptive thresholding to convert image to black and white for finding
+	// contours
+	cv::Mat threshOutput;
+	int blockSize = depthDifferentFormat.size().area() / 25;
+	blockSize = blockSize % 2 == 0 ? blockSize + 1 : blockSize;
+	cv::adaptiveThreshold(depthDifferentFormat, threshOutput, 1, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, blockSize, 0);
 
+	// uncomment for thresholding using the median
+	// cv::Mat threshOutput;
+	// cv::threshold(depthDifferentFormat, threshOutput, median, 1, cv::THRESH_BINARY_INV);
+
+	// find contours
 	std::vector<std::vector<cv::Point>> contours;
 	std::vector<cv::Vec4i> hierarchy;
-	cv::findContours(thresh_output, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+	cv::findContours(threshOutput, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
-	cv::Mat mask = cv::Mat::zeros(thresh_output.size(), CV_8UC1);
-	for (size_t i = 0; i < contours.size(); i++)
-	{
-			cv::Scalar color = cv::Scalar(255);
-			cv::drawContours(mask, contours, (int)i, color, -1, cv::LINE_8, hierarchy, 0);
+	// create a mask
+	cv::Mat mask = cv::Mat::zeros(threshOutput.size(), CV_8UC1);
+	int largestContourIndex;
+	float largestArea = 0;
+	for (size_t i = 0; i < contours.size(); i++) {
+		std::vector<cv::Point> contour = contours[(int)i];
+		cv::Rect rect = cv::boundingRect(contour);
+		if (rect.area() > largestArea) {
+			largestArea = rect.area();
+			largestContourIndex = (int)i;
+		}
 	}
+	// draw the largest contour onto the mask
+	cv::Scalar color = cv::Scalar(255);
+	cv::drawContours(mask, contours, largestContourIndex, color, -1, cv::LINE_8, hierarchy, 0);
 
-	cv::Mat masked = cv::Mat::zeros(depth.size(), depth.type());
+	// make a new image for the original depth cut out by the mask, and fill it with 999
+	// 999 = ignore value, see line 128
+	cv::Mat masked = cv::Mat::ones(depth.size(), depth.type()) * 999;
 	depth.copyTo(masked, mask);
 
-	destination = cv::Mat::zeros(depth.size(), depth.type());
-	depth.copyTo(destination, mask);
+	// if debug is enabled,
+	if (debug) {
+		// show the masked image
+		cv::Mat destination = cv::Mat::zeros(depth.size(), depth.type());
+		depth.copyTo(destination, mask);
 
-	cv::normalize(destination, destination, 0, 255, cv::NORM_MINMAX);
-	destination.convertTo(destination, CV_8UC1);
-	cv::imshow("Masked", destination);
-	cv::waitKey(0);
+		cv::normalize(destination, destination, 0, 255, cv::NORM_MINMAX);
+		destination.convertTo(destination, CV_8UC1);
+		cv::imshow("Masked", destination);
+		cv::waitKey(0);
+	}
 
-	return findMedianOfMat(masked);
-	//return cv::mean(depth, mask)[0];
+	// copy matrix data to a vector
+	std::vector<float> vec;
+	masked = masked.reshape(0, 1);
+	masked.copyTo(vec);
+	// remove 999 values from the mask
+	vec.erase(std::remove(vec.begin(), vec.end(), 999), vec.end());
+	// sort vector
+	std::sort(vec.begin(), vec.end());
+
+	return vec[0]; // return lowest value. Ideally, we'd want to throw out the bottom
+	// <some number>%, but that messes up depth calculation for things like spheres.
 }
 
 void depthCallback(const sensor_msgs::ImageConstPtr &depthMsg) {
