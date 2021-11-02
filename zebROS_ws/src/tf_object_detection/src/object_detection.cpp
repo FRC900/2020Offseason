@@ -30,17 +30,15 @@ void camera_info_callback(const sensor_msgs::CameraInfoConstPtr &info)
 }
 
 // Find the median of a continuous cv::Mat
-float findMedianOfMat(const cv::Mat mat) {
+float findMedianOfMat(cv::Mat mat) {
 	float median = 0;
 	if (mat.isContinuous()) {
 		// copy matrix data to a vector
-		size_t vec_size = mat.rows*mat.cols*mat.channels();
-		std::vector<float> vec(vec_size);
-		vec.assign(mat.data, mat.data + mat.total()*mat.channels());
+		std::vector<float> vec;
+		mat = mat.reshape(0, 1);
+		mat.copyTo(vec);
 		// remove 999 (when this is called, values that are masked are 999)
-		std::remove(vec.begin(), vec.end(), 999);
-		// and reset size
-		vec_size = vec.size();
+		vec.erase(std::remove(vec.begin(), vec.end(), 999), vec.end());
 		// sort vector
 		std::sort(vec.begin(), vec.end()); // forgot this earlier
 		if ((vec.size() % 2) != 0) { // if odd
@@ -75,10 +73,10 @@ double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3
 	cv::normalize(depth, depth_different_format, 0, 255, cv::NORM_MINMAX);
 	depth_different_format.convertTo(depth_different_format, CV_8UC1, 1);
 	cv::blur(depth_different_format, depth_different_format, cv::Size(20, 20));
-	//float median = findMedianOfMat(depth_different_format);
+	float median = findMedianOfMat(depth_different_format);
 
 	cv::Mat thresh_output;
-	cv::threshold(depth_different_format, thresh_output, cv::mean(depth_different_format)[0], 1, cv::THRESH_BINARY_INV);
+	cv::threshold(depth_different_format, thresh_output, median, 1, cv::THRESH_BINARY_INV);
 
 	std::vector<std::vector<cv::Point>> contours;
 	std::vector<cv::Vec4i> hierarchy;
@@ -102,8 +100,8 @@ double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3
 	cv::imshow("Masked", destination);
 	cv::waitKey(0);
 
-	//return findMedianOfMat(masked);
-	return cv::mean(depth, mask)[0];
+	return findMedianOfMat(masked);
+	//return cv::mean(depth, mask)[0];
 }
 
 void depthCallback(const sensor_msgs::ImageConstPtr &depthMsg) {
