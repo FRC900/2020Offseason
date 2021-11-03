@@ -14,8 +14,8 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-#include <std_msgs/String.h>
-#include <random>
+#include <std_msgs/String.h> // for testing depth detection on the `test_depth` topic
+#include <random> // for Forgy method of initializing k-means for depth detection
 
 ros::Publisher pub;
 
@@ -58,17 +58,20 @@ float findMedianOfMat(cv::Mat mat) {
 	return median;
 }
 
+// K_MEANS = k-means, Forgy method of initializing (k-means++ would likely be better, but Forgy is working ok for now)
+// CONTOURS = find depth by finding contours and taking the lowest value of the biggest contour
+// CONTOURS_NON_ADAPTIVE = contours, but using thresholding based on the median instead of adaptive thresholding
+enum DepthCalculationAlgorithm { K_MEANS, CONTOURS, CONTOURS_NON_ADAPTIVE };
 
 // Get the most useful depth value in the cv::Mat depth contained within
-// the supplied bounding rectangle
-double usefulDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool debug = false)
-{
+// the supplied bounding rectangle, using contour finding
+double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool debug = false, bool adaptive = true) {
 	// Crop depth to region of interest
 	cv::Mat depth = depth_(bound_rect);
 
 	// convert depth to a 0-255 grayscale image (for contour finding)
 	cv::Mat depthDifferentFormat;
-	cv::Mat zeros = depth==0; // no depth is 0 with the ZED
+	cv::Mat zeros = depth==0; // no depth is 0 with the ZED. May also need to check for inf and nan.
 	depth.copyTo(depthDifferentFormat);
 	cv::normalize(depthDifferentFormat, depthDifferentFormat, 0, 128, cv::NORM_MINMAX); // 0-128 because outliers will be 255 (and we want a clear background)
 	depthDifferentFormat.setTo(255, zeros); // set zeros (no depth) to 255
@@ -82,16 +85,20 @@ double usefulDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool de
 	// Find the median of the image
 	float median = findMedianOfMat(depthDifferentFormat);
 
-	// use adaptive thresholding to convert image to black and white for finding
-	// contours
+	// Create a cv::Mat for thresholding output
 	cv::Mat threshOutput;
-	int blockSize = depthDifferentFormat.size().area() / 25;
-	blockSize = blockSize % 2 == 0 ? blockSize + 1 : blockSize;
-	cv::adaptiveThreshold(depthDifferentFormat, threshOutput, 1, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, blockSize, 0);
 
-	// uncomment for thresholding using the median
-	// cv::Mat threshOutput;
-	// cv::threshold(depthDifferentFormat, threshOutput, median, 1, cv::THRESH_BINARY_INV);
+	if (adaptive) {
+		// use adaptive thresholding to convert image to black and white for finding
+		// contours
+		int blockSize = depthDifferentFormat.size().area() / 25;
+		blockSize = blockSize % 2 == 0 ? blockSize + 1 : blockSize;
+		cv::adaptiveThreshold(depthDifferentFormat, threshOutput, 1, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, blockSize, 0);
+	} else {
+		// thresholding using median
+		cv::Mat threshOutput;
+		cv::threshold(depthDifferentFormat, threshOutput, median, 1, cv::THRESH_BINARY_INV);
+	}
 
 	// find contours
 	std::vector<std::vector<cv::Point>> contours;
@@ -115,7 +122,7 @@ double usefulDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool de
 	cv::drawContours(mask, contours, largestContourIndex, color, -1, cv::LINE_8, hierarchy, 0);
 
 	// make a new image for the original depth cut out by the mask, and fill it with 999
-	// 999 = ignore value, see line 139
+	// 999 = ignore value, see line 143
 	cv::Mat masked = cv::Mat::ones(depth.size(), depth.type()) * 999;
 	depth.copyTo(masked, mask);
 
@@ -145,26 +152,114 @@ double usefulDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool de
 	return vec[0]; // return lowest value. Ideally, we'd want to throw out the bottom
 	// <some number>%, but that messes up depth calculation for things like spheres.
 
-	/* Test results:
+	/* Test results (adaptive thresholding):
 	[ INFO] [1635948213.029497061]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal_8.jpg
-	[ INFO] [1635948213.689598629]: Calculated depth is 113.001
+	[ INFO] [1635948213.689598629]: Calculated depth is 113.001 ✅
 	[ INFO] [1635948229.253951900]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal_behind_power_cell.png
-	[ INFO] [1635948229.870174338]: Calculated depth is 138.001
+	[ INFO] [1635948229.870174338]: Calculated depth is 138.001 ✅
 	[ INFO] [1635948236.848476178]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal.png
-	[ INFO] [1635948237.445102845]: Calculated depth is 113.001
+	[ INFO] [1635948237.445102845]: Calculated depth is 113.001 ✅
 	[ INFO] [1635948248.428153064]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_loading_bay.png
-	[ INFO] [1635948249.227361594]: Calculated depth is 141.001
+	[ INFO] [1635948249.227361594]: Calculated depth is 141.001 ✅
 	[ INFO] [1635948255.684437760]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_low_goal.png
-	[ INFO] [1635948256.286312490]: Calculated depth is 92.001
+	[ INFO] [1635948256.286312490]: Calculated depth is 92.001 ✅
 	[ INFO] [1635948266.234706198]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_power_cell.png
-	[ INFO] [1635948266.316279430]: Calculated depth is 0.001
+	[ INFO] [1635948266.316279430]: Calculated depth is 0.001 ✅
 	[ INFO] [1635948273.702984310]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/goal_behind_power_cell.png
-	[ INFO] [1635948275.086796499]: Calculated depth is 0.001
+	[ INFO] [1635948275.086796499]: Calculated depth is 0.001 **non-cropped version** ❌
 	[ INFO] [1635948302.568242461]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/goal_with_power_cell_in_front.jpg
-	[ INFO] [1635948302.598558216]: Calculated depth is 0.001
+	[ INFO] [1635948302.598558216]: Calculated depth is 0.001 ❌
 	[ INFO] [1635948312.950812216]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/test_weirdness.jpg
-	[ INFO] [1635948312.980837687]: Calculated depth is 73.001
+	[ INFO] [1635948312.980837687]: Calculated depth is 73.001 ✅
 	*/
+}
+
+// Get the most useful depth value in the cv::Mat depth contained within
+// the supplied bounding rectangle, using k-means
+double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, int k = 3, float tolerance = 1e-3)
+{
+	// setup randomizing (for initialization of k-means)
+	std::random_device seeder;
+	std::mt19937 engine(seeder());
+	std::uniform_int_distribution<int> distX(bound_rect.tl().x+1, bound_rect.br().x-1);
+	std::uniform_int_distribution<int> distY(bound_rect.tl().y+1, bound_rect.br().y-1);
+
+	// initialize arrays (and a vector) for k-means
+	double centroids[k];
+	double prevCentroids[k];
+	std::vector<float> clusters[k];
+
+	// initialize random centroids
+	for (int i = 0; i < k; i++) {
+		// assign random depth values to centroids (Forgy method of initializing k-means)
+		// NOTE k-means++ might be better but Forgy was working okay
+		centroids[i] = depth.at<float>(distX(engine), distY(engine));
+	}
+
+	while (true) { // once the algorithm converges this returns
+		for (int j = bound_rect.tl().y+1; j < bound_rect.br().y; j++) // for each row
+		{
+			const float *ptr_depth = depth.ptr<float>(j);
+
+			for (int i = bound_rect.tl().x+1; i < bound_rect.br().x; i++) // for each pixel in row
+			{
+				if (!(isnan(ptr_depth[i]) || isinf(ptr_depth[i]) || (ptr_depth[i] <= 0)))
+				{
+					// Calculate which centroid/mean the current pixel is closest to
+					float diffs[k];
+					for (int c = 0; c < k; c++) {
+						diffs[c] = abs(centroids[c] - ptr_depth[i]);
+					}
+					int closestCentroid = std::distance(diffs, std::min_element(diffs, diffs+k));
+					// Append the pixel's value to the cluster corresponding to that centroid
+					clusters[closestCentroid].push_back(ptr_depth[i]);
+				}
+			}
+		}
+
+		// Recalculate centroids using the average of the cluster closest to each centroid
+		for (int i = 0; i < k; i++) {
+			double sum = 0;
+			for (float f : clusters[i]) {
+				sum += f;
+			}
+			centroids[i] = sum / (double)clusters[i].size();
+			clusters[i].clear(); // Clear clusters
+		}
+
+		// Calculate and print the difference between the current and previous centroids
+		// this lets us see when the difference is very low (in which case the algorithm will be done)
+		float diff = 0;
+		for (int i = 0; i < k; i++) {
+			diff += abs(centroids[i] - prevCentroids[i]);
+		}
+		if (debug) {
+			ROS_INFO_STREAM("diff: " << diff);
+		}
+
+		// If the difference is less than the tolerance, return the closest centroid
+		if (diff <= tolerance) {
+			return *std::min_element(centroids, centroids+k);
+		}
+
+		// If the above statement didn't return, copy centroids to prevCentroids and
+		// re-run the algorithm
+		memcpy(prevCentroids, centroids, sizeof(prevCentroids));
+	}
+}
+
+// Get the most useful depth value in the cv::Mat depth contained within
+// the supplied bounding rectangle
+double usefulDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, DepthCalculationAlgorithm algorithm = CONTOURS, int k = 3, float tolerance = 1e-3)
+{
+	switch (algorithm) {
+		case CONTOURS:
+			return contoursDepthMat(depth, bound_rect, debug);
+		case CONTOURS_NON_ADAPTIVE:
+			return contoursDepthMat(depth, bound_rect, debug, false);
+		case K_MEANS:
+			return kMeansDepthMat(depth, bound_rect, debug, k, tolerance);
+	}
 }
 
 // For each object in objDetectionMsg, look up the depth reported in depthMsg at the center of the
@@ -261,6 +356,8 @@ void callback(const field_obj::TFDetectionConstPtr &objDetectionMsg, const senso
 }
 
 
+// A callback function for testing usefulDepthMat. This is for a subscriber that
+// subscribes to the `test_depth` topic.
 void testUsefulDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
 	// the message will be a filepath to an image file for testing
 	ROS_INFO_STREAM("Received " << msg->data);
@@ -283,7 +380,7 @@ void testUsefulDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
 		depth += 1; // with the ZED, a zero means no depth
 	}
 
- 	// Calculate the most useful depth and print it
+ 	// Calculate the most useful depth using contour finding (default algorithm) and print it
 	cv::Rect depth_rect = cv::Rect(0, 0, depth.size().width, depth.size().height);
 	ROS_INFO_STREAM("Calculated depth is " << usefulDepthMat(depth, depth_rect, true));
 }
@@ -319,6 +416,7 @@ int main (int argc, char **argv)
 	pub = nh.advertise<field_obj::Detection>("object_detection_world", 2);
 
 	// Add a subscriber to subscribe to testing messages
+	// Example of message to send: rostopic pub /test_depth std_msgs/String /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal_behind_power_cell.png
 	ros::Subscriber sub = nh.subscribe("test_depth", 10, testUsefulDepthMatCallback);
 
 	ros::spin();
