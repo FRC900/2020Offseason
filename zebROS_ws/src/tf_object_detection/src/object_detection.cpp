@@ -61,13 +61,12 @@ float findMedianOfMat(cv::Mat mat) {
 
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle
-double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3, float tolerance = 1e-3, bool debug = false)
+double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false)
 {
 	// convert depth to a 0-255 grayscale image (for contour finding)
 	cv::Mat depthDifferentFormat;
 	cv::normalize(depth, depthDifferentFormat, 0, 255, cv::NORM_MINMAX);
 	depthDifferentFormat.convertTo(depthDifferentFormat, CV_8UC1, 1);
-	cv::blur(depthDifferentFormat, depthDifferentFormat, cv::Size(20, 20));
 
 	// Find the median of the image
 	float median = findMedianOfMat(depthDifferentFormat);
@@ -132,6 +131,27 @@ double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, int k = 3
 
 	return vec[0]; // return lowest value. Ideally, we'd want to throw out the bottom
 	// <some number>%, but that messes up depth calculation for things like spheres.
+
+	/* Test results:
+	[ INFO] [1635948213.029497061]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal_8.jpg
+	[ INFO] [1635948213.689598629]: Calculated depth is 113.001
+	[ INFO] [1635948229.253951900]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal_behind_power_cell.png
+	[ INFO] [1635948229.870174338]: Calculated depth is 138.001
+	[ INFO] [1635948236.848476178]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal.png
+	[ INFO] [1635948237.445102845]: Calculated depth is 113.001
+	[ INFO] [1635948248.428153064]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_loading_bay.png
+	[ INFO] [1635948249.227361594]: Calculated depth is 141.001
+	[ INFO] [1635948255.684437760]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_low_goal.png
+	[ INFO] [1635948256.286312490]: Calculated depth is 92.001
+	[ INFO] [1635948266.234706198]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_power_cell.png
+	[ INFO] [1635948266.316279430]: Calculated depth is 0.001
+	[ INFO] [1635948273.702984310]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/goal_behind_power_cell.png
+	[ INFO] [1635948275.086796499]: Calculated depth is 0.001
+	[ INFO] [1635948302.568242461]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/goal_with_power_cell_in_front.jpg
+	[ INFO] [1635948302.598558216]: Calculated depth is 0.001
+	[ INFO] [1635948312.950812216]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/test_weirdness.jpg
+	[ INFO] [1635948312.980837687]: Calculated depth is 73.001
+	*/
 }
 
 void depthCallback(const sensor_msgs::ImageConstPtr &depthMsg) {
@@ -267,7 +287,7 @@ void testAvgOfDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
 
  	// Calculate the most useful depth and print it
 	cv::Rect depth_rect = cv::Rect(0, 0, depth.size().width, depth.size().height);
-	ROS_INFO_STREAM("Calculated depth is " << avgOfDepthMat(depth, depth_rect, 3, 1e-3, true));
+	ROS_INFO_STREAM("Calculated depth is " << avgOfDepthMat(depth, depth_rect));
 }
 
 
