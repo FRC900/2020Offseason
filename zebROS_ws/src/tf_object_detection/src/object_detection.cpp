@@ -37,8 +37,8 @@ float findMedianOfMat(cv::Mat mat) {
 		std::vector<float> vec;
 		mat = mat.reshape(0, 1);
 		mat.copyTo(vec);
-		// remove 999 (when this is called, values that are masked are 999)
-		vec.erase(std::remove(vec.begin(), vec.end(), 999), vec.end());
+		// remove 255 (when this is called, values that are masked are 255)
+		vec.erase(std::remove(vec.begin(), vec.end(), 255), vec.end());
 		// sort vector
 		std::sort(vec.begin(), vec.end()); // forgot this earlier
 		if ((vec.size() % 2) != 0) { // if odd
@@ -61,12 +61,23 @@ float findMedianOfMat(cv::Mat mat) {
 
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle
-double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false)
+double usefulDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool debug = false)
 {
+	// Crop depth to region of interest
+	cv::Mat depth = depth_(bound_rect);
+
 	// convert depth to a 0-255 grayscale image (for contour finding)
 	cv::Mat depthDifferentFormat;
-	cv::normalize(depth, depthDifferentFormat, 0, 255, cv::NORM_MINMAX);
+	cv::Mat zeros = depth==0; // no depth is 0 with the ZED
+	depth.copyTo(depthDifferentFormat);
+	cv::normalize(depthDifferentFormat, depthDifferentFormat, 0, 128, cv::NORM_MINMAX); // 0-128 because outliers will be 255 (and we want a clear background)
+	depthDifferentFormat.setTo(255, zeros); // set zeros (no depth) to 255
 	depthDifferentFormat.convertTo(depthDifferentFormat, CV_8UC1, 1);
+
+	if (debug) {
+		cv::imshow("Depth", depthDifferentFormat);
+		cv::waitKey(0);
+	}
 
 	// Find the median of the image
 	float median = findMedianOfMat(depthDifferentFormat);
@@ -104,7 +115,7 @@ double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debu
 	cv::drawContours(mask, contours, largestContourIndex, color, -1, cv::LINE_8, hierarchy, 0);
 
 	// make a new image for the original depth cut out by the mask, and fill it with 999
-	// 999 = ignore value, see line 128
+	// 999 = ignore value, see line 139
 	cv::Mat masked = cv::Mat::ones(depth.size(), depth.type()) * 999;
 	depth.copyTo(masked, mask);
 
@@ -126,6 +137,8 @@ double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debu
 	masked.copyTo(vec);
 	// remove 999 values from the mask
 	vec.erase(std::remove(vec.begin(), vec.end(), 999), vec.end());
+	// and 0 values (no depth)
+	vec.erase(std::remove(vec.begin(), vec.end(), 0), vec.end());
 	// sort vector
 	std::sort(vec.begin(), vec.end());
 
@@ -152,22 +165,6 @@ double avgOfDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debu
 	[ INFO] [1635948312.950812216]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/test_weirdness.jpg
 	[ INFO] [1635948312.980837687]: Calculated depth is 73.001
 	*/
-}
-
-void depthCallback(const sensor_msgs::ImageConstPtr &depthMsg) {
-	cv_bridge::CvImageConstPtr cvDepth = cv_bridge::toCvShare(depthMsg, sensor_msgs::image_encodings::TYPE_32FC1);
-	cv::Mat depth = cvDepth->image;
-	depth.convertTo(depth, 24); // CV_8UC4
-	cv::normalize(depth, depth, 0, 255, cv::NORM_MINMAX);
-	cv::imshow("depth", depth);
-	cv::waitKey(1);
-	ROS_INFO_STREAM(avgOfDepthMat(cvDepth->image, cv::Rect(0, 0, cvDepth->image.size().width, cvDepth->image.size().height)));
-}
-
-void colorCallback(const sensor_msgs::ImageConstPtr &colorMsg) {
-	cv_bridge::CvImageConstPtr color = cv_bridge::toCvShare(colorMsg, sensor_msgs::image_encodings::BGRA8);
-	cv::imshow("color", color->image);
-	cv::waitKey(1);
 }
 
 // For each object in objDetectionMsg, look up the depth reported in depthMsg at the center of the
@@ -208,7 +205,7 @@ void callback(const field_obj::TFDetectionConstPtr &objDetectionMsg, const senso
 
 		// Get the distance to the object by sampling the depth image at the center of the
 		// object's bounding rectangle.
-		const double objDistance = avgOfDepthMat(cvDepth->image, objCenterRect);
+		const double objDistance = usefulDepthMat(cvDepth->image, objCenterRect);
 		if (objDistance < 0)
 		{
 			ROS_ERROR_STREAM("Depth of object at " << objRectCenter << " with bounding rect " << objCenterRect << " objDistance < 0 : " << objDistance);
@@ -264,11 +261,12 @@ void callback(const field_obj::TFDetectionConstPtr &objDetectionMsg, const senso
 }
 
 
-void testAvgOfDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
+void testUsefulDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
 	// the message will be a filepath to an image file for testing
 	ROS_INFO_STREAM("Received " << msg->data);
 	cv::Mat depth;
 	if (msg->data.back() == 'r') { // likely a .ex`r` file, treating it as one
+		// make sure to set outliers to zero in the file
 		depth = cv::imread(msg->data, cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH); // read image
 		depth.convertTo(depth, CV_32FC1);
 		std::vector<cv::Mat> channels(3);
@@ -282,20 +280,12 @@ void testAvgOfDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
 		cv::randn(noise, 0, 5);
 		cv::Mat double_noise(depth.size(), depth.type());
 		cv::randn(double_noise, 1, 0.1);
-		// depth /= double_noise;
-		// depth += noise;
-		depth += 0.001;
-
-		// Show noisy image
-		//cv::Mat destination;
-		//cv::normalize(depth, destination, 0, 1, cv::NORM_MINMAX);
-		//cv::imshow("noisy depth", destination);
-		//cv::waitKey(0);
+		depth += 1; // with the ZED, a zero means no depth
 	}
 
  	// Calculate the most useful depth and print it
 	cv::Rect depth_rect = cv::Rect(0, 0, depth.size().width, depth.size().height);
-	ROS_INFO_STREAM("Calculated depth is " << avgOfDepthMat(depth, depth_rect, true));
+	ROS_INFO_STREAM("Calculated depth is " << usefulDepthMat(depth, depth_rect, true));
 }
 
 
@@ -323,19 +313,13 @@ int main (int argc, char **argv)
 	obj_depth_sync->registerCallback(boost::bind(callback, _1, _2));
 
 	// Set up a simple subscriber to capture camera info
-	ros::Subscriber camera_info_sub_ = nh.subscribe("/zed_node/left/camera_info", 2, camera_info_callback);
-
-	// Set up a subscriber for bagged data (don't have a CUDA-capable device right now)
-	ros::Subscriber depth_for_rosbag = nh.subscribe("/zed_node/depth/depth_registered", 100, depthCallback);
-
-	// Set up a subscriber for bagged data (don't have a CUDA-capable device right now)
-	//ros::Subscriber color_for_rosbag = nh.subscribe("/zed_node/left/image_rect_color", 100, colorCallback);
+	ros::Subscriber camera_info_sub_ = nh.subscribe("/zed_objdetect/left/camera_info", 2, camera_info_callback);
 
 	// And a publisher to published converted 3d coords
 	pub = nh.advertise<field_obj::Detection>("object_detection_world", 2);
 
 	// Add a subscriber to subscribe to testing messages
-	ros::Subscriber sub = nh.subscribe("test_depth", 10, testAvgOfDepthMatCallback);
+	ros::Subscriber sub = nh.subscribe("test_depth", 10, testUsefulDepthMatCallback);
 
 	ros::spin();
 }
