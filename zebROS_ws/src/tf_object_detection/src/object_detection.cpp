@@ -267,27 +267,35 @@ void callback(const field_obj::TFDetectionConstPtr &objDetectionMsg, const senso
 void testAvgOfDepthMatCallback(const std_msgs::String::ConstPtr& msg) {
 	// the message will be a filepath to an image file for testing
 	ROS_INFO_STREAM("Received " << msg->data);
-	cv::Mat depth = cv::imread(msg->data, cv::IMREAD_GRAYSCALE); // read image as grayscale
-	depth.convertTo(depth, CV_32FC1);
+	cv::Mat depth;
+	if (msg->data.back() == 'r') { // likely a .ex`r` file, treating it as one
+		depth = cv::imread(msg->data, cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH); // read image
+		depth.convertTo(depth, CV_32FC1);
+		std::vector<cv::Mat> channels(3);
+		cv::split(depth, channels);
+		depth = channels[0];
+	} else {
+		depth = cv::imread(msg->data, cv::IMREAD_GRAYSCALE); // read image as grayscale
+		depth.convertTo(depth, CV_32FC1);
+		// Add random noise
+		cv::Mat noise(depth.size(), depth.type());
+		cv::randn(noise, 0, 5);
+		cv::Mat double_noise(depth.size(), depth.type());
+		cv::randn(double_noise, 1, 0.1);
+		// depth /= double_noise;
+		// depth += noise;
+		depth += 0.001;
 
-	// Add random noise
-	cv::Mat noise(depth.size(), depth.type());
-	cv::randn(noise, 0, 5);
-	cv::Mat double_noise(depth.size(), depth.type());
-	cv::randn(double_noise, 1, 0.1);
-	// depth /= double_noise;
-	// depth += noise;
-	depth += 0.001;
-
-	// Show noisy image
-	//cv::Mat destination;
-	//cv::normalize(depth, destination, 0, 1, cv::NORM_MINMAX);
-	//cv::imshow("noisy depth", destination);
-	//cv::waitKey(0);
+		// Show noisy image
+		//cv::Mat destination;
+		//cv::normalize(depth, destination, 0, 1, cv::NORM_MINMAX);
+		//cv::imshow("noisy depth", destination);
+		//cv::waitKey(0);
+	}
 
  	// Calculate the most useful depth and print it
 	cv::Rect depth_rect = cv::Rect(0, 0, depth.size().width, depth.size().height);
-	ROS_INFO_STREAM("Calculated depth is " << avgOfDepthMat(depth, depth_rect));
+	ROS_INFO_STREAM("Calculated depth is " << avgOfDepthMat(depth, depth_rect, true));
 }
 
 
