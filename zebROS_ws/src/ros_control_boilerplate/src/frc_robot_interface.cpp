@@ -1005,11 +1005,13 @@ void FRCRobotInterface::readConfig(ros::NodeHandle rpnh)
 			readJointLocalParams(joint_params, local, saw_local_keyword, local_update, local_hardware);
 
 			const int solenoid_channel = readIntParam(joint_params, local_hardware, "channel", joint_name);
-			const frc::PneumaticsModuleType solenoid_module_type = readSolenoidModuleType(joint_params, local_hardware, joint_name);
-			const int solenoid_module_id = readIntParam(joint_params, local_hardware, "module_id", joint_name);
+			frc::PneumaticsModuleType solenoid_module_type = frc::PneumaticsModuleType::CTREPCM;
+			int solenoid_module_id = -1;
 
 			if (local_hardware)
 			{
+				solenoid_module_type = readSolenoidModuleType(joint_params, local_hardware, joint_name);
+				solenoid_module_id = readIntParam(joint_params, local_hardware, "module_id", joint_name);
 				for (size_t j = 0; j < solenoid_module_ids_.size(); j++)
 					if ((solenoid_module_ids_[j] == solenoid_module_id) &&
 						(solenoid_module_types_[j] == solenoid_module_type) &&
@@ -1038,11 +1040,13 @@ void FRCRobotInterface::readConfig(ros::NodeHandle rpnh)
 
 			const int double_solenoid_forward_channel = readIntParam(joint_params, local_hardware, "forward_channel", joint_name);
 			const int double_solenoid_reverse_channel = readIntParam(joint_params, local_hardware, "reverse_channel", joint_name);
-			const frc::PneumaticsModuleType double_solenoid_module_type = readSolenoidModuleType(joint_params, local_hardware, joint_name);
-			const int double_solenoid_module_id = readIntParam(joint_params, local_hardware, "solenoid", joint_name);
+			frc::PneumaticsModuleType solenoid_module_type = frc::PneumaticsModuleType::CTREPCM;
+			int solenoid_module_id = -1;
 
 			if (local_hardware)
 			{
+				double_solenoid_module_type = readSolenoidModuleType(joint_params, local_hardware, joint_name);
+				double_solenoid_module_id = readIntParam(joint_params, local_hardware, "solenoid", joint_name);
 				if (double_solenoid_forward_channel == double_solenoid_reverse_channel)
 					throw std::runtime_error("Double solenoid " + joint_name +
 							" delcared with the same forward and reverse channel");
