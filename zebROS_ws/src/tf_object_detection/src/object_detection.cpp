@@ -144,7 +144,7 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 	cv::drawContours(mask, contours, largestContourIndex, color, -1, cv::LINE_8, hierarchy, 0);
 
 	// make a new image for the original depth cut out by the mask, and fill it with 999
-	// 999 = ignore value, see line 143
+	// 999 = ignore value, see line 168
 	cv::Mat masked = cv::Mat::ones(depth.size(), depth.type()) * 999;
 	depth.copyTo(masked, mask);
 
@@ -199,24 +199,46 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle, using k-means
-double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, int k = 3, float tolerance = 1e-3)
+double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, int maximumK = 3, float tolerance = 1e-3)
 {
 	// setup randomizing (for initialization of k-means)
 	std::random_device seeder;
 	std::mt19937 engine(seeder());
-	std::uniform_int_distribution<int> distX(bound_rect.tl().x+1, bound_rect.br().x-1);
-	std::uniform_int_distribution<int> distY(bound_rect.tl().y+1, bound_rect.br().y-1);
+
+	// Start of checking if k is too high
+
+	// Convert cropped depth matrix to vector
+	std::vector<float> vec;
+	cv::Mat mat = depth(bound_rect);
+	for (int i = 0; i < mat.rows; i++) {
+    vec.insert(vec.end(), mat.ptr<float>(i), mat.ptr<float>(i)+mat.cols*mat.channels());
+  }
+
+	// Find unique (defined as >1cm away) values in the vector
+	std::sort(vec.begin(), vec.end());
+	auto last = std::unique(vec.begin(), vec.end(), [](float first, float second){ return fabs(second - first)<0.01; });
+	vec.erase(last, vec.end());
+
+	// Set k to maximumK if there are more than maximumK unique values, otherwise set it to the number of unique values
+	int k = std::min((int)(vec.size()), maximumK);
+
+	// End of checking if k is too high
 
 	// initialize arrays (and a vector) for k-means
 	double centroids[k];
 	double prevCentroids[k];
 	std::vector<float> clusters[k];
 
-	// initialize random centroids
-	for (int i = 0; i < k; i++) {
-		// assign random depth values to centroids (Forgy method of initializing k-means)
-		// NOTE k-means++ might be better but Forgy was working okay
-		centroids[i] = depth.at<float>(distX(engine), distY(engine));
+	// Pick centroids
+	std::sample(vec.begin(), vec.end(), centroids, k, engine);
+
+	// Print centroids
+	if (debug) {
+		ROS_INFO_STREAM("k = " << k);
+		ROS_INFO_STREAM("Centroids: ");
+		for (int i = 0; i < k; i++) {
+			ROS_INFO_STREAM(centroids[i]);
+		}
 	}
 
 	while (true) { // once the algorithm converges this returns
@@ -241,12 +263,17 @@ double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool deb
 		}
 
 		// Recalculate centroids using the average of the cluster closest to each centroid
+		// (or set the centroid to 999 if there are no values in the cluster)
 		for (int i = 0; i < k; i++) {
 			double sum = 0;
 			for (float f : clusters[i]) {
 				sum += f;
 			}
-			centroids[i] = sum / (double)clusters[i].size();
+			if (clusters[i].size() != 0) {
+				centroids[i] = sum / (double)clusters[i].size();
+			} else { // If the centroid's cluster has no values, set it to 999 (basically remove it)
+				centroids[i] = 999;
+			}
 			clusters[i].clear(); // Clear clusters
 		}
 
@@ -319,7 +346,7 @@ void callback(const field_obj::TFDetectionConstPtr &objDetectionMsg, const senso
 
 		// Get the distance to the object by finding contours within the depth data inside the
 		// object's bounding rectangle.
-		const double objDistance = usefulDepthMat(cvDepth->image, rect);
+		const double objDistance = usefulDepthMat(cvDepth->image, rect, false, CONTOURS);
 		if (objDistance < 0)
 		{
 			ROS_ERROR_STREAM("Depth of object at " << objRectCenter << " with bounding rect " << rect << " objDistance < 0 : " << objDistance);
