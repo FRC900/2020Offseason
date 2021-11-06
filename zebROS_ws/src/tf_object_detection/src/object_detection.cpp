@@ -66,8 +66,35 @@ enum DepthCalculationAlgorithm { K_MEANS, CONTOURS, CONTOURS_NON_ADAPTIVE };
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle, using contour finding
 double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool debug = false, bool adaptive = true) {
+	if (bound_rect.size().area() == 0) { // if the ROI is zero, return -1 (no depth)
+		return -1;
+	}
+
 	// Crop depth to region of interest
 	cv::Mat depth = depth_(bound_rect);
+
+	// set very large outliers and nan to 0 so they can be removed later
+	float nan_ = std::numeric_limits<float>::quiet_NaN();
+	cv::Mat inf = depth>=900;
+	cv::Mat neg_inf = depth<=-900;
+	cv::Mat nan = depth==nan_;
+	cv::Mat neg_nan = depth==-nan_;
+	depth.setTo(0, inf);
+	depth.setTo(0, neg_inf);
+	depth.setTo(0, nan);
+	depth.setTo(0, neg_nan);
+
+	if (debug) {
+		double min, max;
+		cv::minMaxLoc(depth, &min, &max);
+		ROS_INFO_STREAM("min: " << min << ", max: " << max);
+		cv::Mat dest;
+		depth.copyTo(dest);
+		cv::normalize(dest, dest, 0, 255, cv::NORM_MINMAX);
+		dest.convertTo(dest, CV_8UC1);
+		cv::imshow("Depth", dest);
+		cv::waitKey(1);
+	}
 
 	// convert depth to a 0-255 grayscale image (for contour finding)
 	cv::Mat depthDifferentFormat;
@@ -76,11 +103,6 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 	cv::normalize(depthDifferentFormat, depthDifferentFormat, 0, 128, cv::NORM_MINMAX); // 0-128 because outliers will be 255 (and we want a clear background)
 	depthDifferentFormat.setTo(255, zeros); // set zeros (no depth) to 255
 	depthDifferentFormat.convertTo(depthDifferentFormat, CV_8UC1, 1);
-
-	if (debug) {
-		cv::imshow("Depth", depthDifferentFormat);
-		cv::waitKey(0);
-	}
 
 	// Find the median of the image
 	float median = findMedianOfMat(depthDifferentFormat);
@@ -92,7 +114,7 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 		// use adaptive thresholding to convert image to black and white for finding
 		// contours
 		int blockSize = depthDifferentFormat.size().area() / 25;
-		blockSize = blockSize % 2 == 0 ? blockSize + 1 : blockSize;
+		blockSize = blockSize > 1 ? (blockSize % 2 == 0 ? blockSize + 1 : blockSize) : 5; // block size must be at least 3 and odd
 		cv::adaptiveThreshold(depthDifferentFormat, threshOutput, 1, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, blockSize, 0);
 	} else {
 		// thresholding using median
@@ -149,8 +171,9 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 	// sort vector
 	std::sort(vec.begin(), vec.end());
 
-	return vec[0]; // return lowest value. Ideally, we'd want to throw out the bottom
+	return (vec.size() != 0 ? vec[0] : -1); // return lowest value. Ideally, we'd want to throw out the bottom
 	// <some number>%, but that messes up depth calculation for things like spheres.
+	// If there are no values, return -1.
 
 	/* Test results (adaptive thresholding):
 	[ INFO] [1635948213.029497061]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal_8.jpg
@@ -291,19 +314,15 @@ void callback(const field_obj::TFDetectionConstPtr &objDetectionMsg, const senso
 		const cv::Point rectBR(camObject.br.x, camObject.br.y);
 		const cv::Rect  rect(rectTL, rectBR);
 
-		// Create a small bounding rectangle to sample depths from the center
-		// of the detected object.  Note, this will only work with power cells
-		// and other objects which don't have holes in the middle (mmmm ... donuts!)
+		// Find the center of the detected object
 		const cv::Point2f objRectCenter = 0.5 * (rectTL + rectBR);
-		const cv::Point2f objCenterBounds(3, 3);
-		const cv::Rect  objCenterRect(objRectCenter - objCenterBounds, objRectCenter + objCenterBounds);
 
-		// Get the distance to the object by sampling the depth image at the center of the
+		// Get the distance to the object by finding contours within the depth data inside the
 		// object's bounding rectangle.
-		const double objDistance = usefulDepthMat(cvDepth->image, objCenterRect);
+		const double objDistance = usefulDepthMat(cvDepth->image, rect);
 		if (objDistance < 0)
 		{
-			ROS_ERROR_STREAM("Depth of object at " << objRectCenter << " with bounding rect " << objCenterRect << " objDistance < 0 : " << objDistance);
+			ROS_ERROR_STREAM("Depth of object at " << objRectCenter << " with bounding rect " << rect << " objDistance < 0 : " << objDistance);
 			continue;
 		}
 		const cv::Point3f world_coord_scaled = cc.screen_to_world(rect, worldObject.id, objDistance);
