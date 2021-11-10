@@ -1040,8 +1040,8 @@ void FRCRobotInterface::readConfig(ros::NodeHandle rpnh)
 
 			const int double_solenoid_forward_channel = readIntParam(joint_params, local_hardware, "forward_channel", joint_name);
 			const int double_solenoid_reverse_channel = readIntParam(joint_params, local_hardware, "reverse_channel", joint_name);
-			frc::PneumaticsModuleType solenoid_module_type = frc::PneumaticsModuleType::CTREPCM;
-			int solenoid_module_id = -1;
+			frc::PneumaticsModuleType double_solenoid_module_type = frc::PneumaticsModuleType::CTREPCM;
+			int double_solenoid_module_id = -1;
 
 			if (local_hardware)
 			{

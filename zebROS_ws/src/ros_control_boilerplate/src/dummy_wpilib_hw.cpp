@@ -269,6 +269,11 @@ frc::IterativeRobotBase::IterativeRobotBase(double period)
 {
 	ROS_ERROR("Called IterativeRobotBase::IterativeRobotBase(double) on unsupported platform");
 }
+frc::IterativeRobotBase::IterativeRobotBase(units::second_t period)
+	: m_watchdog(period, [] { })
+{
+	ROS_ERROR("Called IterativeRobotBase::IterativeRobotBase(units::second_t) on unsupported platform");
+}
 void frc::IterativeRobotBase::AutonomousInit()
 {
 	ROS_ERROR("Called IterativeRobotBase::AutonomousInit() on unsupported platform");
@@ -277,6 +282,10 @@ void frc::IterativeRobotBase::AutonomousPeriodic()
 {
 	ROS_ERROR("Called IterativeRobotBase::AutonomousPeriodic() on unsupported platform");
 }
+void frc::IterativeRobotBase::AutonomousExit()
+{
+	ROS_ERROR("Called IterativeRobotBase::AutonomousExit() on unsupported platform");
+}
 void frc::IterativeRobotBase::DisabledInit()
 {
 	ROS_ERROR("Called IterativeRobotBase::DisabledInit() on unsupported platform");
@@ -284,6 +293,10 @@ void frc::IterativeRobotBase::DisabledInit()
 void frc::IterativeRobotBase::DisabledPeriodic()
 {
 	ROS_ERROR("Called IterativeRobotBase::DisabledPeriodic() on unsupported platform");
+}
+void frc::IterativeRobotBase::DisabledExit()
+{
+	ROS_ERROR("Called IterativeRobotBase::DisabledExit() on unsupported platform");
 }
 void frc::IterativeRobotBase::RobotInit()
 {
@@ -301,6 +314,10 @@ void frc::IterativeRobotBase::TeleopPeriodic()
 {
 	ROS_ERROR("Called IterativeRobotBase::TeleopPeriodic() on unsupported platform");
 }
+void frc::IterativeRobotBase::TeleopExit()
+{
+	ROS_ERROR("Called IterativeRobotBase::TeleopExit() on unsupported platform");
+}
 void frc::IterativeRobotBase::TestInit()
 {
 	ROS_ERROR("Called IterativeRobotBase::TestInit() on unsupported platform");
@@ -308,6 +325,10 @@ void frc::IterativeRobotBase::TestInit()
 void frc::IterativeRobotBase::TestPeriodic()
 {
 	ROS_ERROR("Called IterativeRobotBase::TestPeriodic() on unsupported platform");
+}
+void frc::IterativeRobotBase::TestExit()
+{
+	ROS_ERROR("Called IterativeRobotBase::TestExit() on unsupported platform");
 }
 void frc::IterativeRobotBase::SimulationInit()
 {
@@ -538,6 +559,16 @@ HAL_Bool HAL_GetUserActive3V3(int32_t* status)
 int32_t HAL_GetUserCurrentFaults3V3(int32_t* status)
 {
 	ROS_ERROR("Called HAL_GetUserCurrentFaults3V3() on unsupported platform");
+	*status = 0;
+	return -1;
+}
+void HAL_SetBrownoutVoltage(double voltage, int32_t* status)
+{
+	ROS_ERROR("Called HAL_SetBrownoutVoltage(double, int32_t*) on unsupported platform");
+	*status = 0;
+}
+double HAL_GetBrownoutVoltage(int32_t* status) {
+	ROS_ERROR("Called HAL_GetBrownoutVoltage(int32_t*) on unsupported platform");
 	*status = 0;
 	return -1;
 }
@@ -811,4 +842,38 @@ const char* HAL_GetErrorMessage(int32_t code) {
 }
 
 } // extern "C"
+
+namespace wpi {
+
+std::string GetStackTrace(int /*offset*/)
+{
+	ROS_ERROR("Called wpi::GetStackTrace(int offset) const on unsupported platform");
+	return std::string{};
+}
+
+}  // namespace wpi
+
+
+extern "C" {
+HAL_Bool HAL_CheckAnalogInputChannel(int32_t)
+{
+	ROS_ERROR("Called HAL_CheckAnalogInputChannel(int32_t) on unsupported platform");
+	return false;
+}
+HAL_Bool HAL_CheckAnalogOutputChannel(int32_t)
+{
+	ROS_ERROR("Called HAL_CheckAnalogOutputChannel(int32_t) on unsupported platform");
+	return false;
+}
+HAL_Bool HAL_CheckRelayChannel(int32_t)
+{
+	ROS_ERROR("Called HAL_CheckRelayChannel(int32_t) on unsupported platform");
+	return false;
+}
+HAL_Bool HAL_CheckPWMChannel(int32_t)
+{
+	ROS_ERROR("Called HAL_CheckPWMChannel(int32_t) on unsupported platform");
+	return false;
+}
+}  // extern "C"
 

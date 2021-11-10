@@ -352,6 +352,10 @@ uint8_t AHRS::GetActualUpdateRateInternal(uint8_t)
 	ROS_ERROR("Called AHRS::GetActualUpdateRateInternal(uint8_t update_rate) on unsupported platform");
 	return std::numeric_limits<uint8_t>::max();
 }
+void AHRS::Calibrate()
+{
+	ROS_ERROR("Called AHRS::Calibrate() on unsupported platform");
+}
 
 #include <frc/motorcontrol/NidecBrushless.h>
 frc::NidecBrushless::NidecBrushless(int pwmChannel, int dioChannel) : m_dio(dioChannel), m_pwm(pwmChannel)
@@ -529,10 +533,10 @@ void frc::SpeedController::SetVoltage(units::volt_t /*output*/)
 // The plan is bypassing the default WPIlib code will let us get rid of a lot of other
 // unused functions - networktables, etc.
 //
-#if 0
 #include "wpi/sendable/SendableRegistry.h"
 
 namespace wpi{
+#if 0
 
 struct SendableRegistry::Impl
 {
@@ -560,15 +564,25 @@ void SendableRegistry::Add(Sendable* sendable, const wpi::Twine& moduleType, int
 void SendableRegistry::Add(Sendable* sendable, const wpi::Twine& subsystem, const wpi::Twine& name)
 {
 }
+#endif
 
-void AddLW(Sendable* sendable, const wpi::Twine& name);
-
-void SendableRegistry::AddLW(Sendable* /*sendable*/, const wpi::Twine& /*moduleType*/, int /*channel*/)
+void SendableRegistry::AddLW(Sendable* /*sendable*/, std::string_view /*name*/)
 {
+	ROS_ERROR("Called SendableRegistry::AddLW(Sendable *, std::string_view) on unsupported platform");
 }
 
-void AddLW(Sendable* sendable, const wpi::Twine& moduleType, int moduleNumber,
-		 int channel);
+void SendableRegistry::AddLW(Sendable* /*sendable*/, std::string_view /*moduleType*/, int /*channel*/)
+{
+	ROS_ERROR("Called SendableRegistry::AddLW(Sendable *, std::string_view, int) on unsupported platform");
+}
+
+void SendableRegistry::AddLW(Sendable* /*sendable*/, std::string_view /*moduleType*/, int /*moduleNumber*/, int /*channel*/)
+{
+	ROS_ERROR("Called SendableRegistry::AddLW(Sendable *, std::string_view, int, int) on unsupported platform");
+}
+
+
+#if 0
 
 void AddLW(Sendable* sendable, const wpi::Twine& subsystem,
 		 const wpi::Twine& name);
@@ -576,11 +590,14 @@ void AddLW(Sendable* sendable, const wpi::Twine& subsystem,
 void AddChild(Sendable* parent, Sendable* child);
 
 void AddChild(Sendable* parent, void* child);
+#endif
 
 bool SendableRegistry::Remove(Sendable* /*sendable*/)
 {
 return true;
 }
+
+#if 0
 
 void Move(Sendable* to, Sendable* from);
 
@@ -633,8 +650,10 @@ SendableRegistry::SendableRegistry()
 {
 }
 
-}  // namespace frc
+#endif
+}  // namespace wpi
 
+#if 0
 #include "wpi/sendable/SendableBase.h"
 namespace frc
 {
@@ -645,6 +664,22 @@ namespace frc
 }
 #endif
 
+
+#include "networktables/NetworkTableValue.h"
+namespace nt
+{
+Value::Value()
+{
+}
+Value::Value(NT_Type /*type*/, uint64_t /*time*/, const private_init&)
+{
+}
+Value::~Value()
+{
+}
+
+
+}
 #if 0
 #include "ntcore_cpp.h"
 #include "networktables/NetworkTable.h"
@@ -940,3 +975,40 @@ std::shared_ptr<NetworkTable> NetworkTableInstance::GetTable(const Twine& /*key*
 } // namespace nt
 
 #endif
+
+#include "wpi/json.h"
+const char *wpi::json::type_name() const noexcept
+{
+	ROS_ERROR("Called wpi::json::type_name() const on unsupported platform");
+	return nullptr;
+}
+
+wpi::json::reference wpi::json::at(std::string_view /*key*/)
+{
+	ROS_ERROR("Called wpi::json::at(string_view) on unsupported platform");
+	return *this;
+}
+wpi::json::const_reference wpi::json::at(std::string_view /*key*/) const
+{
+	ROS_ERROR("Called wpi::json::at(string_view) const on unsupported platform");
+	return *this;
+}
+
+wpi::json::json(wpi::json::initializer_list_t /*init*/,
+               bool /*type_deduction = true*/,
+               wpi::json::value_t/*manual_type = value_t::array*/)
+{
+	ROS_ERROR("Called wpi::json::json(wpi::json::initializer_list_t, bool, wpi::json::value_t) on unsupported platform");
+}
+
+void wpi::json::json_value::destroy(wpi::detail::value_t) noexcept
+{
+	ROS_ERROR("Called wpi::json::json_value::destroy(wpi::detal::value_t) on unsupported platform");
+}
+
+wpi::detail::type_error wpi::detail::type_error::create(int,std::string_view what_arg, std::string_view type_info)
+{
+	ROS_ERROR("Called static wpi::detail::type_error::create(int, std::string_view, std::string_view) const on unsupported platform");
+}
+
+

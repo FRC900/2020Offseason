@@ -80,6 +80,15 @@ int frc::DigitalOutput::GetChannel() const
 	return std::numeric_limits<int>::max();
 }
 
+// Jetson has DIO pins, so make this stub x86-specific
+extern "C" {
+HAL_Bool HAL_CheckDIOChannel(int32_t)
+{
+	ROS_ERROR("Called HAL_CheckDIOChannel(int32_t) on unsupported platform");
+	return false;
+}
+}  // extern "C"
+
 #if 0
 #include <frc/ErrorBase.h>
 frc::ErrorBase::ErrorBase()

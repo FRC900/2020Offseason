@@ -167,12 +167,12 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
     # Also add all of the wpilib code needed to talk to PCM and PDP
 	set (CTRE_USER_LIBS 
 		${CTRE_USER_LIBS}
-		${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.so
+		#${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.so
 	)
     # This is needed for non-RIO hardware platforms
 	set (PLATFORM_SPECIFIC_LIBS
 		${PLATFORM_SPECIFIC_LIBS}
-		${CTRE_LIB_DIR}/libCTRE_PhoenixPlatform_socketcan.so
+		#${CTRE_LIB_DIR}/libCTRE_PhoenixPlatform_socketcan.so
 	)
 
 	set (FRCROBOT_HW_MAIN_SRCS ${FRCROBOT_HW_MAIN_SRCS} 
@@ -183,6 +183,7 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 		#${ALLWPILIB}/hal/src/main/native/athena/PCMInternal.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/CTREPCM.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/CTREPDP.cpp
+		${ALLWPILIB}/hal/src/main/native/athena/Ports.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/REVPDH.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/REVPH.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/SimDevice.cpp
@@ -190,13 +191,26 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 		#${ALLWPILIB}/hal/src/main/native/athena/ctre/CtreCanNode.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/mockdata/MockHooks.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/mockdata/SimDeviceData.cpp
+		${ALLWPILIB}/hal/src/main/native/athena/rev/PDHFrames.cpp
+		${ALLWPILIB}/hal/src/main/native/athena/rev/PHFrames.cpp
+		${ALLWPILIB}/hal/src/main/native/cpp/ErrorHandling.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/cpp/fpga_clock.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/handles/HandlesInternal.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Compressor.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/DoubleSolenoid.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/Errors.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Joystick.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/MotorSafety.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticsBase.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticsControlModule.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticsHub.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/Solenoid.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Tracer.cpp
+		${ALLWPILIB}/wpimath/src/main/native/cpp/geometry/Rotation2d.cpp
+		${ALLWPILIB}/wpiutil/src/main/native/cpp/fs.cpp
+		${ALLWPILIB}/wpiutil/src/main/native/fmtlib/src/format.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/raw_ostream.cpp
 		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
@@ -251,6 +265,7 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 	add_library(frc_sim_wpilib STATIC
 		${ALLWPILIB}/hal/src/main/native/cpp/cpp/fpga_clock.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/handles/HandlesInternal.cpp
+		${ALLWPILIB}/hal/src/main/native/cpp/ErrorHandling.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/Main.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Accelerometer.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/AddressableLED.cpp
@@ -314,13 +329,14 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalOutput.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/DriverStation.cpp
 		#${ALLWPILIB}/wpilibc/src/main/native/cpp/ErrorBase.cpp
-		#${ALLWPILIB}/wpilibc/src/main/native/cpp/Error.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/Errors.cpp
 		#${ALLWPILIB}/wpilibc/src/main/native/cpp/frc2/Timer.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/GenericHID.cpp
 		#${ALLWPILIB}/wpilibc/src/main/native/cpp/InterruptableSensorBase.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/IterativeRobotBase.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Joystick.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/MotorSafety.cpp
+		${ALLWPILIB}/hal/src/main/native/athena/Ports.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotState.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
@@ -330,6 +346,8 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/simulation/CallbackStore.cpp
 		#${ALLWPILIB}/wpilibc/src/main/native/cpp/simulation/FlywheelSim.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/simulation/RoboRioSim.cpp
+		${ALLWPILIB}/wpimath/src/main/native/cpp/geometry/Rotation2d.cpp
+		${ALLWPILIB}/wpiutil/src/main/native/fmtlib/src/format.cpp
 		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Hashing.cpp
@@ -361,7 +379,9 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		${CTRE_LIB_DIR}/libCTRE_PhoenixCCISim.so
 		${CTRE_USER_LIBS}
 		${CTRE_LIB_DIR}/libCTRE_PhoenixCCISim.so
-		${CTRE_LIB_DIR}/libCTRE_PhoenixPlatform_sim.so
+		#${CTRE_LIB_DIR}/libCTRE_PhoenixPlatform_sim.so
+		${CTRE_LIB_DIR}/libCTRE_SimCANCoder.so
+		${CTRE_LIB_DIR}/libCTRE_SimTalonFX.so
 		${CTRE_LIB_DIR}/libCTRE_SimTalonSRX.so
 		${CTRE_LIB_DIR}/libCTRE_SimVictorSPX.so
 	)
@@ -391,7 +411,7 @@ target_link_libraries(frcrobot_hw_main
 	frc_robot_interface
 	convert
 	${CTRE_USER_LIBS}
-	${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.so
+	#${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.so
 	${PLATFORM_SPECIFIC_LIBS}
 )
 
