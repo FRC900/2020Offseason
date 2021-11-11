@@ -664,7 +664,8 @@ namespace frc
 }
 #endif
 
-
+#include "networktables/NetworkTable.h"
+#include "networktables/NetworkTableInstance.h"
 #include "networktables/NetworkTableValue.h"
 namespace nt
 {
@@ -676,6 +677,38 @@ Value::Value(NT_Type /*type*/, uint64_t /*time*/, const private_init&)
 }
 Value::~Value()
 {
+}
+
+bool SetEntryValue(NT_Entry, std::shared_ptr<Value>)
+{
+	return true;
+}
+void SetEntryTypeValue(NT_Entry /*entry*/, std::shared_ptr<Value> /*value*/)
+{
+}
+
+NT_Inst GetDefaultInstance()
+{
+	static NT_Inst nti;
+	return nti;
+}
+
+NetworkTable::NetworkTable(NT_Inst /*inst*/, std::string_view /*path*/, NetworkTable::private_init const & /*pi*/)
+{
+}
+
+NetworkTable::~NetworkTable()
+{
+}
+
+std::shared_ptr<NetworkTable> NetworkTableInstance::GetTable(std::string_view /*key*/) const
+{
+	return std::make_shared<NetworkTable>(0, "", NetworkTable::private_init{});
+}
+
+NetworkTableEntry NetworkTable::GetEntry(std::string_view /*key*/) const
+{
+	return NetworkTableEntry();
 }
 
 

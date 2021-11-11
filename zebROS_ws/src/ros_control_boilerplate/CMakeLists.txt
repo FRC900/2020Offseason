@@ -236,7 +236,7 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/Error.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/frc2/Timer.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/I2C.cpp
-			${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp
+			#${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp #TODO- duplicate?
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
 			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringMap.cpp
 			${ALLWPILIB}/wpiutil/src/main/native/cpp/timestamp.cpp
@@ -305,8 +305,10 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/EncoderData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/I2CData.cpp
 		#${ALLWPILIB}/hal/src/main/native/sim/mockdata/PDPData.cpp
+		${ALLWPILIB}/hal/src/main/native/sim/mockdata/PowerDistributionData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/PWMData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/RelayData.cpp
+		${ALLWPILIB}/hal/src/main/native/sim/mockdata/REVPHData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/RoboRioData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/SimDeviceData.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/mockdata/SPIAccelerometerData.cpp
@@ -316,8 +318,10 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		#${ALLWPILIB}/hal/src/main/native/sim/PDP.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Ports.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Power.cpp
+		${ALLWPILIB}/hal/src/main/native/sim/PowerDistribution.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/PWM.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/Relay.cpp
+		${ALLWPILIB}/hal/src/main/native/sim/REVPH.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/SerialPort.cpp
 		${ALLWPILIB}/hal/src/main/native/sim/SimDevice.cpp
 		#${ALLWPILIB}/hal/src/main/native/sim/Solenoid.cpp
@@ -327,6 +331,7 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Compressor.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalInput.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalOutput.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/DoubleSolenoid.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/DriverStation.cpp
 		#${ALLWPILIB}/wpilibc/src/main/native/cpp/ErrorBase.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Errors.cpp
@@ -337,9 +342,13 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Joystick.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/MotorSafety.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/Ports.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticsBase.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticsControlModule.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticsHub.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotState.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/Solenoid.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Timer.cpp
 		#${ALLWPILIB}/wpilibc/src/main/native/cpp/Utility.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Watchdog.cpp
@@ -347,6 +356,7 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		#${ALLWPILIB}/wpilibc/src/main/native/cpp/simulation/FlywheelSim.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/simulation/RoboRioSim.cpp
 		${ALLWPILIB}/wpimath/src/main/native/cpp/geometry/Rotation2d.cpp
+		${ALLWPILIB}/wpiutil/src/main/native/cpp/fs.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/fmtlib/src/format.cpp
 		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Error.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ErrorHandling.cpp
@@ -358,6 +368,7 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallPtrSet.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallVector.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringMap.cpp
+		${ALLWPILIB}/wpiutil/src/main/native/cpp/StringExtras.cpp
 		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp
 		#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Twine.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/timestamp.cpp
