@@ -1,14 +1,26 @@
-#include "controllers_2020/intake_controller.h"
-#include <pluginlib/class_list_macros.h> //to compile as a controller
+#include <ros/ros.h>
+#include <realtime_tools/realtime_buffer.h> //code for real-time buffer - stop multple things writing to same variable at same time
+
+//controller interfaces
+#include <controller_interface/multi_interface_controller.h>
+#include <hardware_interface/joint_command_interface.h>
+#include <talon_controllers/talon_controller_interface.h>
+
+#include <controllers_2020_msgs/IntakeArmSrv.h>
+#include <controllers_2020_msgs/IntakeRollerSrv.h>
+#include <std_srvs/SetBool.h>
 
 namespace intake_controller
 {
-    bool IntakeController::init(hardware_interface::RobotHW *hw,
-                                     ros::NodeHandle                 &/*root_nh*/,
-                                     ros::NodeHandle                 &controller_nh)
+class IntakeController : public controller_interface::MultiInterfaceController<hardware_interface::PositionJointInterface, hardware_interface::TalonCommandInterface>
+{
+public:
+	bool init(hardware_interface::RobotHW *hw,
+              ros::NodeHandle             &/*root_nh*/,
+              ros::NodeHandle             &controller_nh) override
     {
-	hardware_interface::TalonCommandInterface *const talon_command_iface = hw->get<hardware_interface::TalonCommandInterface>();
-        hardware_interface::PositionJointInterface *const pos_joint_iface = hw->get<hardware_interface::PositionJointInterface>();
+		auto talon_command_iface = hw->get<hardware_interface::TalonCommandInterface>();
+        auto pos_joint_iface = hw->get<hardware_interface::PositionJointInterface>();
 
         //Initialize intake piston joint
         intake_arm_joint_ = pos_joint_iface->getHandle("intake_arm_joint"); //read from ros_control_boilerplate/config/[insert_year]_compbot_base_jetson.yaml
@@ -27,10 +39,10 @@ namespace intake_controller
             ROS_ERROR("Cannot initialize intake_joint!");
             return false;
         }
-	else
-	{
-		ROS_INFO("Initialized intake joint");
-	}
+		else
+		{
+			ROS_INFO("Initialized intake joint");
+		}
 
         //Initialize your ROS server
         intake_arm_service_ = controller_nh.advertiseService("intake_arm_command", &IntakeController::cmdServiceArm, this);
@@ -40,7 +52,7 @@ namespace intake_controller
 		return true;
     }
 
-    void IntakeController::starting(const ros::Time &/*time*/) {
+    void starting(const ros::Time &/*time*/) override {
         //give command buffer(s) an initial value
 		arm_extend_cmd_buffer_.writeFromNonRT(true);
 		percent_out_cmd_buffer_.writeFromNonRT(0.0);
@@ -48,7 +60,7 @@ namespace intake_controller
 		forward_disabled_.writeFromNonRT(false);
     }
 
-    void IntakeController::update(const ros::Time &/*time*/, const ros::Duration &/*period*/) {
+    void update(const ros::Time &/*time*/, const ros::Duration &/*period*/) override {
         //grab value from command buffer(s)
         const bool arm_extend_cmd = *(arm_extend_cmd_buffer_.readFromRT());
 		double arm_extend_double;
@@ -70,10 +82,11 @@ namespace intake_controller
 		intake_arm_joint_.setCommand(arm_extend_double);
     }
 
-    void IntakeController::stopping(const ros::Time &/*time*/) {
+    void stopping(const ros::Time &/*time*/) override {
     }
 
-	bool IntakeController::cmdServiceArm(controllers_2020_msgs::IntakeArmSrv::Request &req, controllers_2020_msgs::IntakeArmSrv::Response &/*response*/) {
+private:
+	bool cmdServiceArm(controllers_2020_msgs::IntakeArmSrv::Request &req, controllers_2020_msgs::IntakeArmSrv::Response &/*response*/) {
         if(isRunning())
         {
             //assign request value to command buffer(s)
@@ -87,7 +100,7 @@ namespace intake_controller
         return true;
     }
 
-	bool IntakeController::cmdServiceRoller(controllers_2020_msgs::IntakeRollerSrv::Request &req, controllers_2020_msgs::IntakeRollerSrv::Response &/*response*/) {
+	bool cmdServiceRoller(controllers_2020_msgs::IntakeRollerSrv::Request &req, controllers_2020_msgs::IntakeRollerSrv::Response &/*response*/) {
         if(isRunning())
         {
             //assign request value to command buffer(s)
@@ -101,7 +114,7 @@ namespace intake_controller
         return true;
     }
 
-	bool IntakeController::disableIntakeCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &) {
+	bool disableIntakeCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &) {
         if(isRunning())
         {
             forward_disabled_.writeFromNonRT(req.data);
@@ -114,9 +127,21 @@ namespace intake_controller
         return true;
     }
 
+	talon_controllers::TalonPercentOutputControllerInterface intake_joint_;//intake for intake motor
+	hardware_interface::JointHandle intake_arm_joint_;//interface for intake arm solenoid
+	realtime_tools::RealtimeBuffer<bool> arm_extend_cmd_buffer_;
+	realtime_tools::RealtimeBuffer<double> percent_out_cmd_buffer_;
+	ros::ServiceServer intake_arm_service_;
+	ros::ServiceServer intake_roller_service_;
+
+	ros::ServiceServer intake_disable_service_;
+	realtime_tools::RealtimeBuffer<bool> forward_disabled_; //set to true by the indexer server when it's finishing up properly storing a ball, to ensure the proper gap
+};
+
 
 }//namespace
 
 //DON'T FORGET TO EXPORT THE CLASS SO CONTROLLER_MANAGER RECOGNIZES THIS AS A TYPE
+#include <pluginlib/class_list_macros.h> //to compile as a controller
 PLUGINLIB_EXPORT_CLASS(intake_controller::IntakeController, controller_interface::ControllerBase)
 
