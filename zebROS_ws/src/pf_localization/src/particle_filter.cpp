@@ -2,6 +2,8 @@
 
 #include "pf_localization/particle_filter.hpp"
 #include "pf_localization/world_model.hpp"
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <tf2/LinearMath/Quaternion.h>
 #include <cmath>
 #include <ros/console.h>
 
@@ -105,24 +107,85 @@ void ParticleFilter::resample() {
   normalize();
 }
 
-Particle ParticleFilter::predict() {
+geometry_msgs::PoseWithCovarianceStamped ParticleFilter::predict() {
   double weight = 0;
-  Particle res;
+  double x = 0;
+  double y = 0;
   double s = 0;
   double c = 0;
+
+  // Initializes all values to 0
+  float covariance[16] = {0};
+
   for (const Particle& p : particles_) {
-    res.x_ += p.x_ * p.weight_;
-    res.y_ += p.y_ * p.weight_;
-    c += cos(p.rot_) * p.weight_;
-    s += sin(p.rot_) * p.weight_;
+    double sin_ = sin(p.rot_);
+    double cos_ = cos(p.rot_);
+
+    // Update covariance matrix
+    double variables[4] = {p.x_, p.y_, sin_, cos_};
+
+    for(int i = 0; i < 4; i++) {
+      for(int j = 0; j < 4; j++) {
+        int index = i * 4 + j;
+        // Normally, variables[i] would be subtracted by the mean of all variables[i]
+        // to give the distance from the mean instead of the distance from zero.
+        // We don't have the means already, so we factor out that part and do it at the end.
+        covariance[index] += variables[i] * variables[j] * p.weight_;
+      }
+    }
+
+    // Add weighted values to means
+    x += p.x_ * p.weight_;
+    y += p.y_ * p.weight_;
+    c += cos_ * p.weight_;
+    s += sin_ * p.weight_;
     weight += p.weight_;
   }
-  res.x_ /= weight;
-  res.y_ /= weight;
+
+  // This is where the covariances are adjusted to be measuring from the mean
+  // instead of measuring from zero. This part was factored out of the loop
+  // because we don't have the means until the end of the loop.
+  double means[4] = {x, y, s, c};
+
+  for(int i = 0; i < 4; i++) {
+    for(int j = 0; j < 4; j++) {
+      int index = i * 4 + j;
+      covariance[index] = (covariance[index] / weight) - (means[i] * means[j]);
+    }
+  }
+
+  // Divide by weight to get the weighted average
+  x /= weight;
+  y /= weight;
   c /= weight;
   s /= weight;
-  res.rot_ = atan2(s, c);
-  return res;
+  double rot = atan2(s, c);
+
+  // Packing everything into the PoseWithCovarianceStamped
+  geometry_msgs::PoseWithCovarianceStamped pose;
+  pose.pose.pose.position.x = x;
+  pose.pose.pose.position.y = y;
+  pose.pose.pose.position.z = 0;
+
+  tf2::Quaternion q;
+  q.setRPY(0, 0, rot);
+  pose.pose.pose.orientation.x = q.getX();
+  pose.pose.pose.orientation.y = q.getY();
+  pose.pose.pose.orientation.z = q.getZ();
+  pose.pose.pose.orientation.w = q.getW();
+
+  std::fill(std::begin(pose.pose.covariance), std::begin(pose.pose.covariance)+36, 1000);
+  for(int i = 0; i < 4; i++) {
+    for(int j = 0; j < 4; j++) {
+      // Offset to skip over z rotation
+      int row = i > 1 ? i + 1 : i;
+      int column = j > 1 ? j + 1 : j;
+      // The matrix is 6x6
+      pose.pose.covariance[row * 6 + column] = covariance[i * 4 + j];
+    }
+  }
+
+  return pose;
 }
 
 bool ParticleFilter::motion_update(double delta_x, double delta_y, double delta_rot) {
