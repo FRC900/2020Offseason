@@ -22,6 +22,8 @@ ros::Publisher pub;
 sensor_msgs::CameraInfo caminfo;
 bool caminfovalid {false};
 
+constexpr float depth_epsilon = 0.01; // If depth values are greater than this value (in meters) away from each other, they are treated as unique. See `kMeansDepthMat`.
+
 // Capture camera info published about the camera - needed for screen to world to work
 void camera_info_callback(const sensor_msgs::CameraInfoConstPtr &info)
 {
@@ -39,19 +41,17 @@ float findMedianOfMat(cv::Mat mat) {
 		mat.copyTo(vec);
 		// remove 255 (when this is called, values that are masked are 255)
 		vec.erase(std::remove(vec.begin(), vec.end(), 255), vec.end());
-		// sort vector
-		std::sort(vec.begin(), vec.end()); // forgot this earlier
 		if ((vec.size() % 2) != 0) { // if odd
 			auto it = vec.begin() + vec.size()/2;
-			std::nth_element(vec.begin(), it, vec.end());
+			std::nth_element(vec.begin(), it, vec.end()); // sort vector so that the middle value is sorted, but not any of the other values
 			median = vec[vec.size()/2];
 		} else { // if even
 			auto it = vec.begin() + vec.size()/2;
-			std::nth_element(vec.begin(), it, vec.end());
+			std::nth_element(vec.begin(), it, vec.end()); // sort vector so that the middle value is sorted, but not any of the other values
 			median += vec[vec.size()/2];
 			it = vec.begin() + vec.size()/2 - 1;
-			std::nth_element(vec.begin(), it, vec.end());
-			median += vec[vec.size()/2];
+			std::nth_element(vec.begin(), it, vec.end()); // sort vector so that the value before the middle value is sorted, but not any of the other values
+			median += vec[vec.size()/2 - 1];
 			median = ((float)median/2.0d);
 		}
 	}
@@ -73,7 +73,7 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 	// Crop depth to region of interest
 	cv::Mat depth = depth_(bound_rect);
 
-	// set very large outliers and nan to 0 so they can be removed later
+	// set very large outliers and nan to 0 so they can be removed later. TODO see if the ZED actually reports negative depth
 	float nan_ = std::numeric_limits<float>::quiet_NaN();
 	cv::Mat inf = depth>=900;
 	cv::Mat neg_inf = depth<=-900;
@@ -143,9 +143,9 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 	cv::Scalar color = cv::Scalar(255);
 	cv::drawContours(mask, contours, largestContourIndex, color, -1, cv::LINE_8, hierarchy, 0);
 
-	// make a new image for the original depth cut out by the mask, and fill it with 999
-	// 999 = ignore value, see line 168
-	cv::Mat masked = cv::Mat::ones(depth.size(), depth.type()) * 999;
+	// make a new image for the original depth cut out by the mask, and fill it with std::numeric_limits<float>::max()
+	// std::numeric_limits<float>::max() = ignore value, see line 168
+	cv::Mat masked = cv::Mat::ones(depth.size(), depth.type()) * std::numeric_limits<float>::max();
 	depth.copyTo(masked, mask);
 
 	// if debug is enabled,
@@ -164,8 +164,8 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 	std::vector<float> vec;
 	masked = masked.reshape(0, 1);
 	masked.copyTo(vec);
-	// remove 999 values from the mask
-	vec.erase(std::remove(vec.begin(), vec.end(), 999), vec.end());
+	// remove std::numeric_limits<float>::max() values from the mask
+	vec.erase(std::remove(vec.begin(), vec.end(), std::numeric_limits<float>::max()), vec.end());
 	// and 0 values (no depth)
 	vec.erase(std::remove(vec.begin(), vec.end(), 0), vec.end());
 	// sort vector
@@ -199,7 +199,7 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle, using k-means
-double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, int maximumK = 3, float tolerance = 1e-3)
+double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, size_t maximumK = 3, float tolerance = 1e-3)
 {
 	// setup randomizing (for initialization of k-means)
 	std::random_device seeder;
@@ -214,13 +214,13 @@ double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool deb
     vec.insert(vec.end(), mat.ptr<float>(i), mat.ptr<float>(i)+mat.cols*mat.channels());
   }
 
-	// Find unique (defined as >1cm away) values in the vector
+	// Find unique (defined as >`depth_epsilon` meters away) values in the vector
 	std::sort(vec.begin(), vec.end());
-	auto last = std::unique(vec.begin(), vec.end(), [](float first, float second){ return fabs(second - first)<0.01; });
+	auto last = std::unique(vec.begin(), vec.end(), [](float first, float second){ return fabs(second - first)<depth_epsilon; });
 	vec.erase(last, vec.end());
 
 	// Set k to maximumK if there are more than maximumK unique values, otherwise set it to the number of unique values
-	int k = std::min((int)(vec.size()), maximumK);
+	size_t k = std::min(vec.size(), maximumK);
 
 	// End of checking if k is too high
 
@@ -236,7 +236,7 @@ double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool deb
 	if (debug) {
 		ROS_INFO_STREAM("k = " << k);
 		ROS_INFO_STREAM("Centroids: ");
-		for (int i = 0; i < k; i++) {
+		for (size_t i = 0; i < k; i++) {
 			ROS_INFO_STREAM(centroids[i]);
 		}
 	}
@@ -251,28 +251,32 @@ double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool deb
 				if (!(isnan(ptr_depth[i]) || isinf(ptr_depth[i]) || (ptr_depth[i] <= 0)))
 				{
 					// Calculate which centroid/mean the current pixel is closest to
-					float diffs[k];
-					for (int c = 0; c < k; c++) {
-						diffs[c] = abs(centroids[c] - ptr_depth[i]);
+					size_t closestCentroidIndex = -1;
+					float smallestDiff = std::numeric_limits<float>::max();
+					for (size_t c = 0; c < k; c++) {
+						float diff = fabs(centroids[c] - ptr_depth[i]);
+						if (diff < smallestDiff) {
+							closestCentroidIndex = c;
+							smallestDiff = diff;
+						}
 					}
-					int closestCentroid = std::distance(diffs, std::min_element(diffs, diffs+k));
 					// Append the pixel's value to the cluster corresponding to that centroid
-					clusters[closestCentroid].push_back(ptr_depth[i]);
+					clusters[closestCentroidIndex].push_back(ptr_depth[i]);
 				}
 			}
 		}
 
 		// Recalculate centroids using the average of the cluster closest to each centroid
-		// (or set the centroid to 999 if there are no values in the cluster)
-		for (int i = 0; i < k; i++) {
+		// (or set the centroid to std::numeric_limits<float>::max() if there are no values in the cluster)
+		for (size_t i = 0; i < k; i++) {
 			double sum = 0;
 			for (float f : clusters[i]) {
 				sum += f;
 			}
 			if (clusters[i].size() != 0) {
 				centroids[i] = sum / (double)clusters[i].size();
-			} else { // If the centroid's cluster has no values, set it to 999 (basically remove it)
-				centroids[i] = 999;
+			} else { // If the centroid's cluster has no values, set it to std::numeric_limits<float>::max() (basically remove it)
+				centroids[i] = std::numeric_limits<float>::max();
 			}
 			clusters[i].clear(); // Clear clusters
 		}
@@ -280,8 +284,8 @@ double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool deb
 		// Calculate and print the difference between the current and previous centroids
 		// this lets us see when the difference is very low (in which case the algorithm will be done)
 		float diff = 0;
-		for (int i = 0; i < k; i++) {
-			diff += abs(centroids[i] - prevCentroids[i]);
+		for (size_t i = 0; i < k; i++) {
+			diff += fabs(centroids[i] - prevCentroids[i]);
 		}
 		if (debug) {
 			ROS_INFO_STREAM("diff: " << diff);
@@ -453,6 +457,7 @@ int main (int argc, char **argv)
 	std::unique_ptr<message_filters::Synchronizer<ObjDepthSyncPolicy>> obj_depth_sync;
 	obj_depth_sync = std::make_unique<message_filters::Synchronizer<ObjDepthSyncPolicy>>(ObjDepthSyncPolicy(10), *obsub, *depth_sub);
 
+	// obj_depth_sync->setMaxIntervalDuration(ros::Duration(1, 0)); // for testing rosbags
 	obj_depth_sync->registerCallback(boost::bind(callback, _1, _2));
 
 	// Set up a simple subscriber to capture camera info
