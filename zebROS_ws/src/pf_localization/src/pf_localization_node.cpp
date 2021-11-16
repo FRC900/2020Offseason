@@ -13,6 +13,7 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <geometry_msgs/PoseWithCovariance.h>
 #include <sensor_msgs/Imu.h>
 #include <iostream>
 #include <ros/ros.h>
@@ -59,17 +60,23 @@ void rotCallback(const sensor_msgs::Imu::ConstPtr& msg) {
 
 void publish_prediction(const ros::TimerEvent &/*event*/)
 {
-  const geometry_msgs::PoseWithCovarianceStamped prediction = pf->predict();
-  pub.publish(prediction);
+  const geometry_msgs::PoseWithCovariance prediction = pf->predict();
+  geometry_msgs::PoseWithCovarianceStamped predictionStamped;
+
+  predictionStamped.pose = prediction;
+  predictionStamped.header.stamp = ros::Time::now();
+  predictionStamped.header.frame_id = odom_frame_id;
+
+  pub.publish(predictionStamped);
 
   // Publish map->odom transform describing this position
-  const tf2::Quaternion q(prediction.pose.pose.orientation.x,
-    prediction.pose.pose.orientation.y,
-    prediction.pose.pose.orientation.z,
-    prediction.pose.pose.orientation.w);
+  const tf2::Quaternion q(prediction.pose.orientation.x,
+    prediction.pose.orientation.y,
+    prediction.pose.orientation.z,
+    prediction.pose.orientation.w);
 
-  tf2::Vector3 pos(prediction.pose.pose.position.x,
-    prediction.pose.pose.position.y,
+  tf2::Vector3 pos(prediction.pose.position.x,
+    prediction.pose.position.y,
     0.0);
 
   const double tmp = pos.getX() + pos.getY() + pos.getZ() + q.getX() + q.getY() + q.getZ() + q.getW();
