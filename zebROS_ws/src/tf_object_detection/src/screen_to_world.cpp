@@ -22,7 +22,16 @@ ros::Publisher pub;
 sensor_msgs::CameraInfo caminfo;
 bool caminfovalid {false};
 
+// K_MEANS = k-means, Forgy method of initializing (k-means++ would likely be better, but Forgy is working ok for now)
+// CONTOURS = find depth by finding contours and taking the lowest value of the biggest contour
+// CONTOURS_NON_ADAPTIVE = contours, but using thresholding based on the median instead of adaptive thresholding
+enum DepthCalculationAlgorithm { K_MEANS, CONTOURS, CONTOURS_NON_ADAPTIVE };
+
 constexpr float depth_epsilon = 0.01; // If depth values are greater than this value (in meters) away from each other, they are treated as unique. See `kMeansDepthMat`.
+constexpr float percent_from_bottom_contours = 0; // The contours algorithm finds the biggest contour in the image and returns the lowest value, excluding this percent of low values (outliers).
+																									// For example, if this is 0, the contours algorithm will return the lowest value in the largest contour.
+																									// If this is 0.01, the algorithm will throw out the lowest 1% of data and then return the lowest value.
+constexpr DepthCalculationAlgorithm algorithm = CONTOURS; // The algorithm used to find depth data
 
 // Capture camera info published about the camera - needed for screen to world to work
 void camera_info_callback(const sensor_msgs::CameraInfoConstPtr &info)
@@ -52,20 +61,15 @@ float findMedianOfMat(cv::Mat mat) {
 			it = vec.begin() + vec.size()/2 - 1;
 			std::nth_element(vec.begin(), it, vec.end()); // sort vector so that the value before the middle value is sorted, but not any of the other values
 			median += vec[vec.size()/2 - 1];
-			median = ((float)median/2.0d);
+			median = median/(float)2.0;
 		}
 	}
 	return median;
 }
 
-// K_MEANS = k-means, Forgy method of initializing (k-means++ would likely be better, but Forgy is working ok for now)
-// CONTOURS = find depth by finding contours and taking the lowest value of the biggest contour
-// CONTOURS_NON_ADAPTIVE = contours, but using thresholding based on the median instead of adaptive thresholding
-enum DepthCalculationAlgorithm { K_MEANS, CONTOURS, CONTOURS_NON_ADAPTIVE };
-
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle, using contour finding
-double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool debug = false, bool adaptive = true) {
+float contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool debug = false, bool adaptive = true) {
 	if (bound_rect.size().area() == 0) { // if the ROI is zero, return -1 (no depth)
 		return -1;
 	}
@@ -85,7 +89,7 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 	depth.setTo(0, neg_nan);
 
 	if (debug) {
-		double min, max;
+		double min, max; // cv::minMaxLoc requires doubles which is why a double is used here. Also, this is only enabled when debug==true.
 		cv::minMaxLoc(depth, &min, &max);
 		ROS_INFO_STREAM("min: " << min << ", max: " << max);
 		cv::Mat dest;
@@ -171,8 +175,7 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 	// sort vector
 	std::sort(vec.begin(), vec.end());
 
-	return (vec.size() != 0 ? vec[0] : -1); // return lowest value. Ideally, we'd want to throw out the bottom
-	// <some number>%, but that messes up depth calculation for things like spheres.
+	return (vec.size() != 0 ? vec[(size_t)(percent_from_bottom_contours * vec.size())] : -1); // return lowest value after throwing out the bottom <percent_from_bottom_contours>%.
 	// If there are no values, return -1.
 
 	/* Test results (adaptive thresholding):
@@ -199,7 +202,7 @@ double contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool 
 
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle, using k-means
-double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, size_t maximumK = 3, float tolerance = 1e-3)
+float kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, size_t maximumK = 3, float tolerance = 1e-3)
 {
 	// setup randomizing (for initialization of k-means)
 	std::random_device seeder;
@@ -225,8 +228,8 @@ double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool deb
 	// End of checking if k is too high
 
 	// initialize arrays (and a vector) for k-means
-	double centroids[k];
-	double prevCentroids[k];
+	float centroids[k];
+	float prevCentroids[k];
 	std::vector<float> clusters[k];
 
 	// Pick centroids
@@ -269,12 +272,12 @@ double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool deb
 		// Recalculate centroids using the average of the cluster closest to each centroid
 		// (or set the centroid to std::numeric_limits<float>::max() if there are no values in the cluster)
 		for (size_t i = 0; i < k; i++) {
-			double sum = 0;
+			float sum = 0;
 			for (float f : clusters[i]) {
 				sum += f;
 			}
 			if (clusters[i].size() != 0) {
-				centroids[i] = sum / (double)clusters[i].size();
+				centroids[i] = sum / (float)clusters[i].size();
 			} else { // If the centroid's cluster has no values, set it to std::numeric_limits<float>::max() (basically remove it)
 				centroids[i] = std::numeric_limits<float>::max();
 			}
@@ -304,7 +307,7 @@ double kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool deb
 
 // Get the most useful depth value in the cv::Mat depth contained within
 // the supplied bounding rectangle
-double usefulDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, DepthCalculationAlgorithm algorithm = CONTOURS, int k = 3, float tolerance = 1e-3)
+float usefulDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debug = false, DepthCalculationAlgorithm algorithm = CONTOURS, int k = 3, float tolerance = 1e-3)
 {
 	switch (algorithm) {
 		case CONTOURS:
@@ -350,7 +353,7 @@ void callback(const field_obj::TFDetectionConstPtr &objDetectionMsg, const senso
 
 		// Get the distance to the object by finding contours within the depth data inside the
 		// object's bounding rectangle.
-		const double objDistance = usefulDepthMat(cvDepth->image, rect, false, CONTOURS);
+		const float objDistance = usefulDepthMat(cvDepth->image, rect, false, algorithm);
 		if (objDistance < 0)
 		{
 			ROS_ERROR_STREAM("Depth of object at " << objRectCenter << " with bounding rect " << rect << " objDistance < 0 : " << objDistance);
