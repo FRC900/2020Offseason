@@ -5,6 +5,7 @@
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <cmath>
+#include <angles/angles.h>
 #include <ros/console.h>
 
 std::ostream& operator<<(std::ostream& os, const Particle &p)
@@ -114,23 +115,7 @@ geometry_msgs::PoseWithCovariance ParticleFilter::predict() {
   double s = 0;
   double c = 0;
 
-  // Initializes all values to 0
-  float covariance[9] = {0};
-
   for (const Particle& p : particles_) {
-    // Update covariance matrix
-    double variables[3] = {p.x_, p.y_, p.rot_};
-
-    for(int i = 0; i < 3; i++) {
-      for(int j = 0; j < 3; j++) {
-        int index = i * 3 + j;
-        // Normally, variables[i] would be subtracted by the mean of all variables[i]
-        // to give the distance from the mean instead of the distance from zero.
-        // We don't have the means already, so we factor out that part and do it at the end.
-        covariance[index] += variables[i] * variables[j] * p.weight_;
-      }
-    }
-
     // Add weighted values to means
     x += p.x_ * p.weight_;
     y += p.y_ * p.weight_;
@@ -146,20 +131,32 @@ geometry_msgs::PoseWithCovariance ParticleFilter::predict() {
   s /= weight;
   double rot = atan2(s, c);
 
-  // This is where the covariances are adjusted to be measuring from the mean
-  // instead of measuring from zero. This part was factored out of the loop
-  // because we don't have the means until the end of the loop.
-  double means[3] = {x, y, rot};
+  double covariance[9] = {0};
+  for (const Particle& p : particles_) {
+    // Put distances into an array so they can be accessed in a loop
+    double differences[3] = {p.x_ - x, p.y_ - y, angles::shortest_angular_distance(p.rot_, rot)};
 
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      int index = i * 3 + j;
-      covariance[index] = (covariance[index] / weight) - (means[i] * means[j]);
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        int index = i * 3 + j;
+        covariance[index] += differences[i] * differences[j] * p.weight_;
+      }
     }
   }
 
   // Packing everything into PoseWithCovariance
   geometry_msgs::PoseWithCovariance pose;
+
+  std::fill(std::begin(pose.covariance), std::begin(pose.covariance)+36, 1000);
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      // Offset to skip to z rotation
+      int row = i > 1 ? i + 3 : i;
+      int column = j > 1 ? j + 3 : j;
+      pose.covariance[row * 6 + column] = covariance[i * 3 + j] / weight;
+    }
+  }
+
   pose.pose.position.x = x;
   pose.pose.position.y = y;
   pose.pose.position.z = 0;
@@ -170,17 +167,6 @@ geometry_msgs::PoseWithCovariance ParticleFilter::predict() {
   pose.pose.orientation.y = q.getY();
   pose.pose.orientation.z = q.getZ();
   pose.pose.orientation.w = q.getW();
-
-  std::fill(std::begin(pose.covariance), std::begin(pose.covariance)+36, 1000);
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      // Offset to skip to z rotation
-      int row = i > 1 ? i + 3 : i;
-      int column = j > 1 ? j + 3 : j;
-      // The matrix is 6x6
-      pose.covariance[row * 6 + column] = covariance[i * 3 + j];
-    }
-  }
 
   return pose;
 }
