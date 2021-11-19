@@ -3,6 +3,8 @@
 #include <image_transport/image_transport.h>
 #include <opencv2/opencv.hpp>
 
+#include "depth_algorithms.h"
+
 #include <std_msgs/String.h> // for testing depth detection on the `test_depth` topic
 
 // A callback function for testing usefulDepthMat. This is for a subscriber that
@@ -42,6 +44,8 @@ int main (int argc, char** argv) {
 	// Add a subscriber to subscribe to testing messages
 	// Example of message to send: rostopic pub /test_depth std_msgs/String /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal_behind_power_cell.png
 	ros::Subscriber sub = nh.subscribe("test_depth", 10, testUsefulDepthMatCallback);
+
+	ros::spin();
 
   return 0;
 }

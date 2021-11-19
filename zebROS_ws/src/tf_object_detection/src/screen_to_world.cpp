@@ -14,8 +14,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-#include <std_msgs/String.h> // for testing depth detection on the `test_depth` topic
-#include <random> // for Forgy method of initializing k-means for depth detection
+#include "depth_algorithms.h"
 
 ros::Publisher pub;
 
