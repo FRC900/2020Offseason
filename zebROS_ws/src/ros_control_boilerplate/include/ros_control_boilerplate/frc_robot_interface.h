@@ -62,6 +62,7 @@
 #include "frc_interfaces/pdp_state_interface.h"
 #include "frc_interfaces/robot_controller_interface.h"
 #include "remote_joint_interface/remote_joint_interface.h"
+#include "ros_control_boilerplate/cancoder_convert.h"
 #include "ros_control_boilerplate/ros_iterative_robot.h"
 #include "ros_control_boilerplate/talon_convert.h"
 #include "talon_interface/cancoder_command_interface.h"
@@ -473,10 +474,13 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		//certain data will be read at a slower rate than the main loop, for computational efficiency
 		//robot iteration calls - sending stuff to driver station
 		double ctre_mc_read_hz_{100};
+		double cancoder_read_hz_{100};
+		double canifier_read_hz_{100};
 		double pcm_read_hz_{20};
 		double ph_read_hz_{20};
 		double pdh_read_hz_{20};
 		double pdp_read_hz_{20};
+		double as726x_read_hz_{7};
 		double t_prev_robot_iteration_;
 		double robot_iteration_hz_{50};
 
@@ -508,6 +512,16 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 												 std::shared_ptr<std::mutex> mutex,
 												 std::unique_ptr<Tracer> tracer,
 												 double poll_frequency);
+
+		std::vector<std::shared_ptr<ctre::phoenix::sensors::CANCoder>> cancoders_;
+		std::vector<std::shared_ptr<std::mutex>> cancoder_read_state_mutexes_;
+		std::vector<std::shared_ptr<hardware_interface::cancoder::CANCoderHWState>> cancoder_read_thread_states_;
+		std::vector<std::thread> cancoder_read_threads_;
+		void cancoder_read_thread(std::shared_ptr<ctre::phoenix::sensors::CANCoder> cancoder,
+				std::shared_ptr<hardware_interface::cancoder::CANCoderHWState> state,
+				std::shared_ptr<std::mutex> mutex,
+				std::unique_ptr<Tracer> tracer,
+				double poll_frequency);
 
 		std::vector<std::shared_ptr<frc::NidecBrushless>> nidec_brushlesses_;
 		std::vector<std::shared_ptr<frc::DigitalInput>> digital_inputs_;
@@ -567,6 +581,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		Tracer write_tracer_;
 
 		talon_convert::TalonConvert talon_convert_;
+		cancoder_convert::CANCoderConvert cancoder_convert_;
 
 };  // class
 
