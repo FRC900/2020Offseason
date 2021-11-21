@@ -65,7 +65,7 @@ void publish_prediction(const ros::TimerEvent &/*event*/)
 
   predictionStamped.pose = prediction;
   predictionStamped.header.stamp = ros::Time::now();
-  predictionStamped.header.frame_id = odom_frame_id;
+  predictionStamped.header.frame_id = map_frame_id;
 
   pub.publish(predictionStamped);
 
