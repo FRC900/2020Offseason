@@ -105,7 +105,7 @@ set (WPI_BASE_LIB_DIR ${WPI_SYSROOT}/lib/wpilib/linux)
 # Rio-only code
 if ("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/athena/shared)
-	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/athena/static)
+	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/athena/shared)
 
 	# Link against wpi user libraries for CAN talon and navX-MXP code and
 	# wpilib for HAL, driver station, and so on
@@ -126,28 +126,32 @@ if ("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 	set (FRCROBOT_HW_MAIN_SRCS ${FRCROBOT_HW_MAIN_SRCS}
 		src/dummy_wpilib_rio.cpp
 	)
+	set (CTRE_USER_LIBS
+		${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.so
+	)
 elseif ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") # Jetson TK1
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/raspbian/shared)    # Who knows if this will work
-	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/raspbian/static)
+	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/raspbian/shared)
 	find_library(LIB_GPIOD libgpiod.a)
 elseif ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu") # Jetson TX1/TX2/Xavier AGX/Xavier NX
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/aarch64bionic/shared)
-	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/aarch64bionic/static)
+	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/aarch64bionic/shared)
 	find_library(LIB_GPIOD libgpiod.a)
 else() # x86-64, hopefully. First person to try and build native on a Mac gets kicked off the team
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/x86-64/shared)
-	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/x86-64/static)
+	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/x86-64/shared)
 endif()
   
 # All platforms need these, they just live
 # in different dirs for different architectures
 set (CTRE_USER_LIBS
+	${CTRE_USER_LIBS}
 	${CTRE_LIB_DIR}/libCTRE_Phoenix_WPI.so
 	${CTRE_LIB_DIR}/libCTRE_Phoenix.so
 )
 set (REV_USER_LIBS
-	${REV_LIB_DIR}/libREVLib.a
-	${REV_LIB_DIR}/libREVLibDriver.a
+	${REV_LIB_DIR}/libREVLibDriver.so
+	${REV_LIB_DIR}/libREVLib.so
 )
 # Used to find HALInitializer from wpilib internal repo
 include_directories(${ALLWPILIB}/hal/src/main/native/athena)
@@ -379,7 +383,6 @@ target_link_libraries(frcrobot_hw_main
 	frc_robot_interface
 	${FRC_COMMON_WPILIB}
 	${CTRE_USER_LIBS}
-	#${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.so
 	${PLATFORM_SPECIFIC_LIBS}
 	${catkin_LIBRARIES}
 )
