@@ -18,7 +18,7 @@ git clone https://github.com/ros/urdfdom_headers.git
 cd urdfdom_headers
 wget https://raw.githubusercontent.com/ros-gbp/urdfdom_headers-release/master/indigo/package.xml
 # Fix the version in package.xml to read 1.0.0
-sed -i -e 's/:{version}/1.0.0/' package.xml 
+sed -i -e 's/:{version}/1.0.5/' package.xml 
 
 cd ~/melodic_arm_cross_ws/src
 #git clone https://github.com/jbeder/yaml-cpp.git
@@ -60,13 +60,13 @@ sed -i -e '/<\/package>/i  <build_depend>urdfdom_headers<\/build_depend>' urdf/u
 # Add class_loader to src/urdf/urdf package.xml exec_depend and CMakeLists CATKIN_DEPENDS
 
 # In a docker container : 
-# docker run -it --user ubuntu -v /home/kjaget/2020Offseason:/home/ubuntu/2020Offseason -v ~/melodic_arm_cross_ws:/home/ubuntu/melodic_arm_cross_ws  frc900/zebros-2022-beta-dev /bin/bash
+# docker run -it --user ubuntu -v /home/kjaget/2020Offseason:/home/ubuntu/2020Offseason -v ~/melodic_arm_cross_ws:/home/ubuntu/melodic_arm_cross_ws  frc900/zebros-2022-dev /bin/bash
 
 # Then run the following from inside the container :
 
 cd ~/melodic_arm_cross_ws
 # Do a fresh build - kill off any lingering dependencies
-rm -rf ~/wpilib/2021/roborio/arm-frc2022-linux-gnueabi/opt/ros/melodic devel_isolated build_isolated
+rm -rf ~/wpilib/2022/roborio/arm-frc2022-linux-gnueabi/opt/ros/melodic devel_isolated build_isolated
 
 
 # Note - if this fails looking for gencpp*cmake, run from a new terminal
