@@ -19,8 +19,8 @@ add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-var-tracking-assignments>")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-DPCL_ONLY_CORE_POINT_TYPES=ON>")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-DNO_EXPLICIT_INSTANTIATIONS>")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-DNON_POLLING>")
-add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-Wno-psabi>")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-Wextra>")
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-Wno-psabi>")
 #add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-pedantic>")
 
 if (DEFINED CMAKE_TOOLCHAIN_FILE)  # Cross-build for Rio
