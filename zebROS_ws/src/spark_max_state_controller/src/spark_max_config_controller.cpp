@@ -254,8 +254,6 @@ std::string SparkMaxConfigController::sensorTypeToString(hardware_interface::Sen
 			return "HallSensor";
 		case hardware_interface::kQuadrature :
 			return "Quadrature";
-		case hardware_interface::kSensorless :
-			return "Sensorless";
 		default:
 			return "Unknown";
 	}

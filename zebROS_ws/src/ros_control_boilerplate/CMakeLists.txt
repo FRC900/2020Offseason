@@ -190,7 +190,7 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/MotorSafety.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticsBase.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticsControlModule.cpp
-		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticsHub.cpp
+		${ALLWPILIB}/wpilibc/src/main/native/cpp/PneumaticHub.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
 		${ALLWPILIB}/wpilibc/src/main/native/cpp/Solenoid.cpp

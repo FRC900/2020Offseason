@@ -410,8 +410,6 @@ class SparkMaxCIParams
 					encoder_type_ = hardware_interface::kHallSensor;
 				else if (encoder_type_str == "quadrature")
 					encoder_type_ = hardware_interface::kQuadrature;
-				else if (encoder_type_str == "sensorless")
-					encoder_type_ = hardware_interface::kSensorless;
 				else
 				{
 					ROS_ERROR_STREAM("Invalid value for encoder_type : " << encoder_type_str
