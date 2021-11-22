@@ -101,7 +101,8 @@ class FRCRobotHWInterface : public ros_control_boilerplate::FRCRobotInterface
 
 	private:
 		bool safeSparkMaxCall(rev::REVLibError can_error,
-				const std::string &spark_max_method_name);
+				const std::string &spark_max_method_name,
+				int id);
 
 		std::vector<std::shared_ptr<ctre::phoenix::CANifier>> canifiers_;
 		std::vector<std::shared_ptr<std::mutex>> canifier_read_state_mutexes_;

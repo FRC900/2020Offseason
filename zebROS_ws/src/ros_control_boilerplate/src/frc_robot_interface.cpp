@@ -4469,7 +4469,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		double position;
 		if (cc.positionChanged(position))
 		{
-			if (safeTalonCall(cancoder->SetPosition(position / cs.getConversionFactor()), "cancoder->SetPosition"))
+			if (safeTalonCall(cancoder->SetPosition(position / cs.getConversionFactor()), "cancoder->SetPosition", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set position to " << position);
@@ -4482,7 +4482,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		}
 		if (cc.positionToAbsoluteChanged())
 		{
-			if (safeTalonCall(cancoder->SetPositionToAbsolute(), "cancoder->SetPositionToAbsolute"))
+			if (safeTalonCall(cancoder->SetPositionToAbsolute(), "cancoder->SetPositionToAbsolute", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set position to absolute");
@@ -4498,7 +4498,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		if (cc.velocityMeasPeriodChanged(velocity_meas_period) &&
 			cancoder_convert_.velocityMeasPeriod(velocity_meas_period, ctre_velocity_meas_period))
 		{
-			if (safeTalonCall(cancoder->ConfigVelocityMeasurementPeriod(ctre_velocity_meas_period), "cancoder->ConfigVelocityMeasurementPeriod"))
+			if (safeTalonCall(cancoder->ConfigVelocityMeasurementPeriod(ctre_velocity_meas_period), "cancoder->ConfigVelocityMeasurementPeriod", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set velocity measurement period to " << static_cast<int>(ctre_velocity_meas_period));
@@ -4513,7 +4513,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		int velocity_meas_window;
 		if (cc.velocityMeasWindowChanged(velocity_meas_window))
 		{
-			if (safeTalonCall(cancoder->ConfigVelocityMeasurementWindow(velocity_meas_window), "cancoder->ConfigVelocityMeasurementWindow"))
+			if (safeTalonCall(cancoder->ConfigVelocityMeasurementWindow(velocity_meas_window), "cancoder->ConfigVelocityMeasurementWindow", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set velocity measurement window to " << velocity_meas_window);
@@ -4529,7 +4529,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		if (cc.absoluteSensorRangeChanged(absolute_sensor_range) &&
 			cancoder_convert_.absoluteSensorRange(absolute_sensor_range, ctre_absolute_sensor_range))
 		{
-			if (safeTalonCall(cancoder->ConfigAbsoluteSensorRange(ctre_absolute_sensor_range), "cancoder->ConfigAbsoluteSensorRange"))
+			if (safeTalonCall(cancoder->ConfigAbsoluteSensorRange(ctre_absolute_sensor_range), "cancoder->ConfigAbsoluteSensorRange", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set absolute sensor range to " << absolute_sensor_range);
@@ -4544,7 +4544,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		double magnet_offset;
 		if (cc.magnetOffsetChanged(magnet_offset))
 		{
-			if (safeTalonCall(cancoder->ConfigMagnetOffset(magnet_offset), "cancoder->ConfigMagnetOffset"))
+			if (safeTalonCall(cancoder->ConfigMagnetOffset(magnet_offset), "cancoder->ConfigMagnetOffset", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set magnet offset to " << magnet_offset);
@@ -4561,7 +4561,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		if (cc.InitializationStrategyChanged(initialization_strategy) &&
 			cancoder_convert_.initializationStrategy(initialization_strategy, ctre_initialization_strategy))
 		{
-			if (safeTalonCall(cancoder->ConfigSensorInitializationStrategy(ctre_initialization_strategy), "cancoder->ConfigSensorInitializationStrategy"))
+			if (safeTalonCall(cancoder->ConfigSensorInitializationStrategy(ctre_initialization_strategy), "cancoder->ConfigSensorInitializationStrategy", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set sensor intitialization strategy to " << initialization_strategy);
@@ -4579,7 +4579,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		if (cc.feedbackCoefficientChanged(feedback_coefficient, unit_string, time_base) &&
 			cancoder_convert_.timeBase(time_base, ctre_time_base))
 		{
-			if (safeTalonCall(cancoder->ConfigFeedbackCoefficient(feedback_coefficient, unit_string, ctre_time_base), "cancoder->ConfigFeedbackCoefficient"))
+			if (safeTalonCall(cancoder->ConfigFeedbackCoefficient(feedback_coefficient, unit_string, ctre_time_base), "cancoder->ConfigFeedbackCoefficient", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set feedback coefficient to  " << feedback_coefficient << " " << unit_string << " " << time_base);
@@ -4596,7 +4596,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		bool direction;
 		if (cc.directionChanged(direction))
 		{
-			if (safeTalonCall(cancoder->ConfigSensorDirection(direction), "cancoder->ConfigSensorDirection"))
+			if (safeTalonCall(cancoder->ConfigSensorDirection(direction), "cancoder->ConfigSensorDirection", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set direction to " << direction);
@@ -4611,7 +4611,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		int sensor_data_status_frame_period;
 		if (cc.sensorDataStatusFramePeriodChanged(sensor_data_status_frame_period))
 		{
-			if (safeTalonCall(cancoder->SetStatusFramePeriod(ctre::phoenix::sensors::CANCoderStatusFrame::CANCoderStatusFrame_SensorData, sensor_data_status_frame_period), "cancoder->SetStatusFramePeriod(SensorData)"))
+			if (safeTalonCall(cancoder->SetStatusFramePeriod(ctre::phoenix::sensors::CANCoderStatusFrame::CANCoderStatusFrame_SensorData, sensor_data_status_frame_period), "cancoder->SetStatusFramePeriod(SensorData)", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set sensor data status frame period to " << sensor_data_status_frame_period);
@@ -4626,7 +4626,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 		int vbat_and_faults_status_frame_period;
 		if (cc.sensorDataStatusFramePeriodChanged(vbat_and_faults_status_frame_period))
 		{
-			if (safeTalonCall(cancoder->SetStatusFramePeriod(ctre::phoenix::sensors::CANCoderStatusFrame::CANCoderStatusFrame_VbatAndFaults, vbat_and_faults_status_frame_period), "cancoder->SetStatusFramePeriod(VbatAndFaults)"))
+			if (safeTalonCall(cancoder->SetStatusFramePeriod(ctre::phoenix::sensors::CANCoderStatusFrame::CANCoderStatusFrame_VbatAndFaults, vbat_and_faults_status_frame_period), "cancoder->SetStatusFramePeriod(VbatAndFaults)", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id]
 						<< " : Set vbat and fault status frame period to " << vbat_and_faults_status_frame_period);
@@ -4640,7 +4640,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 
 		if (cc.clearStickyFaultsChanged())
 		{
-			if (safeTalonCall(cancoder->ClearStickyFaults(), "cancoder->ClearStickyFaults"))
+			if (safeTalonCall(cancoder->ClearStickyFaults(), "cancoder->ClearStickyFaults", cs.getDeviceNumber()))
 			{
 				ROS_INFO_STREAM("CANcoder " << cancoder_names_[joint_id] << " : Sticky faults cleared");
 			}

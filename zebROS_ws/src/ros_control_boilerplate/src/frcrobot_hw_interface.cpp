@@ -700,7 +700,7 @@ void FRCRobotHWInterface::read(const ros::Time& time, const ros::Duration& perio
 	read_tracer_.stop();
 }
 
-bool FRCRobotHWInterface::safeSparkMaxCall(rev::REVLibError can_error, const std::string &spark_max_method_name)
+bool FRCRobotHWInterface::safeSparkMaxCall(rev::REVLibError can_error, const std::string &spark_max_method_name, int id)
 {
 	std::string error_name;
 	static bool error_sent = false;
@@ -775,7 +775,7 @@ bool FRCRobotHWInterface::safeSparkMaxCall(rev::REVLibError can_error, const std
 		default:
 			{
 				std::stringstream s;
-				s << "Unknown Spark Max error " << static_cast<int>(can_error);
+				s << "Unknown Spark Max error from id " << id << " : " << static_cast<int>(can_error);
 				error_name = s.str();
 				break;
 			}
@@ -862,12 +862,12 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 			{
 				bool rc;
 
-				rc  = safeSparkMaxCall(pid_controller->SetP(p_gain, slot), "SetP");
-				rc &= safeSparkMaxCall(pid_controller->SetI(i_gain, slot), "SetI");
-				rc &= safeSparkMaxCall(pid_controller->SetD(d_gain, slot), "SetD");
-				rc &= safeSparkMaxCall(pid_controller->SetFF(f_gain, slot), "SetFF");
-				rc &= safeSparkMaxCall(pid_controller->SetIZone(i_zone, slot), "SetIZone");
-				rc &= safeSparkMaxCall(pid_controller->SetDFilter(d_filter, slot), "SetDFilter");
+				rc  = safeSparkMaxCall(pid_controller->SetP(p_gain, slot), "SetP", sms.getDeviceId());
+				rc &= safeSparkMaxCall(pid_controller->SetI(i_gain, slot), "SetI", sms.getDeviceId());
+				rc &= safeSparkMaxCall(pid_controller->SetD(d_gain, slot), "SetD", sms.getDeviceId());
+				rc &= safeSparkMaxCall(pid_controller->SetFF(f_gain, slot), "SetFF", sms.getDeviceId());
+				rc &= safeSparkMaxCall(pid_controller->SetIZone(i_zone, slot), "SetIZone", sms.getDeviceId());
+				rc &= safeSparkMaxCall(pid_controller->SetDFilter(d_filter, slot), "SetDFilter", sms.getDeviceId());
 				if (rc)
 				{
 					ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " PIDF slot " << slot << " gains");
@@ -888,7 +888,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 			double pid_output_max;
 			if (smc.changedPIDOutputRange(slot, pid_output_min, pid_output_max))
 			{
-				if (safeSparkMaxCall(pid_controller->SetOutputRange(pid_output_min, pid_output_max, slot), "SetOutputRange"))
+				if (safeSparkMaxCall(pid_controller->SetOutputRange(pid_output_min, pid_output_max, slot), "SetOutputRange", sms.getDeviceId()))
 				{
 					ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " PIDF slot " << slot << " output range");
 					sms.setPIDFOutputMin(slot, pid_output_min);
@@ -913,7 +913,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 			{
 				if (rev_convert_.controlType(pidf_reference_ctrl, rev_reference_ctrl) &&
 					rev_convert_.arbFFUnits(pidf_arb_feed_forward_units, rev_arb_feed_forward_units) &&
-					safeSparkMaxCall(pid_controller->SetReference(pidf_reference_value, rev_reference_ctrl, slot, pidf_arb_feed_forward, rev_arb_feed_forward_units), "SetReference"))
+					safeSparkMaxCall(pid_controller->SetReference(pidf_reference_value, rev_reference_ctrl, slot, pidf_arb_feed_forward, rev_arb_feed_forward_units), "SetReference", sms.getDeviceId()))
 				{
 					ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " PIDF slot " << slot << " refrence");
 
@@ -938,7 +938,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		{
 			if (rev_convert_.limitSwitchPolarity(limit_switch_polarity, rev_limit_switch_polarity) &&
 				safeSparkMaxCall(spark_max->GetForwardLimitSwitch(rev_limit_switch_polarity).EnableLimitSwitch(limit_switch_enabled),
-					"GetForwardLimitSwitch"))
+					"GetForwardLimitSwitch", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " forward limit switch");
 				sms.setForwardLimitSwitchEnabled(limit_switch_enabled);
@@ -953,7 +953,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		{
 			if (rev_convert_.limitSwitchPolarity(limit_switch_polarity, rev_limit_switch_polarity) &&
 				safeSparkMaxCall(spark_max->GetReverseLimitSwitch(rev_limit_switch_polarity).EnableLimitSwitch(limit_switch_enabled) ,
-					"GetReverseLimitSwitch"))
+					"GetReverseLimitSwitch", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " reverse limit switch");
 				sms.setReverseLimitSwitchEnabled(limit_switch_enabled);
@@ -968,7 +968,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		unsigned int current_limit;
 		if (smc.changedCurrentLimitOne(current_limit))
 		{
-			if (safeSparkMaxCall(spark_max->SetSmartCurrentLimit(current_limit), "SetSmartCurrentLimit(1)"))
+			if (safeSparkMaxCall(spark_max->SetSmartCurrentLimit(current_limit), "SetSmartCurrentLimit(1)", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " current limit (1 arg)");
 				sms.setCurrentLimit(current_limit);
@@ -984,7 +984,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		unsigned int current_limit_rpm;
 		if (smc.changedCurrentLimit(current_limit_stall, current_limit_free, current_limit_rpm))
 		{
-			if (safeSparkMaxCall(spark_max->SetSmartCurrentLimit(current_limit_stall, current_limit_free, current_limit_rpm), "SetSmartCurrentLimit(3)"))
+			if (safeSparkMaxCall(spark_max->SetSmartCurrentLimit(current_limit_stall, current_limit_free, current_limit_rpm), "SetSmartCurrentLimit(3)", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " current limit (3 arg)");
 				sms.setCurrentLimitStall(current_limit_stall);
@@ -1001,7 +1001,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		unsigned int secondary_current_limit_cycles;
 		if (smc.changedSecondaryCurrentLimits(secondary_current_limit, secondary_current_limit_cycles))
 		{
-			if (safeSparkMaxCall(spark_max->SetSecondaryCurrentLimit(secondary_current_limit, secondary_current_limit_cycles), "SetSecondaryCurrentLimit()"))
+			if (safeSparkMaxCall(spark_max->SetSecondaryCurrentLimit(secondary_current_limit, secondary_current_limit_cycles), "SetSecondaryCurrentLimit()", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " secondary current limit");
 				sms.setSecondaryCurrentLimit(secondary_current_limit);
@@ -1018,7 +1018,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		if (smc.changedIdleMode(idle_mode))
 		{
 			if (rev_convert_.idleMode(idle_mode, rev_idle_mode) &&
-				safeSparkMaxCall(spark_max->SetIdleMode(rev_idle_mode), "SetIdleMode"))
+				safeSparkMaxCall(spark_max->SetIdleMode(rev_idle_mode), "SetIdleMode", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " idle mode");
 				sms.setIdleMode(idle_mode);
@@ -1037,9 +1037,9 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 			bool rc = false;
 
 			if (voltage_compensation_enable)
-				rc = safeSparkMaxCall(spark_max->EnableVoltageCompensation(voltage_compensation_nominal_voltage), "EnableVoltageCompensation");
+				rc = safeSparkMaxCall(spark_max->EnableVoltageCompensation(voltage_compensation_nominal_voltage), "EnableVoltageCompensation", sms.getDeviceId());
 			else
-				rc = safeSparkMaxCall(spark_max->DisableVoltageCompensation(), "DisableVoltageCompensation");
+				rc = safeSparkMaxCall(spark_max->DisableVoltageCompensation(), "DisableVoltageCompensation", sms.getDeviceId());
 
 			if (rc)
 			{
@@ -1056,7 +1056,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		double open_loop_ramp_rate;
 		if (smc.changedOpenLoopRampRate(open_loop_ramp_rate))
 		{
-			if (safeSparkMaxCall(spark_max->SetOpenLoopRampRate(open_loop_ramp_rate), "SetOpenLoopRampRate"))
+			if (safeSparkMaxCall(spark_max->SetOpenLoopRampRate(open_loop_ramp_rate), "SetOpenLoopRampRate", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " open loop ramp rate");
 				sms.setOpenLoopRampRate(open_loop_ramp_rate);
@@ -1070,7 +1070,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		double closed_loop_ramp_rate;
 		if (smc.changedClosedLoopRampRate(closed_loop_ramp_rate))
 		{
-			if (safeSparkMaxCall(spark_max->SetClosedLoopRampRate(closed_loop_ramp_rate), "SetClosedLoopRampRate"))
+			if (safeSparkMaxCall(spark_max->SetClosedLoopRampRate(closed_loop_ramp_rate), "SetClosedLoopRampRate", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " closed loop ramp rate");
 				sms.setClosedLoopRampRate(closed_loop_ramp_rate);
@@ -1088,7 +1088,7 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		if (smc.changedFollower(follower_type, follower_id, follower_invert))
 		{
 			if (rev_convert_.externalFollower(follower_type, rev_follower_type) &&
-				safeSparkMaxCall(spark_max->Follow(rev_follower_type, follower_id, follower_invert), "Follow"))
+				safeSparkMaxCall(spark_max->Follow(rev_follower_type, follower_id, follower_invert), "Follow", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " follow");
 				sms.setFollowerType(follower_type);
@@ -1105,8 +1105,8 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		double forward_softlimit;
 		if (smc.changedForwardSoftlimit(forward_softlimit_enable, forward_softlimit))
 		{
-			if (safeSparkMaxCall(spark_max->SetSoftLimit(rev::CANSparkMax::SoftLimitDirection::kForward, forward_softlimit), " SetSoftLimit(kForward)") &&
-				safeSparkMaxCall(spark_max->EnableSoftLimit(rev::CANSparkMax::SoftLimitDirection::kForward, forward_softlimit_enable), " EnableSoftLimit(kForward)"))
+			if (safeSparkMaxCall(spark_max->SetSoftLimit(rev::CANSparkMax::SoftLimitDirection::kForward, forward_softlimit), " SetSoftLimit(kForward)", sms.getDeviceId()) &&
+				safeSparkMaxCall(spark_max->EnableSoftLimit(rev::CANSparkMax::SoftLimitDirection::kForward, forward_softlimit_enable), " EnableSoftLimit(kForward)", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " forward softlimit");
 				sms.setForwardSoftlimitEnable(forward_softlimit_enable);
@@ -1122,8 +1122,8 @@ void FRCRobotHWInterface::write(const ros::Time& time, const ros::Duration& peri
 		double reverse_softlimit;
 		if (smc.changedReverseSoftlimit(reverse_softlimit_enable, reverse_softlimit))
 		{
-			if (safeSparkMaxCall(spark_max->SetSoftLimit(rev::CANSparkMax::SoftLimitDirection::kReverse, reverse_softlimit), " SetSoftLimit(kReverse)") &&
-				safeSparkMaxCall(spark_max->EnableSoftLimit(rev::CANSparkMax::SoftLimitDirection::kReverse, reverse_softlimit_enable), " EnableSoftLimit(kReverse)"))
+			if (safeSparkMaxCall(spark_max->SetSoftLimit(rev::CANSparkMax::SoftLimitDirection::kReverse, reverse_softlimit), " SetSoftLimit(kReverse)", sms.getDeviceId()) &&
+				safeSparkMaxCall(spark_max->EnableSoftLimit(rev::CANSparkMax::SoftLimitDirection::kReverse, reverse_softlimit_enable), " EnableSoftLimit(kReverse)", sms.getDeviceId()))
 			{
 				ROS_INFO_STREAM("Updated Spark Max" << joint_id << "=" << spark_max_names_[joint_id] << " reverse softlimit");
 				sms.setReverseSoftlimitEnable(reverse_softlimit_enable);
