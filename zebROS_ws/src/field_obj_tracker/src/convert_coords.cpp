@@ -3,10 +3,8 @@
 #include "field_obj_tracker/convert_coords.h"
 #include <ros/ros.h>
 
-private:
-  image_geometry::PinholeCameraModel model_;
 
-ConvertCoords::ConvertCoords(const sensor_msgs::CameraInfo camera_info_) const
+ConvertCoords::ConvertCoords(const sensor_msgs::CameraInfo camera_info) const
 {
   model_.fromCameraInfo(camera_info_);
 }

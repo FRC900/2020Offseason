@@ -55,9 +55,9 @@ class ObjectType
 		bool operator== (const ObjectType &t1) const;
 
 		//coordinate conversions
-		cv::Point3f screenToWorldCoords(const cv::Rect &screen_position, double avg_depth, const sensor_msgs::CameraInfo camera_info_) const;
+		cv::Point3f screenToWorldCoords(const cv::Rect &screen_position, double avg_depth, const sensor_msgs::CameraInfo &camera_info) const;
 
-		cv::Rect worldToScreenCoords(const cv::Point3f &_position, const sensor_msgs::CameraInfo camera_info_) const;
+		cv::Rect worldToScreenCoords(const cv::Point3f &_position, const sensor_msgs::CameraInfo &camera_info) const;
 
 		float expectedDepth(const cv::Rect &screen_position, const image_geometry::PinholeCameraModel &model) const;
 
