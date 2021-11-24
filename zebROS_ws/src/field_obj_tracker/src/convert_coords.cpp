@@ -6,7 +6,7 @@
 
 ConvertCoords::ConvertCoords(const sensor_msgs::CameraInfo camera_info) const
 {
-  model_.fromCameraInfo(camera_info_);
+  model_.fromCameraInfo(camera_info);
 }
 
 cv::Point3f ConvertCoords::screen_to_world( const cv::Rect &bounding_rect, const std::string &debug_name, const float depth ) const {
