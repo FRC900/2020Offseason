@@ -235,9 +235,8 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 			src/nano_nx_spi_hal.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalInput.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalOutput.cpp
-			${ALLWPILIB}/wpilibc/src/main/native/cpp/ErrorBase.cpp
-			${ALLWPILIB}/wpilibc/src/main/native/cpp/Error.cpp
-			${ALLWPILIB}/wpilibc/src/main/native/cpp/frc2/Timer.cpp
+			#${ALLWPILIB}/wpilibc/src/main/native/cpp/Error.cpp
+			#${ALLWPILIB}/wpilibc/src/main/native/cpp/frc2/Timer.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/I2C.cpp
 			#${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp #TODO- duplicate?
 			#${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
