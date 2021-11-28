@@ -1,5 +1,4 @@
 #! /usr/bin/env python2
-
 """
 Adaped from	https://github.com/AastaNV/TRT_object_detection.git
 A faster way to optimize models to run on the Jetson
@@ -7,6 +6,7 @@ This script has 2 parts. First is to convert the model to UFF format and then
 optimize that using tensorRT.  This produces a .bin file.
 The .bin file is then loaded and used to run inference on a video.
 """
+
 import os
 import sys
 import cv2
@@ -14,7 +14,7 @@ import time
 import ctypes
 import numpy as np
 from threading import Semaphore
-from os.path import join
+import jetson.utils
 
 import pycuda.driver as cuda
 import rospy
@@ -42,11 +42,11 @@ bridge = CvBridge()
 category_index, detection_graph, sess, pub, pub_debug, vis = None, None, None, None, None, None
 min_confidence = 0.1
 
-# viz = BBoxVisualization(category_dict)
+#viz = BBoxVisualization(category_dict)
 
-# Have no idea how to use this
+#Have no idea how to use this
 t = timing.Timings()
-# PATH_TO_TEST_IMAGES_DIR = '/home/ubuntu/tensorflow_workspace/2020Game/data/videos'
+
 
 # inference
 # TODO enable video pipeline
@@ -57,13 +57,15 @@ global init
 init = False
 
 
+
 def run_inference_for_single_image(msg):
-    global init, host_inputs, cuda_inputs, host_outputs, cuda_outputs, stream, context, bindings, host_mem, cuda_mem, stream, engine
+
+    global init, host_inputs, cuda_inputs, host_outputs, cuda_outputs, stream, context, bindings, host_mem, cuda_mem, cv2gpu, imgResized, imgNorm, gpuimg, finalgpu
 
     print("Starting inference")
     if init == False:
         init = True
-        # Could be better nmessage
+        #Could be better nmessage
         print("Performing Init for CUDA")
 
         import pycuda.autoinit
@@ -97,7 +99,6 @@ def run_inference_for_single_image(msg):
             buf = f.read()
             engine = runtime.deserialize_cuda_engine(buf)
         # create buffers
-
         host_inputs = []
         cuda_inputs = []
         host_outputs = []
@@ -118,16 +119,20 @@ def run_inference_for_single_image(msg):
                 cuda_outputs.append(cuda_mem)
         context = engine.create_execution_context()
         # List of the strings that is used to add correct label for each box.
-        # PATH_TO_LABELS = os.path.join('/home/ubuntu/tensorflow_workspace/2020Game/data', '2020Game_label_map.pbtxt')
-        rospack = rospkg.RosPack()
-        THIS_DIR = join(rospack.get_path('tf_object_detection'), 'src/')
-        PATH_TO_LABELS = join(THIS_DIR, '2020Game_label_map.pbtxt')
+        PATH_TO_LABELS = os.path.join('/home/ubuntu/tensorflow_workspace/2020Game/data', '2020Game_label_map.pbtxt')
         category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
         category_dict = {0: 'background'}
         for k in category_index.keys():
             category_dict[k] = category_index[k]['name']
+        gpuimg = jetson.utils.cudaAllocMapped(width=1920, height=1080, format='rgb32f')
 
-    starttime = time.time()
+        imgResized = jetson.utils.cudaAllocMapped(width=512,
+                                                  height=512,
+                                                  format="rgb32f")
+        imgNorm = jetson.utils.cudaAllocMapped(width=imgResized.width, height=imgResized.height,
+                                               format="rgb32f")
+        finalgpu = jetson.utils.cudaAllocMapped(width=512, height=512, format='rgb8')
+
     t.start('frame')
     t.start('vid')
     ori = bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -139,11 +144,62 @@ def run_inference_for_single_image(msg):
     t.end('vid')
 
     t.start('cv')
+
+    #Trying with gpu
+    starttime = time.time()
+    imgInput = jetson.utils.cudaFromNumpy(ori)
+    jetson.utils.cudaConvertColor(imgInput, gpuimg)
+    # gpuimg = jetson.utils.cudaAllocMapped(width=gpuimg1.width, height=gpuimg1.height, format='rgb8')
+
+    jetson.utils.cudaResize(gpuimg, imgResized)
+    #imgNorm = jetson.utils.cudaAllocMapped(width=imgResized.width, height=imgResized.height, format=imgResized.format)
+    temp = jetson.utils.cudaToNumpy(imgResized)
+    os.chdir("/home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/src")
+
+    cv2.imwrite("GPUOut22.png", temp)
+    jetson.utils.cudaNormalize(imgResized, (0, 255), imgNorm, (-1, 1))
+    jetson.utils.cudaConvertColor(imgNorm, finalgpu)
+    finalout = jetson.utils.cudaToNumpy(finalgpu)
+    jetson.utils.cudaDeviceSynchronize()
+    endtime = time.time()
+    endtimefinal = endtime - starttime
+
+    print("GPU preprocess", endtimefinal)
+
+
+    starttime = time.time()
     image = cv2.resize(ori, (model.dims[2], model.dims[1]))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    cv2.imwrite("Normalimg22.png", image)
     image = (2.0 / 255.0) * image - 1.0  # Convert from 0to255 to -1to1 range for input values
+
+
+    endtime = time.time()
+    endtimefinal = endtime - starttime
+    print("CPU preprocess", endtimefinal)
+
+    print("CPU Shape", image.shape)
+    print("GPU Shape", finalout.shape)
+
+
+
+
+
+    #print("Top and bottom row of image", image[0][0], image[-1][-1])
+    #print("Top and bottom row of image after gpu resize", imgNorm[0][0], imgNorm[-1][-1])
+    #print("Imgout type", type(imgNorm), "Gpuimg type", type(gpuimg))
+
+    #Delete for production
+
     image = image.transpose((2, 0, 1))
+    finalout = finalout.transpose((2, 0, 1))
+
+    ##print("Top and bottom row of image", image[0][0], image[-1][-1])
+
+    ##print("Top and bottom row of image after transpose", image[0][0], image[-1][-1])
+
     np.copyto(host_inputs[0], image.ravel())
+    #np.copyto(host_inputs[0], finalout.ravel())
     t.end('cv')
     t.start('inference')
     start_time = time.time()
@@ -188,29 +244,28 @@ def run_inference_for_single_image(msg):
         boxes.append([output[prefix + 4], output[prefix + 3], output[prefix + 6], output[prefix + 5]])
         clss.append(int(output[prefix + 1]))
         confs.append(output[prefix + 2])
-    # print(detection)
+    #print(detection)
     pub.publish(detection)
-    # Debug below
-    endtime = time.time()
-    endtimefinal = endtime - starttime
+
     print(endtimefinal)
     os.chdir("/home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/src")
 
-    print(os.getcwd())
-    # print(str(detection))
-    f = open("optimout2.txt", "a")
-
+    f = open("optimout.txt", "w+")
     f.write(str(detection))
     f.close()
-    # viz.draw_bboxes(ori, boxes, confs, clss, 0.42)
-    # cv2.imwrite("result.jpg", ori)
+    #viz.draw_bboxes(ori, boxes, confs, clss, 0.42)
+    #cv2.imwrite("result.jpg", ori)
     # cv2.imshow("result", ori)
 
     t.end('viz')
+    #context.pop()
+    print("Context popped!")
     t.end('frame')
 
 
 def main():
+    os.chdir("/home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/src")
+
     global detection_graph, sess, pub, category_index, pub_debug, min_confidence, vis
 
     sub_topic = "/c920/rect_image"
@@ -240,6 +295,5 @@ if __name__ == '__main__':
     maxthreads = Semaphore(1)
     with maxthreads:
         main()
-
 
 
