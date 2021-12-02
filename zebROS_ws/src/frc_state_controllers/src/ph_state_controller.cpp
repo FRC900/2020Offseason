@@ -76,7 +76,10 @@ bool PHStateController::init(hardware_interface::PHStateInterface *hw,
 		m.compressor_current.push_back(0.0);
 		m.analog_pressure0.push_back(0.0);
 		m.analog_pressure1.push_back(0.0);
-		m.closed_loop_control.push_back(false);
+		m.compressor_min_analog_voltage.push_back(0.0);
+		m.compressor_max_analog_voltage.push_back(0.0);
+		m.compressor_force_disable.push_back(false);
+		m.compressor_use_digital.push_back(false);
 
 		ph_state_.push_back(hw->getHandle(ph_names[i]));
 	}
@@ -112,7 +115,10 @@ void PHStateController::update(const ros::Time &time, const ros::Duration & /*pe
 				m.compressor_current[i] = phs->getCompressorCurrent();
 				m.analog_pressure0[i] = phs->getAnalogPressure(0);
 				m.analog_pressure1[i] = phs->getAnalogPressure(1);
-				m.closed_loop_control[i] = phs->getClosedLoopControl();
+				m.compressor_min_analog_voltage[i] = phs->getCompressorMinAnalogVoltage();
+				m.compressor_max_analog_voltage[i] = phs->getCompressorMaxAnalogVoltage();
+				m.compressor_force_disable[i] = phs->getCompressorForceDisable();
+				m.compressor_use_digital[i] = phs->getCompressorUseDigital();
 			}
 			realtime_pub_->unlockAndPublish();
 		}

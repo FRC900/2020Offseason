@@ -663,7 +663,7 @@ void FRCRobotInterface::pcm_read_thread(HAL_CTREPCMHandle pcm_handle, int32_t pc
 // PH is copied to a state buffer shared with the main read
 // thread.
 void FRCRobotInterface::ph_read_thread(HAL_REVPHHandle ph_handle, int32_t ph_id,
-										std::shared_ptr<hardware_interface::PHState> state,
+										std::shared_ptr<hardware_interface::PHHWState> state,
 										std::shared_ptr<std::mutex> mutex,
 										std::unique_ptr<Tracer> tracer,
 										double poll_frequency)
@@ -682,15 +682,13 @@ void FRCRobotInterface::ph_read_thread(HAL_REVPHHandle ph_handle, int32_t ph_id,
 	{
 		tracer->start("main loop");
 
-		hardware_interface::PHState ph_state(ph_id);
+		hardware_interface::PHHWState ph_state(ph_id);
 		int32_t status = 0;
 		ph_state.setCompressorEnabled(HAL_GetREVPHCompressor(ph_handle, &status));
 		ph_state.setPressureSwitch(HAL_GetREVPHPressureSwitch(ph_handle, &status));
 		ph_state.setCompressorCurrent(HAL_GetREVPHCompressorCurrent(ph_handle, &status));
 		for (size_t i = 0; i < 2; i++)
 			ph_state.setAnalogPressure(HAL_GetREVPHAnalogPressure(ph_handle, i, &status), i);
-		ph_state.setClosedLoopControl(HAL_GetREVPHClosedLoopControl(ph_handle, &status));
-
 		if (status)
 			ROS_ERROR_STREAM("ph_read_thread : status = " << status << ":" << HAL_GetErrorMessage(status));
 
@@ -1961,7 +1959,7 @@ void FRCRobotInterface::createInterfaces(void)
 	ph_compressor_closed_loop_enable_state_.resize(num_phs_);
 	ph_compressor_closed_loop_enable_command_.resize(num_phs_);
 	for (size_t i = 0; i < num_phs_; i++)
-		ph_state_.emplace_back(hardware_interface::PHState(ph_ids_[i]));
+		ph_state_.emplace_back(hardware_interface::PHHWState(ph_ids_[i]));
 	for (size_t i = 0; i < num_phs_; i++)
 	{
 		ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface: Registering interface for PH : "
@@ -2551,7 +2549,7 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 							  (ph_local_hardwares_[i] ? "local" : "remote") << " hardware" <<
 							  " as PH " << ph_ids_[i]);
 
-		ph_read_thread_state_.push_back(std::make_shared<hardware_interface::PHState>(ph_ids_[i]));
+		ph_read_thread_state_.push_back(std::make_shared<hardware_interface::PHHWState>(ph_ids_[i]));
 		if (ph_local_hardwares_[i])
 		{
 			int32_t status = 0;

@@ -17,7 +17,7 @@ class PDHHWCommand
 			switchable_channel_enable_ = enable;
 			switchable_Channel_enable_changed_ = true;
 		}
-		bool getSwitchableChannelEnable(void) const { return switchable_channel_enable_;};
+		bool getSwitchableChannelEnable(void) const { return switchable_channel_enable_;}
 		bool switchableChannelEnableChanged(bool &enable)
 		{
 			enable = switchable_channel_enable_;

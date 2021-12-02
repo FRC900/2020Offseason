@@ -57,7 +57,7 @@
 #include "frc_interfaces/joystick_interface.h"
 #include "frc_interfaces/match_data_interface.h"
 #include "frc_interfaces/pcm_state_interface.h"
-#include "frc_interfaces/ph_state_interface.h"
+#include "frc_interfaces/ph_command_interface.h"
 #include "frc_interfaces/pdh_command_interface.h"
 #include "frc_interfaces/pdp_state_interface.h"
 #include "frc_interfaces/robot_controller_interface.h"
@@ -435,7 +435,8 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<hardware_interface::PCMState> pcm_state_;
 		std::vector<hardware_interface::PDHHWState> pdh_state_;
 		std::vector<hardware_interface::PDPHWState> pdp_state_;
-		std::vector<hardware_interface::PHState> ph_state_;
+		std::vector<hardware_interface::PHHWState> ph_state_;
+		std::vector<hardware_interface::PHHWCommand> ph_command_;
 		hardware_interface::RobotControllerState robot_controller_state_;
 		std::vector<hardware_interface::JoystickState> joystick_state_;
 		hardware_interface::MatchHWState match_data_;
@@ -559,10 +560,10 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<HAL_CTREPCMHandle> pcms_;
 
 		std::vector<std::shared_ptr<std::mutex>> ph_read_thread_mutexes_;
-		std::vector<std::shared_ptr<hardware_interface::PHState>> ph_read_thread_state_;
+		std::vector<std::shared_ptr<hardware_interface::PHHWState>> ph_read_thread_state_;
 		void ph_read_thread(HAL_REVPHHandle ph_handle,
 							 int32_t ph_id,
-							 std::shared_ptr<hardware_interface::PHState> state,
+							 std::shared_ptr<hardware_interface::PHHWState> state,
 							 std::shared_ptr<std::mutex> mutex,
 							 std::unique_ptr<Tracer> tracer,
 							 double poll_frequency);
