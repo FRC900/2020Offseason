@@ -135,8 +135,8 @@ float contoursDepthMat(const cv::Mat& depth_, const cv::Rect& bound_rect, bool d
 	// sort vector
 	std::sort(vec.begin(), vec.end());
 
-	return (vec.size() != 0 ? vec[(size_t)(percent_from_bottom_contours * vec.size())] : -1); // return lowest value after throwing out the bottom <percent_from_bottom_contours>%.
-	// If there are no values, return -1.
+	return (vec.size() != 0 ? vec[(size_t)(percent_from_bottom_contours * vec.size())] : usefulDepthMat(depth_, bound_rect, debug, K_MEANS)); // return lowest value after throwing out the bottom <percent_from_bottom_contours>%.
+	// If there are no values, fall back to k-means.
 
 	/* Test results (adaptive thresholding):
 	[ INFO] [1635948213.029497061]: Received /home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/test_bitmaps/cropped_goal_8.jpg
@@ -256,7 +256,7 @@ float kMeansDepthMat(const cv::Mat& depth, const cv::Rect& bound_rect, bool debu
 
 		// If the difference is less than the tolerance, return the closest centroid
 		if (diff <= tolerance) {
-			return *std::min_element(centroids, centroids+k);
+			return (*std::min_element(centroids, centroids+k)) == std::numeric_limits<float>::max() ? -1 : (*std::min_element(centroids, centroids+k));
 		}
 
 		// If the above statement didn't return, copy centroids to prevCentroids and
