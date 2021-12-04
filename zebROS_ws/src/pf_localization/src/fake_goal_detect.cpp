@@ -68,29 +68,32 @@ class FakeGoalDetection
 				static tf2_ros::TransformBroadcaster br;
 				for(size_t i = 0; i < msgOut.objects.size(); i++)
 				{
-					geometry_msgs::TransformStamped transformStamped;
+					if (msgOut.objects[i].id == "power_cell")
+					{
+						geometry_msgs::TransformStamped transformStamped;
 
-					transformStamped.header.stamp = msgOut.header.stamp;
-					transformStamped.header.frame_id = "base_fiducial_link";
-					std::stringstream child_frame;
-					child_frame << "power_cell_";
-					child_frame << i;
-					transformStamped.child_frame_id = child_frame.str();
+						transformStamped.header.stamp = msgOut.header.stamp;
+						transformStamped.header.frame_id = "base_fiducial_link";
+						std::stringstream child_frame;
+						child_frame << "power_cell_";
+						child_frame << i;
+						transformStamped.child_frame_id = child_frame.str();
 
-					transformStamped.transform.translation.x = msgOut.objects[i].location.x;
-					transformStamped.transform.translation.y = msgOut.objects[i].location.y;
-					transformStamped.transform.translation.z = msgOut.objects[i].location.z;
+						transformStamped.transform.translation.x = msgOut.objects[i].location.x;
+						transformStamped.transform.translation.y = msgOut.objects[i].location.y;
+						transformStamped.transform.translation.z = msgOut.objects[i].location.z;
 
-					// Can't detect rotation yet, so publish 0 instead
-					tf2::Quaternion q;
-					q.setRPY(0, 0, 0);
+						// Can't detect rotation yet, so publish 0 instead
+						tf2::Quaternion q;
+						q.setRPY(0, 0, 0);
 
-					transformStamped.transform.rotation.x = q.x();
-					transformStamped.transform.rotation.y = q.y();
-					transformStamped.transform.rotation.z = q.z();
-					transformStamped.transform.rotation.w = q.w();
+						transformStamped.transform.rotation.x = q.x();
+						transformStamped.transform.rotation.y = q.y();
+						transformStamped.transform.rotation.z = q.z();
+						transformStamped.transform.rotation.w = q.w();
 
-					br.sendTransform(transformStamped);
+						br.sendTransform(transformStamped);
+					}
 				}
 
 			}
