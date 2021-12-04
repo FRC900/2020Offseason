@@ -72,7 +72,7 @@ public:
 		}
 
 		//if moving forwards was disabled by the indexer server, don't allow forward movement
-		double percent_out_cmd = *percent_out_cmd_buffer_.readFromRT();
+		double percent_out_cmd = *(percent_out_cmd_buffer_.readFromRT());
 		/*if(*forward_disabled_.readFromRT() && percent_out_cmd > 0)
 		{
 			percent_out_cmd = 0.0;
@@ -129,6 +129,7 @@ private:
 
 	talon_controllers::TalonPercentOutputControllerInterface intake_joint_;//intake for intake motor
 	hardware_interface::JointHandle intake_arm_joint_;//interface for intake arm solenoid
+
 	realtime_tools::RealtimeBuffer<bool> arm_extend_cmd_buffer_;
 	realtime_tools::RealtimeBuffer<double> percent_out_cmd_buffer_;
 	ros::ServiceServer intake_arm_service_;
@@ -137,7 +138,6 @@ private:
 	ros::ServiceServer intake_disable_service_;
 	realtime_tools::RealtimeBuffer<bool> forward_disabled_; //set to true by the indexer server when it's finishing up properly storing a ball, to ensure the proper gap
 };
-
 
 }//namespace
 
