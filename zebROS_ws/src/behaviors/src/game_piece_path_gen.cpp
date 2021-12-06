@@ -1,0 +1,137 @@
+#include <ros/ros.h>
+#include <cmath>
+#include <std_srvs/Trigger.h>
+#include <algorithm>
+#include "base_trajectory_msgs/GenerateSpline.h"
+#include "behavior_actions/DynamicPath.h"
+#include "behavior_actions/GamePiecePickup.h"
+#include "field_obj/Detection.h"
+#include "trajectory_msgs/JointTrajectoryPoint.h"
+
+// Create service clients
+ros::ServiceClient spline_gen_cli;
+ros::ServiceClient dynamic_path_cli;
+
+field_obj::Detection lastObjectDetection;
+
+// Callback function to retrieve the most recent object detection message
+void objectDetectCallback(field_obj::DetectionConstPtr msg)
+{
+	lastObjectDetection = *msg;
+}
+
+trajectory_msgs::JointTrajectoryPoint generateTrajectoryPoint(double x, double y, double rotation) {
+	trajectory_msgs::JointTrajectoryPoint point;
+	point.positions.resize(3);
+	point.positions[2] = rotation;
+	point.positions[0] = x;
+	point.positions[1] = y;
+	return point;
+}
+
+bool genPath(behavior_actions::GamePiecePickup::Request& req, behavior_actions::GamePiecePickup::Response& res)
+{
+	res.success = false; // Default to failure
+  base_trajectory_msgs::GenerateSpline spline_gen_srv;
+
+  spline_gen_srv.request.header = lastObjectDetection.header;
+
+  const size_t objects_num = std::min((int)(lastObjectDetection.objects.size()), (int)(req.max_objects));
+	ROS_INFO_STREAM("game_piece_path_gen : objects_num: " << objects_num);
+
+  std::vector<std::array<double, 3>> points;
+  points.push_back({0, 0, 0}); // may need to worry about transforms between beginning/end point and intake?
+
+	for (size_t i = 0; i < objects_num; i++) // filter out selected object detections
+		if(lastObjectDetection.objects[i].id == req.object_id)
+			points.push_back({lastObjectDetection.objects[i].location.x, lastObjectDetection.objects[i].location.y, 0});
+
+	if (points.size() == 1) // No objects added
+	{
+		ROS_INFO_STREAM("game_piece_path_gen : no " << req.object_id << " objects detected");
+		res.message = "no power cells detected";
+		return false;
+	}
+
+  std::sort(points.begin(), points.end()); // sort on x coordinate
+
+  points.push_back({req.endpoint.position.x, req.endpoint.position.y, req.endpoint.orientation.z});
+
+  size_t points_num = points.size();
+  spline_gen_srv.request.points.resize(3*points_num-4); // 3 * (point_num - 2) + 2
+  spline_gen_srv.request.point_frame_id.resize(3*points_num-4);
+	size_t point_index = 0;
+	for (size_t i = 0; i < points_num; i++) // copy points into spline request
+	{
+		ROS_INFO_STREAM("(" << points[i][0] << ", " << points[i][1] << "), orientation: " << points[i][2]);
+		if ((i == 0) || (i == (points_num - 1)))
+		{
+			// Facing forward for the last point increases our chances
+			// of running over the ball
+			spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0], points[i][1], points[i][2]);
+			spline_gen_srv.request.point_frame_id[point_index] = "intake";
+			base_trajectory_msgs::PathOffsetLimit path_offset_limit;
+			spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit);
+			point_index++;
+		}
+		else
+		{
+			spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0] - .175, points[i][1], points[i][2]);
+			spline_gen_srv.request.point_frame_id[point_index] = "intake";
+			base_trajectory_msgs::PathOffsetLimit path_offset_limit;
+			spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit);
+			point_index++;
+
+			spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0] + .175, points[i][1], points[i][2]);
+			spline_gen_srv.request.point_frame_id[point_index] = "intake";
+			base_trajectory_msgs::PathOffsetLimit path_offset_limit_2;
+			spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit_2);
+			point_index++;
+
+			spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0] + .375, points[i][1], points[i][2]);
+			spline_gen_srv.request.point_frame_id[point_index] = "intake";
+			base_trajectory_msgs::PathOffsetLimit path_offset_limit_3;
+			spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit_3);
+			point_index++;
+		}
+		//prev_angle = spline_gen_srv.request.points[i].positions[2];
+	}
+
+  spline_gen_srv.request.optimize_final_velocity = true; // flag for optimized velocity
+	ROS_INFO_STREAM("game_piece_path_gen : reg: " << spline_gen_srv.request);
+
+  if (!spline_gen_cli.call(spline_gen_srv))
+	{
+	  ROS_ERROR_STREAM("Can't call spline gen service in game_piece_path_gen");
+		res.message = "can't call spline gen service";
+		return false;
+	}
+	behavior_actions::DynamicPath dynamic_path_srv;
+	dynamic_path_srv.request.path_name = "game_piece_pickup_path";
+	dynamic_path_srv.request.dynamic_path = spline_gen_srv.response.path;
+  if (!dynamic_path_cli.call(dynamic_path_srv))
+	{
+	  ROS_ERROR_STREAM("Can't call dynamic path service in game_piece_path_gen");
+		res.message = "can't call dynamic path service";
+		return false;
+	}
+	res.success = true; // Default to failure
+	res.message = "to infinity and beyond!";
+	return true;
+}
+
+int main(int argc, char **argv)
+{
+	ros::init(argc, argv, "game_piece_path_server");
+	ros::NodeHandle nh;
+
+	ros::Subscriber powercellSubscriber = nh.subscribe("/tf_object_detection/object_detection_world", 1, objectDetectCallback);
+  ros::ServiceServer svc = nh.advertiseService("game_piece_path_gen", genPath);
+
+  spline_gen_cli = nh.serviceClient<base_trajectory_msgs::GenerateSpline>("/path_follower/base_trajectory/spline_gen");
+  dynamic_path_cli = nh.serviceClient<behavior_actions::DynamicPath>("/auto/dynamic_path");
+
+  ros::spin();
+  return 0;
+
+}
