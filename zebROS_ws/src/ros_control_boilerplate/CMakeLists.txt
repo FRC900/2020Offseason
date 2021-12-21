@@ -146,7 +146,7 @@ endif()
 # in different dirs for different architectures
 set (CTRE_USER_LIBS
 	${CTRE_USER_LIBS}
-	${CTRE_LIB_DIR}/libCTRE_Phoenix_WPI.so
+	#${CTRE_LIB_DIR}/libCTRE_Phoenix_WPI.so
 	${CTRE_LIB_DIR}/libCTRE_Phoenix.so
 )
 set (REV_USER_LIBS

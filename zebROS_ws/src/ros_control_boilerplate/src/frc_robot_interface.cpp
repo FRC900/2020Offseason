@@ -1956,8 +1956,6 @@ void FRCRobotInterface::createInterfaces(void)
 	}
 
 	num_phs_ = ph_names_.size();
-	ph_compressor_closed_loop_enable_state_.resize(num_phs_);
-	ph_compressor_closed_loop_enable_command_.resize(num_phs_);
 	for (size_t i = 0; i < num_phs_; i++)
 		ph_state_.emplace_back(hardware_interface::PHHWState(ph_ids_[i]));
 	for (size_t i = 0; i < num_phs_; i++)
@@ -1965,23 +1963,12 @@ void FRCRobotInterface::createInterfaces(void)
 		ROS_INFO_STREAM_NAMED(name_, "FRCRobotInterface: Registering interface for PH : "
 				<< ph_names_[i] << " at ph_id " << ph_ids_[i]);
 
-		// Default compressors to running and set state to a different
-		// value to force a write to HW the first write() iteration
-		ph_compressor_closed_loop_enable_command_[i] = 1;
-		ph_compressor_closed_loop_enable_state_[i] = std::numeric_limits<double>::max();
-
-		hardware_interface::JointStateHandle csh(ph_names_[i],
-												&ph_compressor_closed_loop_enable_state_[i],
-												&ph_compressor_closed_loop_enable_state_[i],
-												&ph_compressor_closed_loop_enable_state_[i]);
-
-		hardware_interface::JointHandle cch(csh, &ph_compressor_closed_loop_enable_command_[i]);
-		joint_position_interface_.registerHandle(cch);
-		if (!ph_local_updates_[i])
-			joint_remote_interface_.registerHandle(cch);
-
 		hardware_interface::PHStateHandle phsh(ph_names_[i], &ph_state_[i]);
 		ph_state_interface_.registerHandle(phsh);
+
+		hardware_interface::PHCommandHandle phch(phsh, &ph_command_[i]);
+		ph_command_interface_.registerHandle(phch);
+
 		if (!ph_local_updates_[i])
 		{
 			hardware_interface::PHWritableStateHandle pwsh(ph_names_[i], &ph_state_[i]);
@@ -4823,21 +4810,60 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 	write_tracer_.start_unique("phs");
 	for (size_t i = 0; i < num_phs_; i++)
 	{
-		if (ph_compressor_closed_loop_enable_command_[i] != ph_compressor_closed_loop_enable_state_[i])
+		double compressor_min_analog_voltage;
+		double compressor_max_analog_voltage;
+		bool compressor_force_disable;
+		bool compressor_use_digital;
+		if (ph_command_[i].closedLoopControlChanged(compressor_min_analog_voltage, compressor_max_analog_voltage,
+									 compressor_force_disable, compressor_use_digital))
 		{
 			if (ph_local_hardwares_[i])
 			{
 				int32_t status = 0;
-				const bool setpoint = ph_compressor_closed_loop_enable_command_[i] > 0;
-				HAL_SetREVPHClosedLoopControl(phs_[i], setpoint, &status);
-				if (status)
-					ROS_ERROR_STREAM("status: SetCTREPCMCompressorClosedLoopControl" << status
-							<< " " << HAL_GetErrorMessage(status));
+				if (compressor_force_disable)
+				{
+					HAL_SetREVPHClosedLoopControlDisabled(phs_[i], &status);
+					if (status)
+					{
+						ROS_ERROR_STREAM("status: HAL_SetREVPHClosedLoopControlDisabled " << status
+								<< " " << HAL_GetErrorMessage(status));
+						//TODO - retry?
+					}
+				}
+				else
+				{
+					if (compressor_use_digital)
+					{
+						HAL_SetREVPHClosedLoopControlDigital(phs_[i], &status);
+						if (status)
+						{
+							ROS_ERROR_STREAM("status: HAL_SetREVPHClosedLoopControlDigital " << status
+									<< " " << HAL_GetErrorMessage(status));
+							//TODO - retry?
+						}
+					}
+					else
+					{
+						HAL_SetREVPHClosedLoopControlAnalog(phs_[i], compressor_min_analog_voltage, compressor_max_analog_voltage, &status);
+						if (status)
+						{
+							ROS_ERROR_STREAM("status: HAL_SetREVPHClosedLoopControlAnalog " << status
+									<< " " << HAL_GetErrorMessage(status));
+							//TODO - retry?
+						}
+					}
+					// TODO - hybrid?
+					// void HAL_SetREVPHClosedLoopControlHybrid(HAL_REVPHHandle handle,
+                                         //double minAnalogVoltage,
+                                         //double maxAnalogVoltage,
+                                         //int32_t* status);
+				}
 			}
-			// TODO - should we retry if status != 0?
-			ph_compressor_closed_loop_enable_state_[i] = ph_compressor_closed_loop_enable_command_[i];
-			ROS_INFO_STREAM("Wrote ph " << i << " closedloop enable ="
-					<< pcm_compressor_closed_loop_enable_command_[i]);
+			ROS_INFO_STREAM("Wrote ph " << i
+					<< " min_analog_voltage=" << compressor_min_analog_voltage
+					<< " max_analog_voltage=" << compressor_max_analog_voltage
+					<< " compressor_force_disable=" << static_cast<int>(compressor_force_disable)
+					<< " compressor_use_digital=" << static_cast<int>(compressor_use_digital));
 		}
 	}
 

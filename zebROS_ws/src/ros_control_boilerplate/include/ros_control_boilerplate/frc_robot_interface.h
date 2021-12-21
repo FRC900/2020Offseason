@@ -240,6 +240,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		hardware_interface::cancoder::CANCoderCommandInterface cancoder_command_interface_;
 		hardware_interface::SparkMaxCommandInterface       spark_max_command_interface_;
 		hardware_interface::PDHCommandInterface            pdh_command_interface_;
+		hardware_interface::PHCommandInterface             ph_command_interface_;
 		hardware_interface::as726x::AS726xCommandInterface as726x_command_interface_;
 		hardware_interface::ImuSensorInterface             imu_interface_;
 		hardware_interface::RemoteImuSensorInterface       imu_remote_interface_;
@@ -431,7 +432,6 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<double> double_solenoid_state_;
 		std::vector<double> rumble_state_; //No actual data
 		std::vector<double> pcm_compressor_closed_loop_enable_state_;
-		std::vector<double> ph_compressor_closed_loop_enable_state_;
 		std::vector<hardware_interface::PCMState> pcm_state_;
 		std::vector<hardware_interface::PDHHWState> pdh_state_;
 		std::vector<hardware_interface::PDPHWState> pdp_state_;
