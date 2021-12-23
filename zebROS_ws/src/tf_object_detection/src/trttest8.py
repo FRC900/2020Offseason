@@ -118,6 +118,7 @@ def run_inference_for_single_image(msg):
                 cuda_outputs.append(cuda_mem)
         context = engine.create_execution_context()
         # List of the strings that is used to add correct label for each box.
+        print("Bindings are =" + str(bindings)) 
         PATH_TO_LABELS = os.path.join('/home/ubuntu/tensorflow_workspace/2020Game/data', '2020Game_label_map.pbtxt')
         category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
         category_dict = {0: 'background'}
@@ -149,9 +150,9 @@ def run_inference_for_single_image(msg):
     # Trying with gpu
     starttime = time.time()
     imgInput = jetson.utils.cudaFromNumpy(ori, isBGR=True)
-    range = -1, 1
-    jetson.utils.cudaTensorConvert(imgInput, imgInput.fomat, imgInput.width, imgInput.height, finalgpu, finalgpu.width, finalgpu.height, range, stream)
-
+    range = (-1., 1.)
+    jetson.utils.cudaTensorConvert(imgInput, finalgpu, range)
+    #jetson.utils.cudaTensorConvert()
     # print("imgInput " + str(imgInput))
     # s = time.time()
     #jetson.utils.cudaConvertColor(imgInput, gpuimg)
@@ -180,9 +181,9 @@ def run_inference_for_single_image(msg):
     #finalout = jetson.utils.cudaToNumpy(imgNorm)
 
     # jetson.utils.cudaConvertColor(imgNorm, finalgpu)
-
+    #finalarray = jetson.utils.cudaToNumpy(finalgpu)
     # finalout = jetson.utils.cudaToNumpy(finalgpu)
-    # jetson.utils.cudaDeviceSynchronize()
+    jetson.utils.cudaDeviceSynchronize()
     #endtime = time.time()
     #endtimefinal = endtime - starttime
     ## print("Remaining GPU", endtimefinal - timegpunorm-timegpucolor-timegpuresize)
@@ -202,11 +203,16 @@ def run_inference_for_single_image(msg):
 
     ##print("Top and bottom row of image after transpose", image[0][0], image[-1][-1])
 
-    np.copyto(host_inputs[0], finalgpu)
+    #np.copyto(host_inputs[0], finalarray)
     # np.copyto(host_inputs[0], finalout.ravel())
     t.end('cv')
     t.start('inference')
-    cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream)
+    #cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream)
+    print("Final gpu" + str(finalgpu))
+
+    print("Final gpu ptr=" + str(finalgpu.ptr))
+    cuda_inputs.append(int(finalgpu.ptr))
+    print("Cuda inputs" + str(cuda_inputs))
     context.execute_async(bindings=bindings, stream_handle=stream.handle)
     # cuda.memcpy_dtoh_async(host_outputs[1], cuda_outputs[1], stream)
     cuda.memcpy_dtoh_async(host_outputs[0], cuda_outputs[0], stream)

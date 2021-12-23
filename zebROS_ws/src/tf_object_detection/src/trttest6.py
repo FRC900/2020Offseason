@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 
 """
 Adaped from	https://github.com/AastaNV/TRT_object_detection.git

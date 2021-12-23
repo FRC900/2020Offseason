@@ -42,11 +42,10 @@ bridge = CvBridge()
 category_index, detection_graph, sess, pub, pub_debug, vis = None, None, None, None, None, None
 min_confidence = 0.1
 
-#viz = BBoxVisualization(category_dict)
+# viz = BBoxVisualization(category_dict)
 
-#Have no idea how to use this
+# Have no idea how to use this
 t = timing.Timings()
-
 
 # inference
 # TODO enable video pipeline
@@ -57,17 +56,15 @@ global init
 init = False
 
 
-
 def run_inference_for_single_image(msg):
-
     global init, host_inputs, cuda_inputs, host_outputs, cuda_outputs, stream, context, bindings, host_mem, cuda_mem, cv2gpu, imgResized, imgNorm, gpuimg, finalgpu
 
-    print("Starting inference")
+    #print("Starting inference")
     if init == False:
-        
+
         init = True
         ori = bridge.imgmsg_to_cv2(msg, "bgr8")
-        #Could be better nmessage
+        # Could be better nmessage
         print("Performing Init for CUDA")
 
         import pycuda.autoinit
@@ -121,6 +118,7 @@ def run_inference_for_single_image(msg):
                 cuda_outputs.append(cuda_mem)
         context = engine.create_execution_context()
         # List of the strings that is used to add correct label for each box.
+        #print("Bindings are =" + str(bindings)) 
         PATH_TO_LABELS = os.path.join('/home/ubuntu/tensorflow_workspace/2020Game/data', '2020Game_label_map.pbtxt')
         category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
         category_dict = {0: 'background'}
@@ -135,8 +133,6 @@ def run_inference_for_single_image(msg):
                                                format="rgb32f")
         finalgpu = jetson.utils.cudaAllocMapped(width=model.dims[1], height=model.dims[2], format='rgb32f')
 
-    t.start('frame')
-    t.start('vid')
     infrencetime_s = time.time()
     ori = bridge.imgmsg_to_cv2(msg, "bgr8")
     #print(str(ori.shape))
@@ -145,83 +141,82 @@ def run_inference_for_single_image(msg):
     #    ori = np.expand_dims(ori, axis=0)
     # except CvBridgeError as e:
     #    print(e)
-    t.end('vid')
+    #t.end('vid')
 
-    t.start('cv')
+    #t.start('cv')
 
-    #Trying with gpu
+    # Trying with gpu
     starttime = time.time()
     imgInput = jetson.utils.cudaFromNumpy(ori, isBGR=True)
-
-    
-    #print("imgInput " + str(imgInput))
-    #s = time.time()
-    jetson.utils.cudaConvertColor(imgInput, gpuimg)
-    #e = time.time()
-    #timegpucolor = e-s
-    #print("GPU Convert Color", e-s)
-    #print("gpuimg " + str(gpuimg))
+    imagerange = (-1., 1.)
+    jetson.utils.cudaTensorConvert(imgInput, finalgpu, imagerange)
+    #jetson.utils.cudaTensorConvert()
+    # print("imgInput " + str(imgInput))
+    # s = time.time()
+    #jetson.utils.cudaConvertColor(imgInput, gpuimg)
+    # e = time.time()
+    # timegpucolor = e-s
+    # print("GPU Convert Color", e-s)
+    # print("gpuimg " + str(gpuimg))
     # gpuimg = jetson.utils.cudaAllocMapped(width=gpuimg1.width, height=gpuimg1.height, format='rgb8')
-    #s = time.time()
-    jetson.utils.cudaResize(gpuimg, imgResized)
-    #e = time.time()
-    #timegpuresize = e-s
-    #print("GPU resize", e-s)
-    #print("imgResized = " + str(imgResized))
-    #imgNorm = jetson.utils.cudaAllocMapped(width=imgResized.width, height=imgResized.height, format=imgResized.format)
-    #temp = jetson.utils.cudaToNumpy(imgResized)
-    #os.chdir("/home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/src")
+    # s = time.time()
+    #jetson.utils.cudaResize(gpuimg, imgResized)
+    # e = time.time()
+    # timegpuresize = e-s
+    # print("GPU resize", e-s)
+    # print("imgResized = " + str(imgResized))
+    # imgNorm = jetson.utils.cudaAllocMapped(width=imgResized.width, height=imgResized.height, format=imgResized.format)
+    # temp = jetson.utils.cudaToNumpy(imgResized)
+    # os.chdir("/home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/src")
 
-    #cv2.imwrite("GPUOut22.png", temp)
-    #s = time.time()
-    jetson.utils.cudaNormalize(imgResized, (0., 255.), imgNorm, (-1., 1.))
-    #e = time.time()
-    #timegpunorm = e-s
-    #print("GPU norm", e-s)
-    #s = time.time()
-    finalout = jetson.utils.cudaToNumpy(imgNorm)
-    
-    
-    #jetson.utils.cudaConvertColor(imgNorm, finalgpu)
-    
-    #finalout = jetson.utils.cudaToNumpy(finalgpu)
+    # cv2.imwrite("GPUOut22.png", temp)
+    # s = time.time()
+    #jetson.utils.cudaNormalize(imgResized, (0., 255.), imgNorm, (-1., 1.))
+    # e = time.time()
+    # timegpunorm = e-s
+    # print("GPU norm", e-s)
+    # s = time.time()
+    #finalout = jetson.utils.cudaToNumpy(imgNorm)
+
+    # jetson.utils.cudaConvertColor(imgNorm, finalgpu)
+    finalarray = jetson.utils.cudaToNumpy(finalgpu)
+    # finalout = jetson.utils.cudaToNumpy(finalgpu)
     #jetson.utils.cudaDeviceSynchronize()
-    endtime = time.time()
-    endtimefinal = endtime - starttime
-    #print("Remaining GPU", endtimefinal - timegpunorm-timegpucolor-timegpuresize)
+    #endtime = time.time()
+    #endtimefinal = endtime - starttime
+    ## print("Remaining GPU", endtimefinal - timegpunorm-timegpucolor-timegpuresize)
     #print("GPU preprocess", endtimefinal)
-    #finalout = jetson.utils.cudaToNumpy(finalgpu)
-    #jetson.utils.cudaDeviceSynchronize()
+    # finalout = jetson.utils.cudaToNumpy(finalgpu)
+    # jetson.utils.cudaDeviceSynchronize()
 
+    # cpuresized = image
+    # cv2.imwrite("Normalimg22.png", image)
+    # image = image.transpose((2, 0, 1))
 
-    
-    #cpuresized = image
-    #cv2.imwrite("Normalimg22.png", image)
-    #image = image.transpose((2, 0, 1))
-    startime = time.time()
-    finalout = finalout.transpose((2, 0, 1))
-    endtime = time.time()
-    print("GPU Preprocess took", infrencetime_s - time.time())
-
-    #print("Transpose, last non gpu preprocess takes", endtime-startime)
+    #startime = time.time()
+    #finalout = finalout.transpose((2, 0, 1))
+    #endtime = time.time()
+    #print("Transpose, last non gpu preprocess takes", endtime - startime)
     ##print("Top and bottom row of image", image[0][0], image[-1][-1])
 
     ##print("Top and bottom row of image after transpose", image[0][0], image[-1][-1])
 
-    np.copyto(host_inputs[0], finalout.ravel())
-    #np.copyto(host_inputs[0], finalout.ravel())
-    t.end('cv')
-    
-    t.start('inference')
-    #print("hostinput is " + str(host_inputs[0]))
+    #np.copyto(host_inputs[0], finalarray)
+    np.copyto(host_inputs[0], finalarray.ravel())
+    #t.end('cv')
+    #t.start('inference')
     cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream)
-    #print("CUDA input is " + str(cuda_inputs))
+    #print("Final gpu" + str(finalgpu))
+
+    #print("Final gpu ptr=" + str(finalgpu.ptr))
+    #cuda_inputs.append(int(finalgpu.ptr))
+    #print("Cuda inputs" + str(cuda_inputs))
+    
     context.execute_async(bindings=bindings, stream_handle=stream.handle)
+    
     #cuda.memcpy_dtoh_async(host_outputs[1], cuda_outputs[1], stream)
     cuda.memcpy_dtoh_async(host_outputs[0], cuda_outputs[0], stream)
     stream.synchronize()
-    t.end('inference')
-    t.start('viz')
     output = host_outputs[0]
 
     height, width, channels = ori.shape
@@ -256,24 +251,22 @@ def run_inference_for_single_image(msg):
         boxes.append([output[prefix + 4], output[prefix + 3], output[prefix + 6], output[prefix + 5]])
         clss.append(int(output[prefix + 1]))
         confs.append(output[prefix + 2])
-    #print(detection)
+    # print(detection)
     pub.publish(detection)
     end = time.time()
     inferencetime = end - infrencetime_s
     print("FINAL TIME", inferencetime)
     os.chdir("/home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/src")
 
-    f = open("optimout.txt", "w+")
+    f = open("finalgpuoptim.txt", "w+")
     f.write(str(detection))
     f.close()
-    #viz.draw_bboxes(ori, boxes, confs, clss, 0.42)
-    #cv2.imwrite("result.jpg", ori)
+    # viz.draw_bboxes(ori, boxes, confs, clss, 0.42)
+    # cv2.imwrite("result.jpg", ori)
     # cv2.imshow("result", ori)
 
-    t.end('viz')
-    #context.pop()
+    # context.pop()
     print("Context popped!")
-    t.end('frame')
 
 
 def main():
@@ -308,3 +301,4 @@ if __name__ == '__main__':
     maxthreads = Semaphore(1)
     with maxthreads:
         main()
+
