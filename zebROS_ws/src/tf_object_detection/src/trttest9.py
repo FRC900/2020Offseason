@@ -59,11 +59,12 @@ init = False
 def run_inference_for_single_image(msg):
     global init, host_inputs, cuda_inputs, host_outputs, cuda_outputs, stream, context, bindings, host_mem, cuda_mem, cv2gpu, imgResized, imgNorm, gpuimg, finalgpu
 
-    #print("Starting inference")
+    # print("Starting inference")
     if init == False:
 
         init = True
         ori = bridge.imgmsg_to_cv2(msg, "bgr8")
+        imgInput = jetson.utils.cudaFromNumpy(ori, isBGR=True)
         # Could be better nmessage
         print("Performing Init for CUDA")
 
@@ -103,13 +104,15 @@ def run_inference_for_single_image(msg):
         host_outputs = []
         cuda_outputs = []
         bindings = []
-
+    
         stream = cuda.Stream()
         for binding in engine:
             size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
             host_mem = cuda.pagelocked_empty(size, np.float32)
             cuda_mem = cuda.mem_alloc(host_mem.nbytes)
             bindings.append(int(cuda_mem))
+            print("Host mem=", host_mem, "CUDA mem", cuda_mem ,"Bindings=", bindings) 
+            #what is the point of this if statment
             if engine.binding_is_input(binding):
                 host_inputs.append(host_mem)
                 cuda_inputs.append(cuda_mem)
@@ -117,105 +120,52 @@ def run_inference_for_single_image(msg):
                 host_outputs.append(host_mem)
                 cuda_outputs.append(cuda_mem)
         context = engine.create_execution_context()
-        # List of the strings that is used to add correct label for each box.
-        #print("Bindings are =" + str(bindings)) 
+       # List of the strings that is used to add correct label for each box.
+        # print("Bindings are =" + str(bindings))
         PATH_TO_LABELS = os.path.join('/home/ubuntu/tensorflow_workspace/2020Game/data', '2020Game_label_map.pbtxt')
         category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
         category_dict = {0: 'background'}
         for k in category_index.keys():
             category_dict[k] = category_index[k]['name']
-        gpuimg = jetson.utils.cudaAllocMapped(width=ori.shape[1], height=ori.shape[0], format='rgb32f')
 
-        imgResized = jetson.utils.cudaAllocMapped(width=model.dims[1],
-                                                  height=model.dims[2],
-                                                  format="rgb32f")
-        imgNorm = jetson.utils.cudaAllocMapped(width=imgResized.width, height=imgResized.height,
-                                               format="rgb32f")
         finalgpu = jetson.utils.cudaAllocMapped(width=model.dims[1], height=model.dims[2], format='rgb32f')
 
     infrencetime_s = time.time()
     ori = bridge.imgmsg_to_cv2(msg, "bgr8")
-    #print(str(ori.shape))
-    # The same as  image = cv2.resize(ori, (model.dims[2], model.dims[1])) (hopefully)
-    # try:
-    #    ori = np.expand_dims(ori, axis=0)
-    # except CvBridgeError as e:
-    #    print(e)
-    #t.end('vid')
-
-    #t.start('cv')
-
     # Trying with gpu
     starttime = time.time()
     imgInput = jetson.utils.cudaFromNumpy(ori, isBGR=True)
     imagerange = (-1., 1.)
     jetson.utils.cudaTensorConvert(imgInput, finalgpu, imagerange)
-    #jetson.utils.cudaTensorConvert()
-    # print("imgInput " + str(imgInput))
-    # s = time.time()
-    #jetson.utils.cudaConvertColor(imgInput, gpuimg)
-    # e = time.time()
-    # timegpucolor = e-s
-    # print("GPU Convert Color", e-s)
-    # print("gpuimg " + str(gpuimg))
-    # gpuimg = jetson.utils.cudaAllocMapped(width=gpuimg1.width, height=gpuimg1.height, format='rgb8')
-    # s = time.time()
-    #jetson.utils.cudaResize(gpuimg, imgResized)
-    # e = time.time()
-    # timegpuresize = e-s
-    # print("GPU resize", e-s)
-    # print("imgResized = " + str(imgResized))
-    # imgNorm = jetson.utils.cudaAllocMapped(width=imgResized.width, height=imgResized.height, format=imgResized.format)
-    # temp = jetson.utils.cudaToNumpy(imgResized)
-    # os.chdir("/home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/src")
 
-    # cv2.imwrite("GPUOut22.png", temp)
-    # s = time.time()
-    #jetson.utils.cudaNormalize(imgResized, (0., 255.), imgNorm, (-1., 1.))
-    # e = time.time()
-    # timegpunorm = e-s
-    # print("GPU norm", e-s)
-    # s = time.time()
-    #finalout = jetson.utils.cudaToNumpy(imgNorm)
-
-    # jetson.utils.cudaConvertColor(imgNorm, finalgpu)
+    # This is should be replaced with somehow pointing the cuda_inputs to finalgpu (hopefully)
+    copytimes = time.time()
     finalarray = jetson.utils.cudaToNumpy(finalgpu)
-    # finalout = jetson.utils.cudaToNumpy(finalgpu)
-    #jetson.utils.cudaDeviceSynchronize()
-    #endtime = time.time()
-    #endtimefinal = endtime - starttime
-    ## print("Remaining GPU", endtimefinal - timegpunorm-timegpucolor-timegpuresize)
-    #print("GPU preprocess", endtimefinal)
-    # finalout = jetson.utils.cudaToNumpy(finalgpu)
-    # jetson.utils.cudaDeviceSynchronize()
 
-    # cpuresized = image
-    # cv2.imwrite("Normalimg22.png", image)
-    # image = image.transpose((2, 0, 1))
-
-    #startime = time.time()
-    #finalout = finalout.transpose((2, 0, 1))
-    #endtime = time.time()
-    #print("Transpose, last non gpu preprocess takes", endtime - startime)
-    ##print("Top and bottom row of image", image[0][0], image[-1][-1])
-
-    ##print("Top and bottom row of image after transpose", image[0][0], image[-1][-1])
-
-    #np.copyto(host_inputs[0], finalarray)
+    # np.copyto(host_inputs[0], finalarray)
     np.copyto(host_inputs[0], finalarray.ravel())
-    #t.end('cv')
-    #t.start('inference')
-    cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream)
-    #print("Final gpu" + str(finalgpu))
+    #print("Host inputs 0", host_inputs[0])
+    #print("imgInput " + str(imgInput))
+    #print("Final gpu " + str(finalgpu))
 
     #print("Final gpu ptr=" + str(finalgpu.ptr))
     #cuda_inputs.append(int(finalgpu.ptr))
     #print("Cuda inputs" + str(cuda_inputs))
+    #print("Host_inputs=", host_inputs)
+    #print("Cuda_inputs=", cuda_inputs)
+    #Gives lots of text
+    #print("Host_outputs=", host_outputs)
+    #print("Cuda_outputs=", cuda_outputs)
+    #print("Bindings=", bindings)
     
+    cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream) 
+    #cuda.memcpy_dtod_async(host_inputs[0], int(finalgpu.ptr), stream=stream.handle)
+    print("Total copy time was", time.time() - copytimes)
     context.execute_async(bindings=bindings, stream_handle=stream.handle)
-    
-    #cuda.memcpy_dtoh_async(host_outputs[1], cuda_outputs[1], stream)
+
+    # cuda.memcpy_dtoh_async(host_outputs[1], cuda_outputs[1], stream)
     cuda.memcpy_dtoh_async(host_outputs[0], cuda_outputs[0], stream)
+    #print("Cuda outputs[0]", cuda_outputs[0])
     stream.synchronize()
     output = host_outputs[0]
 
@@ -298,7 +248,7 @@ def main():
 
 
 if __name__ == '__main__':
-    maxthreads = Semaphore(1)
-    with maxthreads:
-        main()
+    # maxthreads = Semaphore(1)
+    # with maxthreads:
+    main()
 
