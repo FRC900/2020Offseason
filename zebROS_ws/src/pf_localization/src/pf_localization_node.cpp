@@ -2,7 +2,6 @@
 #include "pf_localization/particle_filter.hpp"
 #include "pf_localization/world_model.hpp"
 #include "pf_localization/particle.hpp"
-#include "pf_localization/pf_debug.h"
 #include "field_obj/Detection.h"
 
 #include <tf2/LinearMath/Matrix3x3.h>
