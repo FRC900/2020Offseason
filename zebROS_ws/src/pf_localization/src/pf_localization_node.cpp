@@ -12,6 +12,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <sensor_msgs/Imu.h>
@@ -124,16 +125,14 @@ void publish_prediction(const ros::TimerEvent &/*event*/)
   }
 
   if(pub_debug.getNumSubscribers() > 0){
-    pf_localization::pf_debug debug;
+    geometry_msgs::PoseArray debug;
 
     for (const Particle& p : pf->get_particles()) {
-      pf_localization::pf_pose particle;
-      particle.x = p.x_;
-      particle.y = p.y_;
-      particle.rot = p.rot_;
-      debug.particles.push_back(particle);
+      debug.poses.push_back(p.poseFrom2D(p.x_, p.y_, p.rot_));
     }
 
+    debug.header.frame_id = map_frame_id;
+    debug.header.stamp = ros::Time::now();
     pub_debug.publish(debug);
   }
 }
@@ -312,7 +311,7 @@ int main(int argc, char **argv) {
   pub = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>(pub_topic, 1);
   ros::ServiceServer re_init_pf_server = nh_.advertiseService(reinit_pf_service, handle_re_init_pf);
 
-  pub_debug = nh_.advertise<pf_localization::pf_debug>(pub_debug_topic, 1);
+  pub_debug = nh_.advertise<geometry_msgs::PoseArray>(pub_debug_topic, 1);
 
   tfbr = std::make_unique<tf2_ros::TransformBroadcaster>();
   double publish_rate;
