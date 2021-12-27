@@ -19,14 +19,14 @@ struct Particle {
 	  return !std::isnan(sum) && !std::isinf(sum);
   }
 
-  geometry_msgs::Pose toPose() {
+  static geometry_msgs::Pose poseFrom2D(double x, double y, double rot) {
     geometry_msgs::Pose pose;
-    pose.position.x = x_;
-    pose.position.y = y_;
+    pose.position.x = x;
+    pose.position.y = y;
     pose.position.z = 0;
 
     tf2::Quaternion q;
-    q.setRPY(0, 0, rot_);
+    q.setRPY(0, 0, rot);
     pose.orientation.x = q.getX();
     pose.orientation.y = q.getY();
     pose.orientation.z = q.getZ();
