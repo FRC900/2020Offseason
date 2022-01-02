@@ -37,7 +37,10 @@ ctypes.CDLL("/home/ubuntu/TensorRT/build/libnvinfer_plugin.so")
 bridge = CvBridge()
 category_index, detection_graph, sess, pub, pub_debug, vis = None, None, None, None, None, None
 min_confidence = 0.1
-
+global rospack, THIS_DIR, PATH_TO_LABELS
+rospack = rospkg.RosPack()
+THIS_DIR = os.path.join(rospack.get_path('tf_object_detection'), 'src/')
+PATH_TO_LABELS = os.path.join(THIS_DIR, '2020Game_label_map.pbtxt')
 # viz = BBoxVisualization(category_dict)
 
 
@@ -56,7 +59,7 @@ def run_inference_for_single_image(msg):
         init = True
         ori = bridge.imgmsg_to_cv2(msg, "bgr8")
         imgInput = jetson.utils.cudaFromNumpy(ori, isBGR=True)
-        print("Performing Init for CUDA")
+        rospy.logwarn("Performing init for CUDA")
 
         import pycuda.autoinit
         # initialize
@@ -67,6 +70,8 @@ def run_inference_for_single_image(msg):
         # This is only done if the output bin file doesn't already exist
         # TODO - replace this with the MD5 sum check we have for the other TRT detection
         if not os.path.isfile(model.TRTbin):
+            rospy.logwarn("Optimized model not found, generating new one")
+
             import uff
             import graphsurgeon as gs
             dynamic_graph = model.add_plugin(gs.DynamicGraph(model.path))
@@ -82,6 +87,8 @@ def run_inference_for_single_image(msg):
                 buf = engine.serialize()
                 with open(model.TRTbin, 'wb') as f:
                     f.write(buf)
+            rospy.logwarn("Optimized model generated successfully, filename=" + str(model.TRTbin))
+
         # Start of inference code
         # create engine
 
@@ -139,7 +146,8 @@ def run_inference_for_single_image(msg):
      
     cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream) 
     context.execute_async(bindings=bindings, stream_handle=stream.handle)
-
+    
+    # host_outputs[1] is not needed
     # cuda.memcpy_dtoh_async(host_outputs[1], cuda_outputs[1], stream)
     cuda.memcpy_dtoh_async(host_outputs[0], cuda_outputs[0], stream)
     stream.synchronize()
@@ -152,6 +160,11 @@ def run_inference_for_single_image(msg):
     detection = TFDetection()
     detection.header = msg.header
     detection.header.frame_id = detection.header.frame_id.replace("_optical_frame", "_frame")
+    # Converts numpy array to list becuase extracting indviual items from a list is faster than numpy array
+    # Might be a more optimized way but this takes negligible time 
+    output = output.tolist()
+
+    # TODO Takes around .016 seconds on nano, could be improved
     for i in range(int(len(output) / model.layout)):
         prefix = i * model.layout
 
@@ -184,9 +197,12 @@ def run_inference_for_single_image(msg):
     # cv2.imwrite("result.jpg", ori)
     # cv2.imshow("result", ori)
 
+
+
+
 def main():
     
-
+    os.chdir(THIS_DIR)
 
     global detection_graph, sess, pub, category_index, pub_debug, min_confidence, vis
 

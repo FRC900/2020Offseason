@@ -43,6 +43,10 @@ category_index, detection_graph, sess, pub, pub_debug, vis = None, None, None, N
 min_confidence = 0.1
 
 # viz = BBoxVisualization(category_dict)
+global rospack, THIS_DIR, PATH_TO_LABELS
+rospack = rospkg.RosPack()
+THIS_DIR = os.path.join(rospack.get_path('tf_object_detection'), 'src/')
+PATH_TO_LABELS = os.path.join(THIS_DIR, '2020Game_label_map.pbtxt')
 
 
 
@@ -53,14 +57,12 @@ init = False
 def run_inference_for_single_image(msg):
     global init, host_inputs, cuda_inputs, host_outputs, cuda_outputs, stream, context, bindings, host_mem, cuda_mem, cv2gpu, imgResized, imgNorm, gpuimg, finalgpu
 
-    # print("Starting inference")
     if init == False:
 
         init = True
         ori = bridge.imgmsg_to_cv2(msg, "bgr8")
         imgInput = jetson.utils.cudaFromNumpy(ori, isBGR=True)
-        # Could be better nmessage
-        print("Performing Init for CUDA")
+        rospy.logwarn("Performing init for CUDA")
 
         import pycuda.autoinit
         # initialize
@@ -71,6 +73,8 @@ def run_inference_for_single_image(msg):
         # This is only done if the output bin file doesn't already exist
         # TODO - replace this with the MD5 sum check we have for the other TRT detection
         if not os.path.isfile(model.TRTbin):
+            rospy.logwarn("Optimized model not found, generating new one")
+
             import uff
             import graphsurgeon as gs
             dynamic_graph = model.add_plugin(gs.DynamicGraph(model.path))
@@ -86,6 +90,13 @@ def run_inference_for_single_image(msg):
                 buf = engine.serialize()
                 with open(model.TRTbin, 'wb') as f:
                     f.write(buf)
+            rospy.logwarn("Optimized model generated successfully, filename=" + str(model.TRTbin))
+
+        
+        
+        
+        
+        
         # Start of inference code
         # create engine
 
@@ -118,9 +129,6 @@ def run_inference_for_single_image(msg):
         
        # List of the strings that is used to add correct label for each box.
         # print("Bindings are =" + str(bindings))
-        rospack = rospkg.RosPack()
-        THIS_DIR = os.path.join(rospack.get_path('tf_object_detection'), 'src/')
-        PATH_TO_LABELS = os.path.join(THIS_DIR, '2020Game_label_map.pbtxt')
         rospy.logwarn("Loading labels from " + str(PATH_TO_LABELS))
 
         category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
@@ -163,9 +171,12 @@ def run_inference_for_single_image(msg):
     #print("Cuda outputs[0]", cuda_outputs[0])
     stream.synchronize()
     print("Inference took", time.time() - inferencetime)
+    
+    
     publishtime = time.time()
     output = host_outputs[0]
-
+    output = output.tolist()
+    print("Tolist time", time.time() - publishtime)
     height, width, channels = ori.shape
     boxes = []
     confs = []
@@ -196,9 +207,11 @@ def run_inference_for_single_image(msg):
         obj.label = label
         detection.objects.append(obj)
 
-        boxes.append([output[prefix + 4], output[prefix + 3], output[prefix + 6], output[prefix + 5]])
-        clss.append(int(output[prefix + 1]))
-        confs.append(output[prefix + 2])
+        #boxes.append([output[prefix + 4], output[prefix + 3], output[prefix + 6], output[prefix + 5]])
+        #clss.append(int(output[prefix + 1]))
+        #confs.append(output[prefix + 2])
+    
+    
     # print(detection)
     pub.publish(detection)
     end = time.time()
