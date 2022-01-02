@@ -111,7 +111,10 @@ def run_inference_for_single_image(msg):
         context = engine.create_execution_context()
         
        # List of the strings that is used to add correct label for each box.
-        PATH_TO_LABELS = os.path.join('/home/ubuntu/tensorflow_workspace/2020Game/data', '2020Game_label_map.pbtxt')
+        rospack = rospkg.RosPack()
+        THIS_DIR = os.path.join(rospack.get_path('tf_object_detection'), 'src/')
+        PATH_TO_LABELS = os.path.join(THIS_DIR, '2020Game_label_map.pbtxt')
+        rospy.logwarn("Loading labels from " + str(PATH_TO_LABELS))
         category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
         category_dict = {0: 'background'}
         for k in category_index.keys():
@@ -153,12 +156,12 @@ def run_inference_for_single_image(msg):
         prefix = i * model.layout
 
         index = int(output[prefix + 0])
-        label = int(output[prefix + 1])
-        conf = output[prefix + 2]
-        xmin = int(output[prefix + 3] * width)
-        ymin = int(output[prefix + 4] * height)
-        xmax = int(output[prefix + 5] * width)
-        ymax = int(output[prefix + 6] * height)
+        label = str(output[prefix + 1])
+        conf = float(output[prefix + 2])
+        xmin = float(output[prefix + 3] * width)
+        ymin = float(output[prefix + 4] * height)
+        xmax = float(output[prefix + 5] * width)
+        ymax = float(output[prefix + 6] * height)
 
         # ROSifying the code
         obj = TFObject()
@@ -182,7 +185,8 @@ def run_inference_for_single_image(msg):
     # cv2.imshow("result", ori)
 
 def main():
-    os.chdir("/home/ubuntu/2020Offseason/zebROS_ws/src/tf_object_detection/src")
+    
+
 
     global detection_graph, sess, pub, category_index, pub_debug, min_confidence, vis
 
