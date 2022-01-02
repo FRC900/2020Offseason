@@ -168,8 +168,9 @@ target_link_libraries(tf_object_screen_to_world
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
  install(PROGRAMS
-   src/trttest6.py
+   src/trtdetection.py
    src/pub_video.py
+   src/trtdebug.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
