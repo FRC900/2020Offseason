@@ -101,20 +101,23 @@ def run_inference_for_single_image(msg):
         host_outputs = []
         cuda_outputs = []
         bindings = []
-    
+        finalgpu = jetson.utils.cudaAllocMapped(width=model.dims[1], height=model.dims[2], format='rgb32f') 
         stream = cuda.Stream()
+        
         for binding in engine:
-            size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
-            host_mem = cuda.pagelocked_empty(size, np.float32)
-            cuda_mem = cuda.mem_alloc(host_mem.nbytes)
-            bindings.append(int(cuda_mem))
-            
             if engine.binding_is_input(binding):
-                host_inputs.append(host_mem)
-                cuda_inputs.append(cuda_mem)
+                # Should only be 1 input, the post-processed image
+                bindings.append(finalgpu.ptr)
             else:
+                size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
+                host_mem = cuda.pagelocked_empty(size, np.float32)
+                cuda_mem = cuda.mem_alloc(host_mem.nbytes)
+                bindings.append(int(cuda_mem))
+                #print("Host mem=", host_mem, "CUDA mem", cuda_mem ,"Bindings=", bindings) 
                 host_outputs.append(host_mem)
                 cuda_outputs.append(cuda_mem)
+        
+        
         context = engine.create_execution_context()
         
        # List of the strings that is used to add correct label for each box.
@@ -127,7 +130,6 @@ def run_inference_for_single_image(msg):
         for k in category_index.keys():
             category_dict[k] = category_index[k]['name']
         
-        finalgpu = jetson.utils.cudaAllocMapped(width=model.dims[1], height=model.dims[2], format='rgb32f')
 
     infrencetime_s = time.time()
     ori = bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -139,12 +141,10 @@ def run_inference_for_single_image(msg):
     #Custom function, no documentation
     jetson.utils.cudaTensorConvert(imgInput, finalgpu, imagerange)
 
-    host_inputs[0] = jetson.utils.cudaToNumpy(finalgpu).ravel()
     
     # This is very slow
     #np.copyto(host_inputs[0], finalarray.ravel())
      
-    cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream) 
     context.execute_async(bindings=bindings, stream_handle=stream.handle)
     
     # host_outputs[1] is not needed
