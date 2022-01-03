@@ -129,6 +129,7 @@ def run_inference_for_single_image(msg):
         category_dict = {0: 'background'}
         for k in category_index.keys():
             category_dict[k] = category_index[k]['name']
+        rospy.logwarn("Obj detection init complete")
         
 
     infrencetime_s = time.time()
@@ -167,10 +168,14 @@ def run_inference_for_single_image(msg):
     # TODO Takes around .016 seconds on nano, could be improved
     for i in range(int(len(output) / model.layout)):
         prefix = i * model.layout
+        
+        conf = float(output[prefix + 2])
+        if conf < min_confidence:
+            continue
 
         index = int(output[prefix + 0])
         label = str(output[prefix + 1])
-        conf = float(output[prefix + 2])
+        #conf = float(output[prefix + 2])
         xmin = float(output[prefix + 3] * width)
         ymin = float(output[prefix + 4] * height)
         xmax = float(output[prefix + 5] * width)
@@ -213,13 +218,15 @@ def main():
     
     if rospy.has_param('min_confidence'):
         min_confidence = rospy.get_param('min_confidence')
+        rospy.logwarn("Min confidence of " + str(min_confidence) + " loaded from config")
     else:
-        print("Unable to get min confidence, defaulting to 0.1")
+        rospy.logwarn("Unable to get min confidence, defaulting to 0.1")
     
     if rospy.has_param('image_topic'):
         sub_topic = rospy.get_param('image_topic')
+        rospy.logwarn("Image topic of " + str(sub_topic) + " loaded from config")
     else:
-        print("Unable to get image topic, defaulting to /c920/rect_image")
+        rospy.logwarn("Unable to get image topic, defaulting to /c920/rect_image")
 
     sub = rospy.Subscriber(sub_topic, Image, run_inference_for_single_image)
     pub = rospy.Publisher(pub_topic, TFDetection, queue_size=2)
