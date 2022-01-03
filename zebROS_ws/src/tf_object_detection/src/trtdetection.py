@@ -20,8 +20,10 @@ import jetson.utils
 import tensorrt as trt
 import pycuda.driver as cuda
 from sensor_msgs.msg import Image
+from file_changed import file_changed
 from cv_bridge import CvBridge, CvBridgeError
 from field_obj.msg import TFDetection, TFObject
+
 # from config import model_ssd_inception_v2_coco_2017_11_17 as model
 # from config import model_ssd_mobilenet_v1_coco_2018_01_28 as model
 # from config import model_ssd_mobilenet_v2_coco_2018_03_29 as model
@@ -51,7 +53,7 @@ init = False
 
 def run_inference_for_single_image(msg):
     # TODO Maybe remove all these globals and make a class
-    global init, host_inputs, cuda_inputs, host_outputs, cuda_outputs, stream, context, bindings, host_mem, cuda_mem, cv2gpu, imgResized, imgNorm, gpuimg, finalgpu
+    global viz, init, host_inputs, cuda_inputs, host_outputs, cuda_outputs, stream, context, bindings, host_mem, cuda_mem, cv2gpu, imgResized, imgNorm, gpuimg, finalgpu
     #Prints out a lot of times
     #print("--Starting trtdetection--")
     if init == False:
@@ -69,7 +71,8 @@ def run_inference_for_single_image(msg):
         # compile model into TensorRT
         # This is only done if the output bin file doesn't already exist
         # TODO - replace this with the MD5 sum check we have for the other TRT detection
-        if not os.path.isfile(model.TRTbin):
+        print(model.TRTbin)
+        if file_changed(model.TRTbin):
             rospy.logwarn("Optimized model not found, generating new one")
 
             import uff
@@ -129,6 +132,8 @@ def run_inference_for_single_image(msg):
         category_dict = {0: 'background'}
         for k in category_index.keys():
             category_dict[k] = category_index[k]['name']
+        
+        viz = BBoxVisualization(category_dict)
         rospy.logwarn("Obj detection init complete")
         
 
@@ -165,7 +170,7 @@ def run_inference_for_single_image(msg):
     # Might be a more optimized way but this takes negligible time 
     output = output.tolist()
 
-    # TODO Takes around .016 seconds on nano, could be improved
+    
     for i in range(int(len(output) / model.layout)):
         prefix = i * model.layout
         
@@ -197,11 +202,12 @@ def run_inference_for_single_image(msg):
         confs.append(output[prefix + 2])
     
     pub.publish(detection)
-    # TODO Visualization could be cool 
-    # viz.draw_bboxes(ori, boxes, confs, clss, 0.42)
-    # cv2.imwrite("result.jpg", ori)
-    # cv2.imshow("result", ori)
-
+    
+    # Uncomment for visualization 
+    #viz.draw_bboxes(ori, boxes, confs, clss, 0.42)
+    #cv2.imwrite("result.jpg", ori)
+    #cv2.imshow("result", ori)
+    #key = cv2.waitKey(1) & 0x000000FF
 
 
 
