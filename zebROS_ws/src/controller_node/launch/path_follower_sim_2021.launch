@@ -7,7 +7,8 @@
 	<arg name="run_path_follower" default="True" />
 	<!--  ************** Global Parameters ***************  -->
 	<param name="/use_sim_time" value="true"/>
-
+	<!--  ************** Including teleop node ***************  -->
+	<include file="$(find controller_node)/launch/teleop.launch"/>
 	<!--  ************** Stage Simulator ***************  -->
 	<node pkg="stage_ros" type="stageros" name="stageros" args="$(find controller_node)/stage/2021PathFollower.world" output="screen">
 		<remap from="base_scan" to="scan"/>
@@ -29,7 +30,7 @@
 		</node>
 	</group>
 
-	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
+	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
 		<arg name="port" value="5803"/>
 	</include>
 
@@ -76,7 +77,7 @@
 		-->
 		<arg name="use_pose_for_odom" value="false"/>
 	</include>
-	<!-- Super sketchy way to hook up cmd vel output from path follower to stage /cmd_vel topic 
+	<!-- Super sketchy way to hook up cmd vel output from path follower to stage /cmd_vel topic
 		 I could say this is because it is a closer match to the real robot but it is really just
          being reused out of laziness.
 	-->
