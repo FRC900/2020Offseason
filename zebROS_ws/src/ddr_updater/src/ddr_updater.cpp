@@ -50,18 +50,16 @@ void DDRUpdater::DDRUpdateThread(void)
 	ros::Rate r(10);
 	while (ddr_update_thread_active_)
 	{
-		// Clear the flag before writing doing the update.
-		// This allows calls to triggerDDRUpdate which come in during the
-		// writes here to force another write.  Depending on the timing
-		// this might force an extra redundant write of config values,
-		// but since the writes are happening in a background thread it
-		// won't really matter.
-		while (ddr_update_thread_flag_.test_and_set())
+		// Loop forever, periodically checking for the flag to be cleared
+		// Test and set returns the previous value of the variable and sets
+		// it, all in one atomic operation.  The set will reset the flag
+		// so after running updatePublishedInformation() the code will loop back and wait
+		// here for the next time the flag is cleared by triggerDDRUpdate.
+		if (!ddr_update_thread_flag_.test_and_set())
 		{
-			r.sleep();
+			ddr_.updatePublishedInformation();
 		}
-
-		ddr_.updatePublishedInformation();
+		r.sleep();
 	}
 }
 
