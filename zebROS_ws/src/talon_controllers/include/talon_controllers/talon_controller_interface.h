@@ -194,8 +194,8 @@ class TalonCIParams
 			closed_loop_period_[3] = config.closed_loop_period3;
 			pidf_slot_ = config.pid_config;
 			aux_pid_polarity_ = config.aux_pid_polarity;
-			// demand1_type_ = static_cast<hardware_interface::DemandType>(config.demand1_type);
-			// demand1_value_ = config.demand1_value;
+			demand1_type_ = static_cast<hardware_interface::DemandType>(config.demand1_type);
+			demand1_value_ = config.demand1_value;
 			invert_output_ = config.invert_output;
 
 			sensor_phase_ = config.sensor_phase;
@@ -332,8 +332,8 @@ class TalonCIParams
 			config.closed_loop_period3 = closed_loop_period_[3];
 			config.pid_config    = pidf_slot_;
 			config.aux_pid_polarity = aux_pid_polarity_;
-			//  config.demand1_type = demand1_type_;
-			//  config.demand1_value = demand1_value_;
+			config.demand1_type = demand1_type_;
+			config.demand1_value = demand1_value_;
 			config.invert_output = invert_output_;
 			config.sensor_phase  = sensor_phase_;
 			config.feedback_type = feedback_type_;
@@ -1667,22 +1667,22 @@ class TalonControllerInterface
 				ROS_ERROR_STREAM("Demand Type is DemandType_AuxPID!");
 				return;
 			}
-			//ROS_INFO("setDemand1Type start");
+			ROS_INFO("setDemand1Type start");
 			params_.demand1_type_ = demand1_type;
 			syncDynamicReconfigure();
 			talon_->setDemand1Type(demand1_type);
-			//ROS_INFO("setDemand1Type end");
+			ROS_INFO("setDemand1Type end");
 		}
 
 		void setDemand1Value(double demand1_value)
 		{
 			if (fabs(demand1_value - params_.demand1_value_) < double_value_epsilon)
 				return;
-			//ROS_INFO("setDemand1Value start");
+			ROS_INFO("setDemand1Value start");
 			params_.demand1_value_ = demand1_value;
 			syncDynamicReconfigure();
 			talon_->setDemand1Value(demand1_value);
-			//ROS_INFO("setDemand1Value end");
+			ROS_INFO("setDemand1Value end");
 		}
 
 		virtual void setCustomProfileHz(const double &hz)
