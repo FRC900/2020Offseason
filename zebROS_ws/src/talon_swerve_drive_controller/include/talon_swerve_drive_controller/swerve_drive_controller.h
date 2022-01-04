@@ -36,25 +36,23 @@
  * Original Author: Enrique Fernández
  */
 
-#pragma once
+#ifndef SWERVE_DRIVE_CONTROLLER_INC__
+#define SWERVE_DRIVE_CONTROLLER_INC__
 
 #include <array>
 #include <atomic>
-#include <deque>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <controller_interface/controller.h>
 #include <talon_controllers/talon_controller_interface.h>
 
-#include <talon_swerve_drive_controller/MotionProfile.h>
 #include <talon_swerve_drive_controller/speed_limiter.h>
 #include "talon_swerve_drive_controller/SetXY.h"
 #include <talon_swerve_drive_controller/Swerve.h>
 
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Bool.h>
-#include <std_msgs/UInt16.h>
 #include <std_srvs/Empty.h>
 #include <std_srvs/SetBool.h>
 #include <nav_msgs/Odometry.h>
@@ -169,7 +167,7 @@ class TalonSwerveDriveController
 		realtime_tools::RealtimeBuffer<bool> reset_odom_;
 
 		/// Publish executed commands
-		std::shared_ptr<realtime_tools::RealtimePublisher<geometry_msgs::TwistStamped> > cmd_vel_pub_;
+		std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::TwistStamped> > cmd_vel_pub_;
 
 		/// Wheel radius (assuming it's the same for the left and right wheels):
 		double wheel_radius_{};
@@ -275,3 +273,4 @@ class TalonSwerveDriveController
 
 
 } // namespace talon_swerve_drive_controller
+#endif
