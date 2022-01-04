@@ -1663,7 +1663,8 @@ class TalonControllerInterface
 		{
 			if (demand1_type == params_.demand1_type_)
 				return;
-			if (demand1_type == hardware_interface::DemandType_AuxPID){
+			if (demand1_type == hardware_interface::DemandType_AuxPID)
+			{
 				ROS_ERROR_STREAM("Demand Type is DemandType_AuxPID! Not supported!");
 				return;
 			}
@@ -1834,8 +1835,7 @@ class TalonControllerInterface
 		}
 
 		// If dynamic reconfigure is running then update
-		// the reported config there with the new internal
-		// state
+		// the reported config there with the new internal state
 		// Trigger a write of the current CIParams to the DDR server. This needs
 		// to happen if the values have been updated via the interface code.
 		// The meaning of the flag - set == no new updates, cleared == data has
@@ -1855,6 +1855,9 @@ class TalonControllerInterface
 		void srvUpdateThread(std::shared_ptr<dynamic_reconfigure::Server<TalonConfigConfig>> srv)
 		{
 			ROS_INFO_STREAM("srvUpdateThread started for joint " << params_.joint_name_);
+			// Early out if ddr isn't used for this controller
+			if (!srv)
+				return;
 #ifdef __linux__
 			struct sched_param sp;
 			sp.sched_priority = 0;
@@ -1862,7 +1865,6 @@ class TalonControllerInterface
 			pthread_setname_np(pthread_self(), "tci_ddr_upd");
 			ROS_INFO_STREAM("srvUpdateThread priority set for joint " << params_.joint_name_);
 #endif
-			TalonConfigConfig config;
 			srv_update_thread_active_ = true;
 			ros::Rate r(10);
 			while (srv_update_thread_active_)
@@ -1872,16 +1874,13 @@ class TalonControllerInterface
 				// it, all in one atomic operation.  The set will reset the flag
 				// so after running updateConfig() the code will loop back and wait
 				// here for the next time the flag is cleared by syncDynamicReconfigure.
-				while (srv_update_thread_flag_.test_and_set())
-				{
-					r.sleep();
-				}
-
-				if (srv)
+				if (!srv_update_thread_flag_.test_and_set())
 				{
 					TalonConfigConfig config(params_.toConfig());
 					srv->updateConfig(config);
 				}
+
+				r.sleep();
 			}
 		}
 
