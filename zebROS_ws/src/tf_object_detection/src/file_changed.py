@@ -6,8 +6,8 @@ import os
 
 
 def file_changed(f):
-    sum_path = ".md5sum" + str(f)
-    
+    sum_path = f.replace(".", "")
+    sum_path = ".md5sum" + str(f) + ".txt"
     if not os.path.exists(f):
         return True
     if not os.path.exists(sum_path):
