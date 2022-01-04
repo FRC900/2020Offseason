@@ -71,7 +71,6 @@ def run_inference_for_single_image(msg):
         # compile model into TensorRT
         # This is only done if the output bin file doesn't already exist
         # TODO - replace this with the MD5 sum check we have for the other TRT detection
-        print(model.TRTbin)
         if file_changed(model.TRTbin):
             rospy.logwarn("Optimized model not found, generating new one")
 
@@ -134,13 +133,12 @@ def run_inference_for_single_image(msg):
             category_dict[k] = category_index[k]['name']
         
         viz = BBoxVisualization(category_dict)
-        rospy.logwarn("Obj detection init complete")
+        rospy.logwarn("Obj detection init complete, starting script")
         
 
     infrencetime_s = time.time()
     ori = bridge.imgmsg_to_cv2(msg, "bgr8")
     # Trying with gpu
-    starttime = time.time()
     imgInput = jetson.utils.cudaFromNumpy(ori, isBGR=True)
     #Normalizes Image between the two values
     imagerange = (-1., 1.)
