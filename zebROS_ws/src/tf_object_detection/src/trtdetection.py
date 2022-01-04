@@ -6,7 +6,7 @@ This script has 2 parts. First is to convert the model to UFF format and then
 optimize that using tensorRT.  This produces a .bin file.
 The .bin file is then loaded and used to run inference on a video.
 """
-
+# Ordering imports by length is cool
 import os
 import sys
 import cv2
@@ -21,17 +21,19 @@ import tensorrt as trt
 import pycuda.driver as cuda
 from sensor_msgs.msg import Image
 from file_changed import file_changed
+from visualization import BBoxVisualization
 from cv_bridge import CvBridge, CvBridgeError
 from field_obj.msg import TFDetection, TFObject
+from object_detection.utils import label_map_util
+from config import model_ssd_mobilenet_v2_512x512 as model
 
+# from config import model_ssd_mobilenet_v3 as model
+# from config import retinanet_mobilenet_v2_400x400 as model
 # from config import model_ssd_inception_v2_coco_2017_11_17 as model
 # from config import model_ssd_mobilenet_v1_coco_2018_01_28 as model
 # from config import model_ssd_mobilenet_v2_coco_2018_03_29 as model
-# from config import retinanet_mobilenet_v2_400x400 as model
-from config import model_ssd_mobilenet_v2_512x512 as model
-# from config import model_ssd_mobilenet_v3 as model
-from visualization import BBoxVisualization
-from object_detection.utils import label_map_util
+
+
 
 # Dosn't seem to be used
 ctypes.CDLL("/home/ubuntu/TensorRT/build/libnvinfer_plugin.so")
