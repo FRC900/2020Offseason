@@ -1664,25 +1664,21 @@ class TalonControllerInterface
 			if (demand1_type == params_.demand1_type_)
 				return;
 			if (demand1_type == hardware_interface::DemandType_AuxPID){
-				ROS_ERROR_STREAM("Demand Type is DemandType_AuxPID!");
+				ROS_ERROR_STREAM("Demand Type is DemandType_AuxPID! Not supported!");
 				return;
 			}
-			ROS_INFO("setDemand1Type start");
 			params_.demand1_type_ = demand1_type;
 			syncDynamicReconfigure();
 			talon_->setDemand1Type(demand1_type);
-			ROS_INFO("setDemand1Type end");
 		}
 
 		void setDemand1Value(double demand1_value)
 		{
 			if (fabs(demand1_value - params_.demand1_value_) < double_value_epsilon)
 				return;
-			ROS_INFO("setDemand1Value start");
 			params_.demand1_value_ = demand1_value;
 			syncDynamicReconfigure();
 			talon_->setDemand1Value(demand1_value);
-			ROS_INFO("setDemand1Value end");
 		}
 
 		virtual void setCustomProfileHz(const double &hz)
