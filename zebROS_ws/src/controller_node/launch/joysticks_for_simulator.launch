@@ -32,5 +32,7 @@
 		<include file="$(find cpu_monitor)/launch/cpu_monitor.launch">
 			<arg name="poll_period" value="1"/>
 		</include>
+		<!--  ************** Including teleop node ***************  -->
+		<include file="$(find controller_node)/launch/teleop.launch"/>
 	</group>
 </launch>
