@@ -74,10 +74,7 @@ double WorldModel::total_distance(const Particle& p, const std::vector<std::shar
 
   // Put relative distances of field beacons into beacons_by_type
   for (const auto &b : beacons_) {
-    // Inserts new beacons struct if not there already
-    auto it = beacons_by_type.emplace(b.type_, beacons()).first;
-    // Append the beacon position relative to the particle
-    it->second.rel.push_back(particle_relative_beacon(p, b));
+    beacons_by_type[b.type_].rel.push_back(particle_relative_beacon(p, b));
   }
 
   // For each detection of this type, create a list of distances from
