@@ -1,4 +1,4 @@
-pub_topic: "c920/rect_image"
+pub_topic: "/obj_detection/c920/rect_image"
 framerate: 30
 show_video: true
 

@@ -211,20 +211,20 @@ def main():
     os.chdir(THIS_DIR)
 
     global detection_graph, sess, pub, category_index, pub_debug, min_confidence, vis
-    sub_topic = "c920/rect_image"
+    sub_topic = "/obj_detection/c920/rect_image"
     pub_topic = "obj_detection_msg"
     rospy.init_node('tf_object_detection', anonymous=True)
     min_confidence = 0.1
     
     if rospy.has_param('min_confidence'):
         min_confidence = rospy.get_param('min_confidence')
-        rospy.logwarn("Min confidence of " + str(min_confidence) + " loaded from config")
+        rospy.loginfo("Min confidence of " + str(min_confidence) + " loaded from config")
     else:
         rospy.logwarn("Unable to get min confidence, defaulting to 0.1")
     
     if rospy.has_param('image_topic'):
         sub_topic = rospy.get_param('image_topic')
-        rospy.logwarn("Image topic of " + str(sub_topic) + " loaded from config")
+        rospy.loginfo("Image topic of " + str(sub_topic) + " loaded from config")
     else:
         rospy.logwarn("Unable to get image topic, defaulting to c920/rect_image")
 

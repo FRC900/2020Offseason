@@ -15,7 +15,7 @@ class Video2ROS:
         rospy.on_shutdown(self.cleanup)
 
         self.filename = "testvid.mp4"
-        self.pub_topic = "c920/rect_image"
+        self.pub_topic = "/obj_detection/c920/rect_image"
         self.framerate = 30
         self.show_video = True
         #added ~ to all the topics
@@ -24,7 +24,7 @@ class Video2ROS:
             print("Pub topic is", self.pub_topic)
         if rospy.has_param('~filename'):
             self.filename = rospy.get_param('~filename')
-            print("Filename being used is", self.filename)
+            print("Filename being used is")
         if rospy.has_param('~framerate'):
             self.framerate = rospy.get_param('~framerate')
 
