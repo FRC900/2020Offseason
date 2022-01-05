@@ -226,7 +226,7 @@ def main():
         sub_topic = rospy.get_param('image_topic')
         rospy.logwarn("Image topic of " + str(sub_topic) + " loaded from config")
     else:
-        rospy.logwarn("Unable to get image topic, defaulting toi tf_object_detection/c920/rect_image")
+        rospy.logwarn("Unable to get image topic, defaulting to c920/rect_image")
 
     sub = rospy.Subscriber(sub_topic, Image, run_inference_for_single_image)
     pub = rospy.Publisher(pub_topic, TFDetection, queue_size=2)
