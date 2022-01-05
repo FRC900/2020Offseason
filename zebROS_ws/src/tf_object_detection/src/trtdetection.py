@@ -56,8 +56,7 @@ init = False
 def run_inference_for_single_image(msg):
     # TODO Maybe remove all these globals and make a class
     global viz, init, host_inputs, cuda_inputs, host_outputs, cuda_outputs, stream, context, bindings, host_mem, cuda_mem, cv2gpu, imgResized, imgNorm, gpuimg, finalgpu
-    #Prints out a lot of times
-    #print("--Starting trtdetection--")
+    
     if init == False:
 
         init = True
@@ -138,7 +137,6 @@ def run_inference_for_single_image(msg):
         rospy.logwarn("Obj detection init complete, starting script")
         
 
-    infrencetime_s = time.time()
     ori = bridge.imgmsg_to_cv2(msg, "bgr8")
     # Trying with gpu
     imgInput = jetson.utils.cudaFromNumpy(ori, isBGR=True)
@@ -147,10 +145,6 @@ def run_inference_for_single_image(msg):
     #Custom function, no documentation
     jetson.utils.cudaTensorConvert(imgInput, finalgpu, imagerange)
 
-    
-    # This is very slow
-    #np.copyto(host_inputs[0], finalarray.ravel())
-     
     context.execute_async(bindings=bindings, stream_handle=stream.handle)
     
     # host_outputs[1] is not needed
@@ -202,12 +196,13 @@ def run_inference_for_single_image(msg):
         confs.append(output[prefix + 2])
     
     pub.publish(detection)
-    
-    # Uncomment for visualization 
-    #viz.draw_bboxes(ori, boxes, confs, clss, 0.42)
-    #cv2.imwrite("result.jpg", ori)
-    #cv2.imshow("result", ori)
-    #key = cv2.waitKey(1) & 0x000000FF
+    #Visualize 
+    if pub_debug.get_num_connections() > 0:
+        viz.draw_bboxes(ori, boxes, confs, clss, 0.42)
+        pub_debug.publish(bridge.cv2_to_imgmsg(ori, encoding="bgr8"))
+        #cv2.imwrite("result.jpg", ori)
+        #cv2.imshow("result", ori)
+        #key = cv2.waitKey(.5) & 0x000000FF
 
 
 
