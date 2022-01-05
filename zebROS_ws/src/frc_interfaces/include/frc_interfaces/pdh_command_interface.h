@@ -27,13 +27,13 @@ class PDHHWCommand
 		}
 		void resetSwitchableChannelEnable(void) { switchable_Channel_enable_changed_ = true; }
 
-		void setClearFaults(void) { clear_faults_ = true; }
-		bool getClearFaults(void) const { return clear_faults_; }
-		bool clearFaultsChanged(void)
+		void setClearStickyFaults(void) { clear_sticky_faults_ = true; }
+		bool getClearStickyFaults(void) const { return clear_sticky_faults_; }
+		bool clearStickyFaultsChanged(void)
 		{
-			if (!clear_faults_)
+			if (!clear_sticky_faults_)
 				return false;
-			clear_faults_ = false;
+			clear_sticky_faults_ = false;
 			return true;
 		}
 
@@ -51,7 +51,7 @@ class PDHHWCommand
 		bool switchable_channel_enable_{false};
 		bool switchable_Channel_enable_changed_{true};
 
-		bool clear_faults_{false};
+		bool clear_sticky_faults_{false};
 		bool identify_pdh_{false};
 };
 

@@ -24,7 +24,7 @@ class PHHWState
 				compressor_enabled_ = other.compressor_enabled_;
 				pressure_switch_    = other.pressure_switch_;
 				compressor_current_ = other.compressor_current_;
-				analog_pressure_    = other.analog_pressure_;
+				analog_voltage_     = other.analog_voltage_;
 			}
 			return *this;
 		}
@@ -37,14 +37,14 @@ class PHHWState
 		double  getCompressorMaxAnalogVoltage(void) const { return compressor_max_analog_voltage_; }
 		bool    getCompressorForceDisable(void)     const { return compressor_force_disable_; }
 		bool    getCompressorUseDigital(void)       const { return compressor_use_digital_;; }
-		double  getAnalogPressure(size_t channel)   const
+		double  getAnalogVoltage(size_t channel)   const
 		{
-			if (channel >= analog_pressure_.size())
+			if (channel >= analog_voltage_.size())
 			{
-				ROS_ERROR_STREAM("PH getAnalogPressure channel out of bounds : " << channel);
+				ROS_ERROR_STREAM("PH getAnalogVoltage channel out of bounds : " << channel);
 				return 0.0;
 			}
-			return analog_pressure_[channel];
+			return analog_voltage_[channel];
 		}
 
 		void setCompressorEnabled(bool compressor_enabled)                       { compressor_enabled_ = compressor_enabled; }
@@ -54,14 +54,14 @@ class PHHWState
 		void setCompressorMaxAnalogVoltage(double compressor_max_analog_voltage) { compressor_max_analog_voltage_ = compressor_max_analog_voltage; }
 		void setCompressorForceDisable(double compressor_force_disable)          { compressor_force_disable_ = compressor_force_disable; }
 		void setCompressorUseDigital(double compressor_use_digital)              { compressor_use_digital_ = compressor_use_digital; }
-		void setAnalogPressure(double analog_pressure, size_t channel)
+		void setAnalogVoltage(double analog_voltage, size_t channel)
 		{
-			if (channel >= analog_pressure_.size())
+			if (channel >= analog_voltage_.size())
 			{
-				ROS_ERROR_STREAM("PH setAnalogPressure channel out of bounds : " << channel);
+				ROS_ERROR_STREAM("PH setAnalogVoltage channel out of bounds : " << channel);
 				return;
 			}
-			analog_pressure_[channel] = analog_pressure;
+			analog_voltage_[channel] = analog_voltage;
 		}
 
 	private:
@@ -73,7 +73,7 @@ class PHHWState
 		double                compressor_max_analog_voltage_{13.5};
 		bool                  compressor_force_disable_{false};
 		bool                  compressor_use_digital_{true};
-		std::array<double, 2> analog_pressure_{0, 0};
+		std::array<double, 2> analog_voltage_{0, 0};
 };
 
 typedef StateHandle<const PHHWState> PHStateHandle;

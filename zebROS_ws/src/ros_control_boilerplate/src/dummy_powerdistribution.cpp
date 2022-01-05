@@ -16,148 +16,99 @@
 extern "C"
 {
 
-HAL_REVPDHHandle HAL_REV_InitializePDH(int32_t module,
+HAL_REVPDHHandle HAL_InitializeREVPDH(int32_t module,
                                        const char* allocationLocation,
                                        int32_t* status)
 {
 	return HAL_InitializePowerDistribution(module, HAL_PowerDistributionType_kRev, allocationLocation, status);
 }
 
-int32_t HAL_REV_GetPDHModuleNumber(HAL_REVPDHHandle handle, int32_t* status)
+int32_t HAL_GetREVPDHModuleNumber(HAL_REVPDHHandle handle, int32_t* status)
 {
 	return HAL_GetPowerDistributionModuleNumber(handle, status);
 }
 
-HAL_Bool HAL_REV_CheckPDHModuleNumber(int32_t module)
+HAL_Bool HAL_CheckREVPDHModuleNumber(int32_t module)
 {
 	return HAL_CheckPowerDistributionModule(module, HAL_PowerDistributionType_kRev);
 }
 
-double HAL_REV_GetPDHChannelCurrent(HAL_REVPDHHandle handle, int32_t channel,
+double HAL_GetREVPDHChannelCurrent(HAL_REVPDHHandle handle, int32_t channel,
                                     int32_t* status)
 {
 	return HAL_GetPowerDistributionChannelCurrent(handle, channel, status);
 }
 
-uint16_t HAL_REV_GetPDHTotalCurrent(HAL_REVPDHHandle handle, int32_t* status)
+uint16_t HAL_GetREVPDHTotalCurrent(HAL_REVPDHHandle handle, int32_t* status)
 {
 	return HAL_GetPowerDistributionTotalCurrent(handle, status);
 }
 
-void HAL_REV_SetPDHSwitchableChannel(HAL_REVPDHHandle handle, HAL_Bool enabled,
+void HAL_SetREVPDHSwitchableChannel(HAL_REVPDHHandle handle, HAL_Bool enabled,
                                      int32_t* status)
 {
 	HAL_SetPowerDistributionSwitchableChannel(handle, enabled, status);
 }
 
-HAL_Bool HAL_REV_GetPDHSwitchableChannelState(HAL_REVPDHHandle handle,
+HAL_Bool HAL_GetREVPDHSwitchableChannelState(HAL_REVPDHHandle handle,
                                               int32_t* status)
 {
 	return HAL_GetPowerDistributionSwitchableChannel(handle, status);
 }
 
-HAL_Bool HAL_REV_CheckPDHChannelBrownout(HAL_REVPDHHandle /*handle*/,
-                                         int32_t /*channel*/, int32_t* status)
-{
-	*status = 0;
-	return false;
-}
-
-double HAL_REV_GetPDHSupplyVoltage(HAL_REVPDHHandle handle, int32_t* status)
+double HAL_GetREVPDHVoltage(HAL_REVPDHHandle handle, int32_t* status)
 {
 	return HAL_GetPowerDistributionVoltage(handle, status);
 }
 
+void HAL_GetREVPDHFaults(HAL_REVPDHHandle handle,
+                         HAL_PowerDistributionFaults* faults, int32_t* status)
+{
+	return HAL_GetPowerDistributionFaults(handle, faults, status);
+}
+
+void HAL_GetREVPDHStickyFaults(HAL_REVPDHHandle handle,
+                         HAL_PowerDistributionStickyFaults* faults, int32_t* status)
+{
+	return HAL_GetPowerDistributionStickyFaults(handle, faults, status);
+}
+
+void HAL_GetREVPDHStickyFaults(HAL_REVPDHHandle handle,
+                               HAL_PowerDistributionStickyFaults* stickyFaults,
+                               int32_t* status);
+#if 0
 HAL_Bool HAL_REV_IsPDHEnabled(HAL_REVPDHHandle /*handle*/, int32_t* status)
 {
 	*status = 0;
 	return true;
 }
+#endif
 
-HAL_Bool HAL_REV_CheckPDHBrownout(HAL_REVPDHHandle /*handle*/, int32_t* status)
+void HAL_GetREVPDHVersion(HAL_REVPDHHandle /*handle*/,
+                          HAL_PowerDistributionVersion* version,
+                          int32_t* status)
 {
 	*status = 0;
-	return false;
+	version->firmwareMajor = 900;
+	version->firmwareMinor = 900;
+	version->firmwareFix = 900;
+	version->hardwareMajor = 900;
+	version->hardwareMinor = 900;
+	version->uniqueId = 900;
+
 }
 
-HAL_Bool HAL_REV_CheckPDHCANWarning(HAL_REVPDHHandle /*handle*/, int32_t* status)
-{
-	*status = 0;
-	return false;
-}
-HAL_Bool HAL_REV_CheckPDHHardwareFault(HAL_REVPDHHandle /*handle*/, int32_t* status)
-{
-	*status = 0;
-	return false;
-}
-HAL_Bool HAL_REV_CheckPDHStickyBrownout(HAL_REVPDHHandle /*handle*/, int32_t* status)
-{
-	*status = 0;
-	return false;
-}
-
-HAL_Bool HAL_REV_CheckPDHStickyCANWarning(HAL_REVPDHHandle /*handle*/,
-                                          int32_t* status)
-{
-	*status = 0;
-	return false;
-}
-
-HAL_Bool HAL_REV_CheckPDHStickyCANBusOff(HAL_REVPDHHandle /*handle*/,
-                                         int32_t* status){
-	*status = 0;
-	return false;
-}
-
-HAL_Bool HAL_REV_CheckPDHStickyHardwareFault(HAL_REVPDHHandle /*handle*/,
-                                             int32_t* status)
-{
-	*status = 0;
-	return false;
-}
-
-HAL_Bool HAL_REV_CheckPDHStickyFirmwareFault(HAL_REVPDHHandle /*handle*/,
-                                             int32_t* status){
-	*status = 0;
-	return false;
-}
-
-HAL_Bool HAL_REV_CheckPDHStickyChannelBrownout(HAL_REVPDHHandle /*handle*/,
-                                               int32_t /*channel*/,
-                                               int32_t* status)
-{
-	*status = 0;
-	return false;
-}
-HAL_Bool HAL_REV_CheckPDHStickyHasReset(HAL_REVPDHHandle /*handle*/,
-                                        int32_t* status)
-{
-	*status = 0;
-	return false;
-}
-
-REV_PDH_Version HAL_REV_GetPDHVersion(HAL_REVPDHHandle /*handle*/, int32_t* status)
-{
-	*status = 0;
-	REV_PDH_Version ver;
-	ver.firmwareMajor = 900;
-	ver.firmwareMinor = 900;
-	ver.firmwareFix = 900;
-	ver.hardwareRev = 900;
-	ver.uniqueId = 900;
-
-	return ver;
-}
-
-void HAL_REV_ClearPDHFaults(HAL_REVPDHHandle handle, int32_t* status)
+void HAL_ClearREVPDHStickyFaults(HAL_REVPDHHandle handle, int32_t* status)
 {
 	HAL_ClearPowerDistributionStickyFaults(handle, status);
 }
 
+#if 0
 void HAL_REV_IdentifyPDH(HAL_REVPDHHandle /*handle*/, int32_t* status)
 {
 	status = 0;
 }
+#endif
 
 HAL_REVPDHHandle HAL_InitializePDP(int32_t module,
                                    const char* allocationLocation,

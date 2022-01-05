@@ -146,7 +146,6 @@ endif()
 # in different dirs for different architectures
 set (CTRE_USER_LIBS
 	${CTRE_USER_LIBS}
-	#${CTRE_LIB_DIR}/libCTRE_Phoenix_WPI.so
 	${CTRE_LIB_DIR}/libCTRE_Phoenix.so
 )
 set (REV_USER_LIBS
@@ -161,6 +160,7 @@ include_directories(${ALLWPILIB}/hal/src/main/native/include)
 include_directories(${ALLWPILIB}/wpilibc/src/main/native/include)
 include_directories(${ALLWPILIB}/wpimath/src/main/native/include)
 include_directories(${ALLWPILIB}/wpiutil/src/main/native/include)
+include_directories(${ALLWPILIB}/wpiutil/src/main/native/fmtlib/include)
 include_directories(${WPI_SYSROOT}/include/wpilib)
 
 # Non-rio builds are more complex - we have to grab appropriate
@@ -183,7 +183,7 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 	# WPIlib code common to both hardware and sim interfaces.
 	# Create it as a library to avoid building all of these twice
 	add_library(frc_common_wpilib STATIC
-		${ALLWPILIB}/hal/src/main/native/athena/Ports.cpp
+		#${ALLWPILIB}/hal/src/main/native/athena/Ports.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/cpp/fpga_clock.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/ErrorHandling.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/handles/HandlesInternal.cpp
@@ -349,8 +349,10 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		frc_robot_interface
 		frc_sim_wpilib
 		frc_common_wpilib
-		${CTRE_USER_LIBS}
+		${CTRE_LIB_DIR}/libCTRE_PhoenixSim.so
+		#${CTRE_USER_LIBS}
 		${CTRE_LIB_DIR}/libCTRE_PhoenixCCISim.so
+		${CTRE_LIB_DIR}/libCTRE_Phoenix_WPISim.so
 		${CTRE_LIB_DIR}/libCTRE_SimCANCoder.so
 		${CTRE_LIB_DIR}/libCTRE_SimTalonFX.so
 		${CTRE_LIB_DIR}/libCTRE_SimTalonSRX.so
@@ -370,30 +372,44 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 	  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 	  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 	)
+
 endif()
 
-add_executable(frcrobot_hw_main ${FRCROBOT_HW_MAIN_SRCS})
+if (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
+	("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") OR # Jetson TK1
+    ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu")) # Jetson TX1/TX2/Xavier AGX/Xavier NX
 
-# Link against wpi user libraries for CAN talon and navX-MXP code and
-# wpilib for HAL, driver station, and so on
-target_link_libraries(frcrobot_hw_main
-	${LIB_GPIOD}
-	${REV_USER_LIBS}
-	frc_robot_interface
-	${FRC_COMMON_WPILIB}
-	${CTRE_USER_LIBS}
-	${PLATFORM_SPECIFIC_LIBS}
-	${catkin_LIBRARIES}
-)
+	add_executable(frcrobot_hw_main ${FRCROBOT_HW_MAIN_SRCS})
 
-## Add cmake target dependencies of the executable
-## same as for the library above. This is needed to force
-## talon controller messages to be built before the
-## talon controller code tries to use them
-add_dependencies(frcrobot_hw_main
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
-)
+    # Link against wpi user libraries for CAN talon and navX-MXP code and
+    # wpilib for HAL, driver station, and so on
+	target_link_libraries(frcrobot_hw_main
+		${LIB_GPIOD}
+		${REV_USER_LIBS}
+		frc_robot_interface
+		${FRC_COMMON_WPILIB}
+		${CTRE_USER_LIBS}
+		${PLATFORM_SPECIFIC_LIBS}
+		${catkin_LIBRARIES}
+	)
+
+    ## Add cmake target dependencies of the executable
+    ## same as for the library above. This is needed to force
+    ## talon controller messages to be built before the
+    ## talon controller code tries to use them
+	add_dependencies(frcrobot_hw_main
+	  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+	  ${catkin_EXPORTED_TARGETS}
+	)
+
+    # Install executables
+	install(TARGETS
+	  frcrobot_hw_main
+	  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+	  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+	)
+
+endif()
 
 add_executable(q_to_rpy src/q_to_rpy.cpp)
 target_link_libraries(q_to_rpy
@@ -405,13 +421,6 @@ add_dependencies(q_to_rpy
   ${catkin_EXPORTED_TARGETS}
 )
 ## Install ------------------------------------------------------------
-
-# Install executables
-install(TARGETS
-  frcrobot_hw_main
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 if (0)
 # Test trajectory generator node

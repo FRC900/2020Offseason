@@ -28,41 +28,38 @@ bool PDHStateController::init(hardware_interface::PDHStateInterface *hw,
 
 	auto &m = realtime_pub_->msg_;
 	if (m.current.size() != m.thingsPluggedIn.size() ||
-	    m.current.size() != m.channelBrownout.size() ||
-		m.current.size() != m.stickyChannelBrownout.size())
+	    m.current.size() != m.channelBreakerFault.size() ||
+		m.current.size() != m.stickyChannelBreakerFault.size())
 	{
 		ROS_ERROR_STREAM("PDH State Controller size mismatch in channel message arrays:" <<
 				" m.current.size = " << m.current.size() <<
 				" m.thingsPluggedIn.size = " << m.thingsPluggedIn.size() <<
-				" m.channelBrownout.size = " << m.channelBrownout.size() <<
-				" m.stickyChannelBrownout.size = " << m.stickyChannelBrownout.size());
+				" m.channelBreakerFault.size = " << m.channelBreakerFault.size() <<
+				" m.stickyChannelBreakerFault.size = " << m.stickyChannelBreakerFault.size());
 		return false;
 	}
 
 	m.enabled = false;
 	m.voltage = 0;
-	m.brownout = false;
-	m.stickyBrownout = false;
 	m.canWarning = false;
 	m.stickyCanWarning = false;
 	m.stickyCanBusOff = false;
 	m.hardwareFault = false;
-	m.stickyHardwareFault = false;
-	m.stickyFirmwareFault = false;
 	m.stickyHasReset = false;
 	m.moduleNumber = 0;
 	m.firmwareMajor = 0;
 	m.firmwareMinor = 0;
 	m.firmwareFix = 0;
-	m.hardwareRev = 0;
+	m.hardwareMajor = 0;
+	m.hardwareMinor = 0;
 	m.switchableChannelState = false;
 	m.totalCurrent = 0;
 
 	for (size_t i = 0; i < m.current.size(); i++)
 	{
 		m.current[i] = 0;
-		m.channelBrownout[i] = false;
-		m.stickyChannelBrownout[i] = false;
+		m.channelBreakerFault[i] = false;
+		m.stickyChannelBreakerFault[i] = false;
 	}
 
     XmlRpc::XmlRpcValue thingsPluggedIn;
@@ -110,28 +107,25 @@ void PDHStateController::update(const ros::Time &time, const ros::Duration & )
 
 			m.enabled = ps->getEnabled();
 			m.voltage = ps->getVoltage();
-			m.brownout = ps->getBrownout();
-			m.stickyBrownout = ps->getStickyBrownout();
 			m.canWarning = ps->getCANWarning();
 			m.stickyCanWarning = ps->getStickyCANWarning();
 			m.stickyCanBusOff = ps->getStickyCANBusOff();
 			m.hardwareFault = ps->getHardwareFault();
-			m.stickyHardwareFault = ps->getStickyHardwareFault();
-			m.stickyFirmwareFault = ps->getStickyFirmwareFault();
 			m.stickyHasReset = ps->getStickyHasReset();
 			m.moduleNumber = ps->getModuleNumber();
 			m.firmwareMajor = ps->getFirmwareMajor();
 			m.firmwareMinor = ps->getFirmwareMinor();
 			m.firmwareFix = ps->getFirmwareiFix();
-			m.hardwareRev = ps->getHardwareRev();
+			m.hardwareMajor = ps->getHardwareMajor();
+			m.hardwareMinor = ps->getHardwareMinor();
 			m.switchableChannelState = ps->getSwitchableChannelState();
 			m.totalCurrent = ps->getTotalCurrent();
 
 			for (size_t i = 0; i < m.current.size(); i++)
 			{
 				m.current[i] = ps->getChannelCurrent(i);
-				m.channelBrownout[i] = ps->getChannelBrownout(i);
-				m.stickyChannelBrownout[i] = ps->getStickyChannelBrownout(i);
+				m.channelBreakerFault[i] = ps->getChannelBreakerFault(i);
+				m.stickyChannelBreakerFault[i] = ps->getStickyChannelBreakerFault(i);
 			}
 
 			realtime_pub_->unlockAndPublish();
@@ -200,27 +194,24 @@ void PDHStateListenerController::commandCB(const frc_msgs::PDHDataConstPtr &msg)
 
 	data.setEnabled(msg->enabled);
 	data.setVoltage(msg->voltage);
-	data.setBrownout(msg->brownout);
-	data.setStickyBrownout(msg->stickyBrownout);
 	data.setCANWarning(msg->canWarning);
 	data.setStickyCANWarning(msg->stickyCanWarning);
 	data.setStickyCANBusOff(msg->stickyCanBusOff);
 	data.setHardwareFault(msg->hardwareFault);
-	data.setStickyHardwareFault(msg->stickyHardwareFault);
-	data.setStickyFirmwareFault(msg->stickyFirmwareFault);
 	data.setStickyHasReset(msg->stickyHasReset);
 	data.setFirmwareMajor(msg->firmwareMajor);
 	data.setFirmwareMinor(msg->firmwareMinor);
 	data.setFirmwareFix(msg->firmwareFix);
-	data.setHardwareRev(msg->hardwareRev);
+	data.setHardwareMajor(msg->hardwareMajor);
+	data.setHardwareMinor(msg->hardwareMinor);
 	data.setSwitchableChannelState(msg->switchableChannelState);
 	data.setTotalCurrent(msg->totalCurrent);
 
 	for (size_t i = 0; i < msg->current.size(); i++)
 	{
 		data.setChannelCurrent(msg->current[i], i);
-		data.setChannelBrownout(msg->channelBrownout[i], i);
-		data.setStickyChannelBrownout(msg->stickyChannelBrownout[i], i);
+		data.setChannelBreakerFault(msg->channelBreakerFault[i], i);
+		data.setStickyChannelBreakerFault(msg->stickyChannelBreakerFault[i], i);
 	}
 	command_buffer_.writeFromNonRT(data);
 }

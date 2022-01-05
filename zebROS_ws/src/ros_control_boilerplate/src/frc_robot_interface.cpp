@@ -37,6 +37,7 @@
 */
 #include <ros/ros.h>
 #include <ros_control_boilerplate/frc_robot_interface.h>
+#include "hardware_interface/joint_mode_interface.h"  // for JointCommandModes
 #include <ext/alloc_traits.h>                         // for __alloc_traits<...
 #ifdef __linux__
 #include <pthread.h>                                  // for pthread_self
@@ -74,7 +75,6 @@
 #include "hal/Power.h"                                // for HAL_GetVinVoltage
 #include "hal/REVPH.h"
 //#include "hal/Solenoid.h"                             // for HAL_FreeSolenoi...
-#include "hardware_interface/joint_mode_interface.h"  // for JointCommandModes
 #include "REVPDH.h"
 #include "tf2/LinearMath/Quaternion.h"                // for Quaternion
 
@@ -480,21 +480,23 @@ void FRCRobotInterface::pdh_read_thread(int32_t pdh,
 	ros::Duration(1.9).sleep(); // Sleep for a few seconds to let CAN start up
 	ROS_INFO_STREAM("Starting pdh read thread at " << ros::Time::now());
 	int32_t status = 0;
-	HAL_REV_ClearPDHFaults(pdh, &status);
+	HAL_ClearREVPDHStickyFaults(pdh, &status);
 	if (status)
 		ROS_ERROR_STREAM("pdh_read_thread error clearing faults : status = " << status);
 	status = 0;
-	hardware_interface::PDHHWState pdh_state(HAL_REV_GetPDHModuleNumber(pdh, &status));
+	hardware_interface::PDHHWState pdh_state(HAL_GetREVPDHModuleNumber(pdh, &status));
 	if (status)
 		ROS_ERROR_STREAM("pdh_read_thread error reading PDH module number: status = " << status);
 	status = 0;
-	const auto pdh_version = HAL_REV_GetPDHVersion(pdh, &status);
+	HAL_PowerDistributionVersion pdh_version;
+	HAL_GetREVPDHVersion(pdh, &pdh_version, &status);
 	if (status)
 		ROS_ERROR_STREAM("pdh_read_thread error reading PDH version : status = " << status);
 	pdh_state.setFirmwareMajor(pdh_version.firmwareMajor);
 	pdh_state.setFirmwareMinor(pdh_version.firmwareMinor);
 	pdh_state.setFirmwareFix(pdh_version.firmwareFix);
-	pdh_state.setHardwareRev(pdh_version.hardwareRev);
+	pdh_state.setHardwareMajor(pdh_version.hardwareMajor);
+	pdh_state.setHardwareMinor(pdh_version.hardwareMinor);
 	pdh_state.setUniqueID(pdh_version.uniqueId);
 	for (ros::Rate r(poll_frequency); ros::ok(); r.sleep())
 	{
@@ -502,28 +504,82 @@ void FRCRobotInterface::pdh_read_thread(int32_t pdh,
 
 		//read info from the PDH hardware
 		status = 0;
-		pdh_state.setEnabled(HAL_REV_IsPDHEnabled(pdh, &status));
-		pdh_state.setVoltage(HAL_REV_GetPDHSupplyVoltage(pdh, &status));
-		pdh_state.setBrownout(HAL_REV_CheckPDHBrownout(pdh, &status));
-		pdh_state.setStickyBrownout(HAL_REV_CheckPDHStickyBrownout(pdh, &status));
-		pdh_state.setCANWarning(HAL_REV_CheckPDHCANWarning(pdh, &status));
-		pdh_state.setStickyCANWarning(HAL_REV_CheckPDHStickyCANWarning(pdh, &status));
-		pdh_state.setStickyCANBusOff(HAL_REV_CheckPDHStickyCANBusOff(pdh, &status));
-		pdh_state.setHardwareFault(HAL_REV_CheckPDHHardwareFault(pdh, &status));
-		pdh_state.setStickyHardwareFault(HAL_REV_CheckPDHStickyHardwareFault(pdh, &status));
-		pdh_state.setStickyFirmwareFault(HAL_REV_CheckPDHStickyFirmwareFault(pdh, &status));
-		pdh_state.setStickyHasReset(HAL_REV_CheckPDHStickyHasReset(pdh, &status));
-		pdh_state.setTotalCurrent(HAL_REV_GetPDHTotalCurrent(pdh, &status));
-		pdh_state.setSwitchableChannelState(HAL_REV_GetPDHSwitchableChannelState(pdh, &status));
+		pdh_state.setVoltage(HAL_GetREVPDHVoltage(pdh, &status));
+		HAL_PowerDistributionFaults faults;
+		HAL_GetREVPDHFaults(pdh, &faults, &status);
+		HAL_PowerDistributionStickyFaults sticky_faults;
+		HAL_GetREVPDHStickyFaults(pdh, &sticky_faults, &status);
+
+
+#if 0
+		pdh_state.setEnabled(HAL_IsREVPDHEnabled(pdh, &status));
+#endif
+		pdh_state.setBrownout(faults.brownout);
+		pdh_state.setStickyBrownout(sticky_faults.brownout);
+		pdh_state.setCANWarning(faults.canWarning);
+		pdh_state.setStickyCANWarning(sticky_faults.canWarning);
+		pdh_state.setStickyCANBusOff(sticky_faults.canBusOff);
+		pdh_state.setHardwareFault(faults.hardwareFault);
+		pdh_state.setChannelBreakerFault(faults.channel0BreakerFault, 0);
+		pdh_state.setChannelBreakerFault(faults.channel1BreakerFault, 1);
+		pdh_state.setChannelBreakerFault(faults.channel2BreakerFault, 2);
+		pdh_state.setChannelBreakerFault(faults.channel3BreakerFault, 3);
+		pdh_state.setChannelBreakerFault(faults.channel4BreakerFault, 4);
+		pdh_state.setChannelBreakerFault(faults.channel5BreakerFault, 5);
+		pdh_state.setChannelBreakerFault(faults.channel6BreakerFault, 6);
+		pdh_state.setChannelBreakerFault(faults.channel7BreakerFault, 7);
+		pdh_state.setChannelBreakerFault(faults.channel8BreakerFault, 8);
+		pdh_state.setChannelBreakerFault(faults.channel9BreakerFault, 9);
+		pdh_state.setChannelBreakerFault(faults.channel10BreakerFault, 10);
+		pdh_state.setChannelBreakerFault(faults.channel11BreakerFault, 11);
+		pdh_state.setChannelBreakerFault(faults.channel12BreakerFault, 12);
+		pdh_state.setChannelBreakerFault(faults.channel13BreakerFault, 13);
+		pdh_state.setChannelBreakerFault(faults.channel14BreakerFault, 14);
+		pdh_state.setChannelBreakerFault(faults.channel15BreakerFault, 15);
+		pdh_state.setChannelBreakerFault(faults.channel16BreakerFault, 16);
+		pdh_state.setChannelBreakerFault(faults.channel17BreakerFault, 17);
+		pdh_state.setChannelBreakerFault(faults.channel18BreakerFault, 18);
+		pdh_state.setChannelBreakerFault(faults.channel19BreakerFault, 19);
+		pdh_state.setChannelBreakerFault(faults.channel20BreakerFault, 20);
+		pdh_state.setChannelBreakerFault(faults.channel21BreakerFault, 21);
+		pdh_state.setChannelBreakerFault(faults.channel22BreakerFault, 22);
+		pdh_state.setChannelBreakerFault(faults.channel23BreakerFault, 23);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel0BreakerFault, 0);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel1BreakerFault, 1);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel2BreakerFault, 2);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel3BreakerFault, 3);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel4BreakerFault, 4);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel5BreakerFault, 5);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel6BreakerFault, 6);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel7BreakerFault, 7);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel8BreakerFault, 8);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel9BreakerFault, 9);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel10BreakerFault, 10);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel11BreakerFault, 11);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel12BreakerFault, 12);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel13BreakerFault, 13);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel14BreakerFault, 14);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel15BreakerFault, 15);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel16BreakerFault, 16);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel17BreakerFault, 17);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel18BreakerFault, 18);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel19BreakerFault, 19);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel20BreakerFault, 20);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel21BreakerFault, 21);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel22BreakerFault, 22);
+		pdh_state.setStickyChannelBreakerFault(sticky_faults.channel23BreakerFault, 23);
+		pdh_state.setStickyHasReset(sticky_faults.hasReset);
+		pdh_state.setTotalCurrent(HAL_GetREVPDHTotalCurrent(pdh, &status));
+		pdh_state.setSwitchableChannelState(HAL_GetREVPDHSwitchableChannelState(pdh, &status));
 
 		for (size_t channel = 0; channel < 20; channel++)
 		{
-			pdh_state.setChannelCurrent(HAL_REV_GetPDHChannelCurrent(pdh, channel, &status), channel);
-			pdh_state.setChannelBrownout(HAL_REV_CheckPDHChannelBrownout(pdh, channel, &status), channel);
-			pdh_state.setStickyChannelBrownout(HAL_REV_CheckPDHStickyChannelBrownout(pdh, channel, &status), channel);
+			pdh_state.setChannelCurrent(HAL_GetREVPDHChannelCurrent(pdh, channel, &status), channel);
 		}
 		if (status)
+		{
 			ROS_ERROR_STREAM("pdh_read_thread error : status = " << status << ":" << HAL_GetErrorMessage(status));
+		}
 
 		{
 			// Copy to state shared with read() thread
@@ -688,9 +744,11 @@ void FRCRobotInterface::ph_read_thread(HAL_REVPHHandle ph_handle, int32_t ph_id,
 		ph_state.setPressureSwitch(HAL_GetREVPHPressureSwitch(ph_handle, &status));
 		ph_state.setCompressorCurrent(HAL_GetREVPHCompressorCurrent(ph_handle, &status));
 		for (size_t i = 0; i < 2; i++)
-			ph_state.setAnalogPressure(HAL_GetREVPHAnalogPressure(ph_handle, i, &status), i);
+			ph_state.setAnalogVoltage(HAL_GetREVPHAnalogVoltage(ph_handle, i, &status), i);
 		if (status)
+		{
 			ROS_ERROR_STREAM("ph_read_thread : status = " << status << ":" << HAL_GetErrorMessage(status));
+		}
 
 		{
 			// Copy to state shared with read() thread
@@ -2580,7 +2638,7 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 
 		if (pdh_local_hardwares_[i])
 		{
-			if (!HAL_REV_CheckPDHModuleNumber(pdh_modules_[i]))
+			if (!HAL_CheckREVPDHModuleNumber(pdh_modules_[i]))
 			{
 				ROS_ERROR("Invalid PDH module number");
 				pdhs_.push_back(HAL_kInvalidHandle);
@@ -2588,7 +2646,7 @@ bool FRCRobotInterface::initDevices(ros::NodeHandle root_nh)
 			else
 			{
 				int32_t status = 0;
-				const auto pdh_handle = HAL_REV_InitializePDH(pdh_modules_[i], __FUNCTION__, &status);
+				const auto pdh_handle = HAL_InitializeREVPDH(pdh_modules_[i], __FUNCTION__, &status);
 				phs_.push_back(pdh_handle);
 				pdh_read_thread_state_.push_back(std::make_shared<hardware_interface::PDHHWState>(pdh_modules_[i]));
 				if ((pdh_handle == HAL_kInvalidHandle) || status)
@@ -4877,7 +4935,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 			if (pdh_local_hardwares_[i])
 			{
 				int32_t status = 0;
-				HAL_REV_SetPDHSwitchableChannel(pdhs_[i], enable, &status);
+				HAL_SetREVPDHSwitchableChannel(pdhs_[i], enable, &status);
 				if (status == 0)
 				{
 					ROS_INFO_STREAM("Set PDH " << pdh_names_[i]
@@ -4894,26 +4952,27 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 			}
 		}
 
-		if (pc.clearFaultsChanged())
+		if (pc.clearStickyFaultsChanged())
 		{
 			if (pdh_local_hardwares_[i])
 			{
 				int32_t status = 0;
-				HAL_REV_ClearPDHFaults(pdhs_[i], &status);
+				HAL_ClearREVPDHStickyFaults(pdhs_[i], &status);
 				if (status == 0)
 				{
-					ROS_INFO_STREAM("Cleared faults on PDH " << pdh_names_[i]);
+					ROS_INFO_STREAM("Cleared sticky faults on PDH " << pdh_names_[i]);
 				}
 				else
 				{
-					ROS_ERROR_STREAM("Error clearing faults on " << pdh_names_[i]
+					ROS_ERROR_STREAM("Error clearing sticky faults on " << pdh_names_[i]
 							<< " : status = " << status
 							<< " : " << HAL_GetErrorMessage(status));
-					pc.setClearFaults();
+					pc.setClearStickyFaults();
 				}
 			}
 		}
 
+#if 0 // Gone from wpilib code
 		if (pc.identifyPDHChanged())
 		{
 			if (pdh_local_hardwares_[i])
@@ -4933,6 +4992,7 @@ void FRCRobotInterface::write(const ros::Time& time, const ros::Duration& period
 				}
 			}
 		}
+#endif
 	}
 
 	// TODO : what to do about this?
