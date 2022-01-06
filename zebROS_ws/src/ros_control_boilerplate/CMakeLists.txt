@@ -147,6 +147,7 @@ endif()
 set (CTRE_USER_LIBS
 	${CTRE_USER_LIBS}
 	${CTRE_LIB_DIR}/libCTRE_Phoenix.so
+	${CTRE_LIB_DIR}/libCTRE_Phoenix_WPI.so
 )
 set (REV_USER_LIBS
 	${REV_LIB_DIR}/libREVLibDriver.so
@@ -350,7 +351,6 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 		frc_sim_wpilib
 		frc_common_wpilib
 		${CTRE_LIB_DIR}/libCTRE_PhoenixSim.so
-		#${CTRE_USER_LIBS}
 		${CTRE_LIB_DIR}/libCTRE_PhoenixCCISim.so
 		${CTRE_LIB_DIR}/libCTRE_Phoenix_WPISim.so
 		${CTRE_LIB_DIR}/libCTRE_SimCANCoder.so
