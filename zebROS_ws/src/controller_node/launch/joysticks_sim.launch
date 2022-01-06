@@ -30,7 +30,7 @@
 			<rosparam command="load" file="$(find teleop_joystick_control)/config/joystick_remap.yaml"/>
 		</node>
 
-	</group>	
+	</group>
 
 	<group ns="joy2" if="$(eval arg('joy_or_key')=='two_joy')">
 
@@ -56,6 +56,6 @@
 			<remap from="/frcrobot_rio/joystick_states_raw" to="/frcrobot_rio/joystick_states_raw1"/>
 		</node>
 
-	</group>	
+	</group>
 
 </launch>
