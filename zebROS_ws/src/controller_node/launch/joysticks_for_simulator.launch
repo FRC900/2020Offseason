@@ -23,8 +23,10 @@
 			<remap from="js0" to="joystick_states1"/>
 		</node>
 
-		<!-- Load keyboard_node -->
-		<node name="keyboard_node" pkg="teleop_joystick_control" type="teleop_joints_keyboard"/>
+		<!--  ************** Including joysticks_sim launch file ***************  -->
+		<include file="$(find controller_node)/launch/joysticks_sim.launch">
+			<arg name="joy_or_key" value="$(arg joy_or_key)"/>
+		</include>
 
 		<!-- Load controller manager -->
 		<node name="ros_control_controller_manager" pkg="controller_manager" type="controller_manager" respawn="false"
