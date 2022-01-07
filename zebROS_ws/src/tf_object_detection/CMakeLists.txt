@@ -170,6 +170,7 @@ target_link_libraries(tf_object_screen_to_world
  install(PROGRAMS
    src/trtdetection.py
    src/pub_video.py
+   src/test_detection.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
