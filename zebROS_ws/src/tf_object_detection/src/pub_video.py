@@ -13,7 +13,8 @@ class Video2ROS:
     def __init__(self):
         rospy.init_node('pub_video', anonymous=False)
         rospy.on_shutdown(self.cleanup)
-
+        
+        #Default config
         self.filename = "testvid.mp4"
         self.pub_topic = "/obj_detection/c920/rect_image"
         self.framerate = 30
@@ -21,22 +22,19 @@ class Video2ROS:
         #added ~ to all the topics
         if rospy.has_param('~pub_topic'):
             self.pub_topic = rospy.get_param('~pub_topic')
-            print("Pub topic is", self.pub_topic)
+            rospy.loginfo("Pub topic is" + str(self.pub_topic))
         if rospy.has_param('~filename'):
             self.filename = rospy.get_param('~filename')
-            print("Filename being used is")
+            rospy.loginfo("Filename being used is" + str(self.filename))
         if rospy.has_param('~framerate'):
             self.framerate = rospy.get_param('~framerate')
-
+            rospy.loginfo("Framerate being used is" + str( self.framerate))
         if rospy.has_param('~show_video'):
             self.show_video = rospy.get_param('~show_video')
 
         rospack = rospkg.RosPack()
         image_path = rospack.get_path('tf_object_detection') + '/src/'
         self.capture = cv2.VideoCapture(image_path + str(self.filename))
-        #Can be removed, just to check it acutally uses the config
-        print(self.filename, self.framerate, self.pub_topic)
-        print(self.capture)
         bridge = CvBridge()
 
         image_pub = rospy.Publisher(self.pub_topic, Image, queue_size=10)
