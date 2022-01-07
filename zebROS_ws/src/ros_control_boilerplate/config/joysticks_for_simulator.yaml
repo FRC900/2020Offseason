@@ -14,7 +14,6 @@ generic_hw_control_loop:
 hardware_interface:
    joints:
        - {name: joystick0, type: joystick, id: 0, local: true}
-       - {name: robot_code_ready_jetson, local: false, type: ready}
        - {name: robot_code_ready_rio, local: true, type: ready}
 
 joint_state_listener_controller:
