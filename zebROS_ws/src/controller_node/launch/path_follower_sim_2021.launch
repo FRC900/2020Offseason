@@ -31,7 +31,7 @@
 	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
 		<arg name="port" value="5803"/>
 	</include>
-	
+
 	<include file="$(find controller_node)/launch/joysticks_for_simulator.launch"/>
 
 	<!--
@@ -87,8 +87,6 @@
 			<remap from="cmd_vel_out" to="/cmd_vel"/>
 		</node>
 
-		<node pkg="rqt_driver_station_sim" type="rqt_driver_station_sim" name="rqt_driver_station_sim" >
-			<remap from="/frcrobot_rio/match_data_in" to="/frcrobot_rio/match_data" />
-		</node>
+		<node pkg="rqt_driver_station_sim" type="rqt_driver_station_sim" name="rqt_driver_station_sim" />
 	</group>
 </launch>
