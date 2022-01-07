@@ -16,9 +16,9 @@ hardware_interface:
        - {name: joystick0, type: joystick, id: 0, local: true}
        - {name: robot_code_ready_rio, local: true, type: ready}
 
-joint_state_listener_controller:
-    type:      state_listener_controller/JointStateListenerController
-    topic:     /frcrobot_jetson/joint_states
+joint_state_controller_rio:
+   type:         joint_state_controller/JointStateController
+   publish_rate: 100
 
 match_state_controller:
    type:         match_state_controller/MatchStateController

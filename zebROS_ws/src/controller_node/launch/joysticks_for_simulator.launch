@@ -10,6 +10,9 @@
 	<arg name="joy_or_key" default="key" />
 	<arg name="hw_or_sim" default="sim" />
 
+	<!--  ************** Including teleop node ***************  -->
+	<include file="$(find controller_node)/launch/teleop.launch"/>
+
 	<group ns="frcrobot_rio">
 
 		<!-- Load controller settings -->
@@ -37,8 +40,6 @@
 		<include file="$(find cpu_monitor)/launch/cpu_monitor.launch">
 			<arg name="poll_period" value="1"/>
 		</include>
-		<!--  ************** Including teleop node ***************  -->
-		<include file="$(find controller_node)/launch/teleop.launch"/>
 
 	</group>
 </launch>
