@@ -5279,6 +5279,53 @@ bool FRCRobotInterface::safeTalonCall(ctre::phoenix::ErrorCode error_code, const
 			error_name = "MusicNotSupported";
 			break;
 
+
+		case kInvalidGuid:
+			error_name = "kInvalidGuid";
+			break;
+		case kInvalidClass:
+			error_name = "kInvalidClass";
+			break;
+		case kInvalidProtocol:
+			error_name = "kInvalidProtocol";
+			break;
+		case kInvalidPath:
+			error_name = "kInvalidPath";
+			break;
+		case kGeneralWinUsbError:
+			error_name = "kGeneralWinUsbError";
+			break;
+		case kFailedSetup:
+			error_name = "kFailedSetup";
+			break;
+		case kListenFailed:
+			error_name = "kListenFailed";
+			break;
+		case kSendFailed:
+			error_name = "kSendFailed";
+			break;
+		case kReceiveFailed:
+			error_name = "kReceiveFailed";
+			break;
+		case kInvalidRespFormat:
+			error_name = "kInvalidRespFormat";
+			break;
+		case kWinUsbInitFailed:
+			error_name = "kWinUsbInitFailed";
+			break;
+		case kWinUsbQueryFailed:
+			error_name = "kWinUsbQueryFailed";
+			break;
+		case kWinUsbGeneralError:
+			error_name = "kWinUsbGeneralError";
+			break;
+		case kAccessDenied:
+			error_name = "kAccessDenied";
+			break;
+		case kFirmwareInvalidResponse:
+			error_name = "kFirmwareInvalidResponse";
+			break;
+
 		default:
 			{
 				std::stringstream s;

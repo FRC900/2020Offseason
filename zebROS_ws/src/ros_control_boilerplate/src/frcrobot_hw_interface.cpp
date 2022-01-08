@@ -76,7 +76,7 @@
 #include <HALInitializer.h>
 #include <hal/DriverStation.h>
 
-#include <ctre/phoenix/platform/Platform.h>           // for SetCANInterface
+#include <ctre/phoenix/platform/can/PlatformCAN.h>           // for SetCANInterface
 //#include <ctre/phoenix/cci/Unmanaged_CCI.h>
 
 #ifdef __linux__
@@ -166,7 +166,7 @@ bool FRCRobotHWInterface::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_
 		hal::init::InitializeREVPDH();
 		hal::init::InitializeREVPH();
 		errorQueue = std::make_unique<ErrorQueue>();
-		const auto rc = ctre::phoenix::platform::can::SetCANInterface(can_interface_.c_str());
+		const auto rc = ctre::phoenix::platform::can::PlatformCAN::SetCANInterface(can_interface_.c_str());
 		if (rc != 0)
 		{
 			HAL_SendError(true, -1, false, "SetCANInterface failed - likely CAN adapter failure", "", "", true);
