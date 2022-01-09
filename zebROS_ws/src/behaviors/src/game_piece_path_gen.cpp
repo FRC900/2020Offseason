@@ -32,6 +32,8 @@ trajectory_msgs::JointTrajectoryPoint generateTrajectoryPoint(double x, double y
 	return point;
 }
 
+std::vector<double> gamePieceIntakeOffsets{0};
+
 bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::GamePiecePickup::Response &res)
 {
 	res.success = false; // Default to failure
@@ -61,8 +63,17 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	points.push_back({req.endpoint.position.x, req.endpoint.position.y, req.endpoint.orientation.z});
 
 	size_t points_num = points.size();
-	spline_gen_srv.request.points.resize(3 * points_num - 4); // 3 * (point_num - 2) + 2
-	spline_gen_srv.request.point_frame_id.resize(3 * points_num - 4);
+	size_t pts;
+	if (points_num >= 2) {
+		pts = gamePieceIntakeOffsets.size() * (points_num - 2) + 2;
+	} else if (points_num == 1) {
+		pts = 1;
+	} else if (points_num == 0) {
+		ROS_WARN_STREAM("game_piece_path_gen : points_num == 0 (??\x29");
+		pts = 0;
+	}
+	spline_gen_srv.request.points.resize(pts);
+	spline_gen_srv.request.point_frame_id.resize(pts);
 	size_t point_index = 0;
 	for (size_t i = 0; i < points_num; i++) // copy points into spline request
 	{
@@ -79,23 +90,13 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 		}
 		else
 		{
-			spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0] - .175, points[i][1], points[i][2]);
-			spline_gen_srv.request.point_frame_id[point_index] = game_piece_frame_id;
-			base_trajectory_msgs::PathOffsetLimit path_offset_limit;
-			spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit);
-			point_index++;
-
-			spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0] + .175, points[i][1], points[i][2]);
-			spline_gen_srv.request.point_frame_id[point_index] = game_piece_frame_id;
-			base_trajectory_msgs::PathOffsetLimit path_offset_limit_2;
-			spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit_2);
-			point_index++;
-
-			spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0] + .375, points[i][1], points[i][2]);
-			spline_gen_srv.request.point_frame_id[point_index] = game_piece_frame_id;
-			base_trajectory_msgs::PathOffsetLimit path_offset_limit_3;
-			spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit_3);
-			point_index++;
+			for (double offset : gamePieceIntakeOffsets) {
+				spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0] + offset, points[i][1], points[i][2]);
+				spline_gen_srv.request.point_frame_id[point_index] = game_piece_frame_id;
+				base_trajectory_msgs::PathOffsetLimit path_offset_limit;
+				spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit);
+				point_index++;
+			}
 		}
 		//prev_angle = spline_gen_srv.request.points[i].positions[2];
 	}
@@ -128,10 +129,20 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "game_piece_path_server");
 	ros::NodeHandle nh;
 
-	if (nh.hasParam("game_piece_frame_id")) {
-		if (!nh.getParam("game_piece_frame_id", game_piece_frame_id)) {
+	ros::NodeHandle nh_params(nh, "game_piece_path_gen_params"); // node handle for a lower-down namespace
+
+	if (nh_params.hasParam("game_piece_frame_id")) {
+		if (!nh_params.getParam("game_piece_frame_id", game_piece_frame_id)) {
 			ROS_WARN_STREAM("game_piece_path_gen : getting frame id failed, defaulting to \"intake\"");
 		}
+	}
+
+	if (nh_params.hasParam("game_piece_intake_offsets")) {
+		if (!nh_params.getParam("game_piece_intake_offsets", gamePieceIntakeOffsets)) {
+			ROS_WARN_STREAM("game_piece_path_gen : getting offsets failed, defaulting to {0}");
+		}
+	} else {
+		ROS_INFO_STREAM("game_piece_path_gen : no offsets specified");
 	}
 
 	ros::Subscriber powercellSubscriber = nh.subscribe("/tf_object_detection/object_detection_world", 1, objectDetectCallback);
