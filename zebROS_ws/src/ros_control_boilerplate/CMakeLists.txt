@@ -184,7 +184,6 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 	# WPIlib code common to both hardware and sim interfaces.
 	# Create it as a library to avoid building all of these twice
 	add_library(frc_common_wpilib STATIC
-		#${ALLWPILIB}/hal/src/main/native/athena/Ports.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/cpp/fpga_clock.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/ErrorHandling.cpp
 		${ALLWPILIB}/hal/src/main/native/cpp/handles/HandlesInternal.cpp
@@ -220,6 +219,7 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 		${ALLWPILIB}/hal/src/main/native/athena/CTREPCM.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/CTREPDP.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/HALInitializer.cpp
+		${ALLWPILIB}/hal/src/main/native/athena/Ports.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/REVPDH.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/rev/PDHFrames.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/REVPH.cpp

@@ -6,6 +6,11 @@
 #include <chrono>
 
 #include <hal/CAN.h>
+
+static std::string canBus{};
+// Not actually a HAL call, added here to set the canBus string from inside the HWI
+void HAL_SetCANBusString(const std::string &bus) { canBus = bus; }
+
 extern "C"
 {
 	static uint32_t GetPacketBaseTime() {
@@ -17,11 +22,11 @@ extern "C"
 	// cache and were not found
 	void HAL_CAN_SendMessage(uint32_t messageID, const uint8_t *data, uint8_t dataSize, int32_t periodMs, int32_t *status)
 	{
-		ctre::phoenix::platform::can::CANComm_SendMessage(messageID, data, dataSize, periodMs, status);
+		ctre::phoenix::platform::can::CANComm_SendMessage(messageID, data, dataSize, periodMs, status, canBus.c_str());
 	}
 	void HAL_CAN_ReceiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status)
 	{
-		ctre::phoenix::platform::can::CANComm_ReceiveMessage(messageID, messageIDMask, data, dataSize, timeStamp, status);
+		ctre::phoenix::platform::can::CANComm_ReceiveMessage(messageID, messageIDMask, data, dataSize, timeStamp, status, canBus.c_str());
 		// For some reason, CANAPI uses a weird timeStamp. Emulate it here
 		*timeStamp = GetPacketBaseTime();
 	}
@@ -30,10 +35,10 @@ extern "C"
                                uint32_t messageIDMask, uint32_t maxMessages,
                                int32_t* status) {
 		ctre::phoenix::platform::can::CANComm_OpenStreamSession(
-				sessionHandle, messageID, messageIDMask, maxMessages, status);
+				sessionHandle, messageID, messageIDMask, maxMessages, status, canBus.c_str());
 	}
 	void HAL_CAN_CloseStreamSession(uint32_t sessionHandle) {
-		ctre::phoenix::platform::can::CANComm_CloseStreamSession(sessionHandle);
+		ctre::phoenix::platform::can::CANComm_CloseStreamSession(sessionHandle, canBus.c_str());
 	}
 	void HAL_CAN_ReadStreamSession(uint32_t sessionHandle,
 			struct HAL_CANStreamMessage* messages,
@@ -42,13 +47,13 @@ extern "C"
 		ctre::phoenix::platform::can::canframe_t localMessages[messagesToRead];
 		ctre::phoenix::platform::can::CANComm_ReadStreamSession(
 				sessionHandle, localMessages,
-				messagesToRead, messagesRead, status);
+				messagesToRead, messagesRead, status, canBus.c_str());
 		for (uint32_t i = 0; i < *messagesRead; i++)
 		{
 			messages[i].messageID = localMessages[i].arbID;
 			messages[i].timeStamp = localMessages[i].timeStampUs;
 			memcpy(messages[i].data, localMessages[i].data, sizeof(localMessages[i].data));
-			messages[i].dataSize = localMessages[i].dlc;
+			messages[i].dataSize = localMessages[i].len;
 		}
 	}
 #if 0
@@ -61,10 +66,6 @@ extern "C"
 	}
 #endif
 
-}
-
-extern "C"
-{
 	// These calls haven't been run through the CANAPI yet - PCM?
 	void FRC_NetworkCommunication_CANSessionMux_sendMessage(uint32_t messageID, const uint8_t *data, uint8_t dataSize, int32_t periodMs, int32_t *status)
 	{
@@ -77,11 +78,11 @@ extern "C"
 		if ((arbId == CONTROL_1) || (arbId == CONTROL_2) || (arbId == CONTROL_3))
 			return;
 
-		ctre::phoenix::platform::can::CANComm_SendMessage(messageID, data, dataSize, periodMs, status);
+		ctre::phoenix::platform::can::CANComm_SendMessage(messageID, data, dataSize, periodMs, status, canBus.c_str());
 	}
 	void FRC_NetworkCommunication_CANSessionMux_receiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status)
 	{
-		ctre::phoenix::platform::can::CANComm_ReceiveMessage(messageID, messageIDMask, data, dataSize, timeStamp, status);
+		ctre::phoenix::platform::can::CANComm_ReceiveMessage(messageID, messageIDMask, data, dataSize, timeStamp, status, canBus.c_str());
 	}
 }
 
