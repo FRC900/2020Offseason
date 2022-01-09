@@ -375,41 +375,35 @@ if (NOT (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
 
 endif()
 
-if (("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi") OR
-	("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") OR # Jetson TK1
-    ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "aarch64-linux-gnu")) # Jetson TX1/TX2/Xavier AGX/Xavier NX
+add_executable(frcrobot_hw_main ${FRCROBOT_HW_MAIN_SRCS})
 
-	add_executable(frcrobot_hw_main ${FRCROBOT_HW_MAIN_SRCS})
+# Link against wpi user libraries for CAN talon and navX-MXP code and
+# wpilib for HAL, driver station, and so on
+target_link_libraries(frcrobot_hw_main
+	${LIB_GPIOD}
+	${REV_USER_LIBS}
+	frc_robot_interface
+	${FRC_COMMON_WPILIB}
+	${CTRE_USER_LIBS}
+	${PLATFORM_SPECIFIC_LIBS}
+	${catkin_LIBRARIES}
+)
 
-    # Link against wpi user libraries for CAN talon and navX-MXP code and
-    # wpilib for HAL, driver station, and so on
-	target_link_libraries(frcrobot_hw_main
-		${LIB_GPIOD}
-		${REV_USER_LIBS}
-		frc_robot_interface
-		${FRC_COMMON_WPILIB}
-		${CTRE_USER_LIBS}
-		${PLATFORM_SPECIFIC_LIBS}
-		${catkin_LIBRARIES}
-	)
+## Add cmake target dependencies of the executable
+## same as for the library above. This is needed to force
+## talon controller messages to be built before the
+## talon controller code tries to use them
+add_dependencies(frcrobot_hw_main
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
 
-    ## Add cmake target dependencies of the executable
-    ## same as for the library above. This is needed to force
-    ## talon controller messages to be built before the
-    ## talon controller code tries to use them
-	add_dependencies(frcrobot_hw_main
-	  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-	  ${catkin_EXPORTED_TARGETS}
-	)
-
-    # Install executables
-	install(TARGETS
-	  frcrobot_hw_main
-	  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-	  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-	)
-
-endif()
+# Install executables
+install(TARGETS
+  frcrobot_hw_main
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 add_executable(q_to_rpy src/q_to_rpy.cpp)
 target_link_libraries(q_to_rpy
