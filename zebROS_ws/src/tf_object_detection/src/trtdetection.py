@@ -163,8 +163,9 @@ def run_inference_for_single_image(msg):
     # Converts numpy array to list becuase extracting indviual items from a list is faster than numpy array
     # Might be a more optimized way but this takes negligible time 
     output = output.tolist()
-
-    
+    debug = False
+    if pub_debug.get_num_connections() > 0:
+        debug = True
     for i in range(int(len(output) / model.layout)):
         prefix = i * model.layout
         
@@ -190,16 +191,17 @@ def run_inference_for_single_image(msg):
         obj.id = index
         obj.label = label
         detection.objects.append(obj)
-
-        boxes.append([output[prefix + 4], output[prefix + 3], output[prefix + 6], output[prefix + 5]])
-        clss.append(int(output[prefix + 1]))
-        confs.append(output[prefix + 2])
+        if debug == True: 
+            boxes.append([output[prefix + 4], output[prefix + 3], output[prefix + 6], output[prefix + 5]])
+            clss.append(int(output[prefix + 1]))
+            confs.append(output[prefix + 2])
     
     pub.publish(detection)
     #Visualize 
-    if pub_debug.get_num_connections() > 0:
+    if debug == True:
         viz.draw_bboxes(ori, boxes, confs, clss, 0.42)
         pub_debug.publish(bridge.cv2_to_imgmsg(ori, encoding="bgr8"))
+        
         #cv2.imwrite("result.jpg", ori)
         #cv2.imshow("result", ori)
         #key = cv2.waitKey(.5) & 0x000000FF
