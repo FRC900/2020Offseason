@@ -22,13 +22,13 @@ class Video2ROS:
         #added ~ to all the topics
         if rospy.has_param('~pub_topic'):
             self.pub_topic = rospy.get_param('~pub_topic')
-            rospy.loginfo("Pub topic is" + str(self.pub_topic))
+            rospy.loginfo("Pub topic is " + str(self.pub_topic))
         if rospy.has_param('~filename'):
             self.filename = rospy.get_param('~filename')
-            rospy.loginfo("Filename being used is" + str(self.filename))
+            rospy.loginfo("Filename being used is " + str(self.filename))
         if rospy.has_param('~framerate'):
             self.framerate = rospy.get_param('~framerate')
-            rospy.loginfo("Framerate being used is" + str( self.framerate))
+            rospy.loginfo("Framerate being used is " + str( self.framerate))
         if rospy.has_param('~show_video'):
             self.show_video = rospy.get_param('~show_video')
 
