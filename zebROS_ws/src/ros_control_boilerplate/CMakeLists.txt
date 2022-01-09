@@ -126,9 +126,6 @@ if ("${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 	set (FRCROBOT_HW_MAIN_SRCS ${FRCROBOT_HW_MAIN_SRCS}
 		src/dummy_wpilib_rio.cpp
 	)
-	set (CTRE_USER_LIBS
-		${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.so
-	)
 elseif ("${CMAKE_LIBRARY_ARCHITECTURE}" STREQUAL "arm-linux-gnueabihf") # Jetson TK1
 	set (CTRE_LIB_DIR ${WPI_SYSROOT}/lib/ctre/linux/raspbian/shared)    # Who knows if this will work
 	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/raspbian/shared)
@@ -142,13 +139,6 @@ else() # x86-64, hopefully. First person to try and build native on a Mac gets k
 	set (REV_LIB_DIR ${WPI_SYSROOT}/lib/rev/linux/x86-64/shared)
 endif()
   
-# All platforms need these, they just live
-# in different dirs for different architectures
-set (CTRE_USER_LIBS
-	${CTRE_USER_LIBS}
-	${CTRE_LIB_DIR}/libCTRE_Phoenix.so
-	${CTRE_LIB_DIR}/libCTRE_Phoenix_WPI.so
-)
 set (REV_USER_LIBS
 	${REV_LIB_DIR}/libREVLibDriver.so
 	${REV_LIB_DIR}/libREVLib.so
@@ -167,14 +157,6 @@ include_directories(${WPI_SYSROOT}/include/wpilib)
 # Non-rio builds are more complex - we have to grab appropriate
 # parts of WPIlib source and include it manually
 if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
-    # Add socketcan library to everything but the Rio
-    # This adds code to use linux CAN sockets to talk to
-    # the CAN bus for the Jetson
-    # Also add all of the wpilib code needed to talk to PCM and PDP
-	set (CTRE_USER_LIBS 
-		${CTRE_USER_LIBS}
-		#${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.so
-	)
     # This is needed for non-RIO hardware platforms
 	set (PLATFORM_SPECIFIC_LIBS
 		${PLATFORM_SPECIFIC_LIBS}
@@ -384,7 +366,9 @@ target_link_libraries(frcrobot_hw_main
 	${REV_USER_LIBS}
 	frc_robot_interface
 	${FRC_COMMON_WPILIB}
-	${CTRE_USER_LIBS}
+	${CTRE_LIB_DIR}/libCTRE_Phoenix.so
+	${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.so
+	${CTRE_LIB_DIR}/libCTRE_Phoenix_WPI.so
 	${PLATFORM_SPECIFIC_LIBS}
 	${catkin_LIBRARIES}
 )
