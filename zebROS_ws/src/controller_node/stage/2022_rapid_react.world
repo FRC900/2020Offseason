@@ -50,7 +50,7 @@ window
 floorplan
 (
   name "rapid_react_field_map"
-  bitmap "../maps/rapid_react_field.png"
+  bitmap "../maps/rapid_react_field_cad.png"
   size [ 27.432 22.86 4 ]
   pose [  4.572  2.286  0.0 0.0 ]
 )
