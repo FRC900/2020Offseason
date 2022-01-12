@@ -115,8 +115,22 @@ HAL_Bool HAL_CheckPWMChannel(int32_t)
 	return false;
 }
 
+int32_t HAL_GetNumAnalogInputs(void) {
+  return 0;
+}
+int32_t HAL_GetNumAnalogOutputs(void) {
+  return 0;
+}
+int32_t HAL_GetNumDigitalChannels(void) {
+  return 0;
+}
+int32_t HAL_GetNumPWMChannels(void) {
+  return 0;
+}
+int32_t HAL_GetNumRelayHeaders(void) {
+  return 0;
+}
 }  // extern "C"
-
 #if 0
 #include <frc/ErrorBase.h>
 frc::ErrorBase::ErrorBase()
