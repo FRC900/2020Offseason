@@ -604,12 +604,17 @@ bool Contains(const Sendable* sendable) const
 
 std::string GetName(const Sendable* sendable) const
 
-void SetName(Sendable* sendable, const wpi::Twine& name);
+void SetName(Sendable* /*sendable*/, std::string_view /* name*/)
+{
+}
+#endif
 
-void SendableRegistry::SetName(Sendable* /*sendable*/, const wpi::Twine& /*moduleType*/, int /*channel*/)
+
+void SendableRegistry::SetName(Sendable* /*sendable*/, std::string_view /*moduleType*/, int /*channel*/)
 {
 }
 
+#if 0
 void SetName(Sendable* sendable, const wpi::Twine& moduleType,
 		   int moduleNumber, int channel);
 

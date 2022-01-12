@@ -520,9 +520,9 @@ HAL_Bool HAL_GetBrownedOut(int32_t* status)
 
 double HAL_GetVinVoltage(int32_t* status)
 {
-	ROS_ERROR("Called HAL_GetVinVoltage() on unsupported platform");
+	//ROS_ERROR("Called HAL_GetVinVoltage() on unsupported platform");
 	*status = 0;
-	return -1;
+	return 12.; /* Just to be safe, fake a reasonable voltage */
 }
 double HAL_GetVinCurrent(int32_t* status)
 {
@@ -893,29 +893,6 @@ std::string GetStackTrace(int /*offset*/)
 
 }  // namespace wpi
 
-
-extern "C" {
-HAL_Bool HAL_CheckAnalogInputChannel(int32_t)
-{
-	ROS_ERROR("Called HAL_CheckAnalogInputChannel(int32_t) on unsupported platform");
-	return false;
-}
-HAL_Bool HAL_CheckAnalogOutputChannel(int32_t)
-{
-	ROS_ERROR("Called HAL_CheckAnalogOutputChannel(int32_t) on unsupported platform");
-	return false;
-}
-HAL_Bool HAL_CheckRelayChannel(int32_t)
-{
-	ROS_ERROR("Called HAL_CheckRelayChannel(int32_t) on unsupported platform");
-	return false;
-}
-HAL_Bool HAL_CheckPWMChannel(int32_t)
-{
-	ROS_ERROR("Called HAL_CheckPWMChannel(int32_t) on unsupported platform");
-	return false;
-}
-}  // extern "C"
 
 #include "hal/Notifier.h"
 HAL_NotifierHandle HAL_InitializeNotifier(int32_t* status) {

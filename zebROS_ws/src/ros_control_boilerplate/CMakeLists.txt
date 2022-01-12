@@ -192,8 +192,6 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 		${ALLWPILIB}/wpiutil/src/main/native/fmtlib/src/format.cpp
 	)
 
-	set(FRC_COMMON_WPILIB frc_common_wpilib)
-
 	set (FRCROBOT_HW_MAIN_SRCS ${FRCROBOT_HW_MAIN_SRCS} 
 		src/dummy_wpilib_common.cpp
 		src/dummy_wpilib_hw.cpp
@@ -201,7 +199,7 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 		${ALLWPILIB}/hal/src/main/native/athena/CTREPCM.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/CTREPDP.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/HALInitializer.cpp
-		${ALLWPILIB}/hal/src/main/native/athena/Ports.cpp
+		#${ALLWPILIB}/hal/src/main/native/athena/Ports.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/REVPDH.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/rev/PDHFrames.cpp
 		${ALLWPILIB}/hal/src/main/native/athena/REVPH.cpp
@@ -216,6 +214,8 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 			src/nano_nx_dio_hal.cpp
 			src/nano_nx_i2c_hal.cpp
 			src/nano_nx_spi_hal.cpp
+			${ALLWPILIB}/hal/src/main/native/athena/mockdata/SimDeviceData.cpp
+			${ALLWPILIB}/hal/src/main/native/athena/mockdata/MockHooks.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalInput.cpp
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/DigitalOutput.cpp
 			#${ALLWPILIB}/wpilibc/src/main/native/cpp/Error.cpp
@@ -223,10 +223,11 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2022-linux-gnueabi")
 			${ALLWPILIB}/wpilibc/src/main/native/cpp/I2C.cpp
 			#${ALLWPILIB}/wpilibc/src/main/native/cpp/RobotController.cpp #TODO- duplicate?
 			#${ALLWPILIB}/wpilibc/src/main/native/cpp/SensorUtil.cpp
-			#${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringMap.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ConvertUTF.cpp
+			${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/ConvertUTFWrapper.cpp
 			${ALLWPILIB}/wpiutil/src/main/native/cpp/timestamp.cpp
-			${ALLWPILIB}/wpiutil/src/main/native/unix/Demangle.cpp
-			${ALLWPILIB}/wpiutil/src/main/native/unix/StackTrace.cpp
+			#${ALLWPILIB}/wpiutil/src/main/native/unix/Demangle.cpp
+			#${ALLWPILIB}/wpiutil/src/main/native/unix/StackTrace.cpp
 		)
 	else() # anything we don't want to support GPIO access on - x86, older Jetson, etc
 		set (FRCROBOT_HW_MAIN_SRCS ${FRCROBOT_HW_MAIN_SRCS}
@@ -365,7 +366,7 @@ target_link_libraries(frcrobot_hw_main
 	${LIB_GPIOD}
 	${REV_USER_LIBS}
 	frc_robot_interface
-	${FRC_COMMON_WPILIB}
+	frc_common_wpilib
 	${CTRE_LIB_DIR}/libCTRE_Phoenix.so
 	${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.so
 	${CTRE_LIB_DIR}/libCTRE_Phoenix_WPI.so

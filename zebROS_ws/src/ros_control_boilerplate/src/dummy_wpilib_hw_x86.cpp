@@ -46,28 +46,34 @@ frc::DigitalOutput::DigitalOutput(int)
 {
 	ROS_ERROR("Called DigitalOutput::DigitalOutput(int) on unsupported platform");
 }
+
 frc::DigitalOutput::~DigitalOutput()
 {
 	ROS_ERROR("Called DigitalOutput::~DigitalOutput() on unsupported platform");
 }
+
 void frc::DigitalOutput::Set(bool)
 {
 	ROS_ERROR("Called DigitalOutput::set(bool) on unsupported platform");
 }
+
 void frc::DigitalOutput::InitSendable(wpi::SendableBuilder&)
 {
 	ROS_ERROR("Called frc::DigitalOutput::InitSendable(SendableBuilder& builder) on unsupported platform");
 }
+
 HAL_Handle frc::DigitalOutput::GetPortHandleForRouting() const
 {
 	ROS_ERROR("Called DigitalOutput::GetPortHandleForRouting() on unsupported platform");
 	return HAL_kInvalidHandle;
 }
+
 frc::AnalogTriggerType frc::DigitalOutput::GetAnalogTriggerTypeForRouting() const
 {
 	ROS_ERROR("Called DigitalOutput::GetAnalogTriggerTypeForRouting() on unsupported platform");
 	return static_cast<frc::AnalogTriggerType>(-1);
 }
+
 bool frc::DigitalOutput::IsAnalogTrigger() const
 {
 	ROS_ERROR("Called DigitalOutput::IsAnalogTrigger() on unsupported platform");
@@ -87,6 +93,28 @@ HAL_Bool HAL_CheckDIOChannel(int32_t)
 	ROS_ERROR("Called HAL_CheckDIOChannel(int32_t) on unsupported platform");
 	return false;
 }
+
+HAL_Bool HAL_CheckAnalogInputChannel(int32_t)
+{
+	ROS_ERROR("Called HAL_CheckAnalogInputChannel(int32_t) on unsupported platform");
+	return false;
+}
+HAL_Bool HAL_CheckAnalogOutputChannel(int32_t)
+{
+	ROS_ERROR("Called HAL_CheckAnalogOutputChannel(int32_t) on unsupported platform");
+	return false;
+}
+HAL_Bool HAL_CheckRelayChannel(int32_t)
+{
+	ROS_ERROR("Called HAL_CheckRelayChannel(int32_t) on unsupported platform");
+	return false;
+}
+HAL_Bool HAL_CheckPWMChannel(int32_t)
+{
+	ROS_ERROR("Called HAL_CheckPWMChannel(int32_t) on unsupported platform");
+	return false;
+}
+
 }  // extern "C"
 
 #if 0
