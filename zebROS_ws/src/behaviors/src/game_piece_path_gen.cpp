@@ -7,12 +7,17 @@
 #include "behavior_actions/GamePiecePickup.h"
 #include "field_obj/Detection.h"
 #include "trajectory_msgs/JointTrajectoryPoint.h"
+#include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/TransformStamped.h>
 
 // Create service clients
 ros::ServiceClient spline_gen_cli;
 ros::ServiceClient dynamic_path_cli;
 
 field_obj::Detection lastObjectDetection;
+
+tf2_ros::TransformListener *tfListener;
+tf2_ros::Buffer *tfBuffer;
 
 std::string game_piece_frame_id = "intake";
 
@@ -71,7 +76,11 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	const size_t objects_num = std::min((int)(lastObjectDetection.objects.size()), (int)(req.max_objects));
 	ROS_INFO_STREAM("game_piece_path_gen : objects_num: " << objects_num);
 
-	Line l = Line(0, 0, req.endpoint.position.x, req.endpoint.position.y);
+	geometry_msgs::TransformStamped robotToMapTransform = tfBuffer->lookupTransform("map", "base_link", ros::Time(0));
+
+	ROS_INFO_STREAM("Robot location: " << robotToMapTransform.transform.translation.x << ", " << robotToMapTransform.transform.translation.y);
+
+	Line l = Line(robotToMapTransform.transform.translation.x, robotToMapTransform.transform.translation.y, req.endpoint.position.x, req.endpoint.position.y);
 
 	std::vector<std::array<double, 3>> points; // List of all points
 	points.push_back({0, 0, 0}); // First point is always {0,0,0} and not transformed, robot current position
@@ -203,6 +212,9 @@ int main(int argc, char **argv)
 	} else {
 		ROS_INFO_STREAM("game_piece_path_gen : no maximum Z specified");
 	}
+
+	tfBuffer = new tf2_ros::Buffer();
+  tfListener = new tf2_ros::TransformListener(*tfBuffer);
 
 	ros::Subscriber powercellSubscriber = nh.subscribe("/tf_object_detection/object_detection_world", 1, objectDetectCallback);
 	ros::ServiceServer svc = nh.advertiseService("game_piece_path_gen", genPath);
