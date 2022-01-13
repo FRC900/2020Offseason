@@ -16,6 +16,8 @@ field_obj::Detection lastObjectDetection;
 
 std::string game_piece_frame_id = "intake";
 
+double maximumZ = 1.0;
+
 // Callback function to retrieve the most recent object detection message
 void objectDetectCallback(field_obj::DetectionConstPtr msg)
 {
@@ -32,6 +34,31 @@ trajectory_msgs::JointTrajectoryPoint generateTrajectoryPoint(double x, double y
 	return point;
 }
 
+struct Line {
+	double x1;
+	double y1;
+	double x2;
+	double y2;
+	Line(double x1, double y1, double x2, double y2) {
+		this->x1 = std::min(x1, x2);
+		this->x2 = std::max(x1, x2);
+		this->y1 = std::min(y1, y2);
+		this->y2 = std::max(y1, y2);
+	}
+};
+
+double pointOnLine(Line l, double x) { // 2D
+	// y = m(x - x1) + y1
+	// m = (y2 - y1)/(x2 - x1)
+	double m = (l.y2 - l.y1)/(l.x2 - l.x1);
+	double y = m * (x - l.x1) + l.y1;
+	if (x >= l.x1 && x <= l.x2) {
+		return y;
+	} else {
+		return std::numeric_limits<double>::max();
+	}
+}
+
 std::vector<double> gamePieceIntakeOffsets{0};
 
 bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::GamePiecePickup::Response &res)
@@ -44,12 +71,28 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	const size_t objects_num = std::min((int)(lastObjectDetection.objects.size()), (int)(req.max_objects));
 	ROS_INFO_STREAM("game_piece_path_gen : objects_num: " << objects_num);
 
-	std::vector<std::array<double, 3>> points;
-	points.push_back({0, 0, 0});
+	Line l = Line(0, 0, req.endpoint.position.x, req.endpoint.position.y);
 
-	for (size_t i = 0; i < objects_num; i++) // filter out selected object detections
-		if (lastObjectDetection.objects[i].id == req.object_id)
-			points.push_back({lastObjectDetection.objects[i].location.x, lastObjectDetection.objects[i].location.y, 0});
+	std::vector<std::array<double, 3>> points; // List of all points
+	points.push_back({0, 0, 0}); // First point is always {0,0,0} and not transformed, robot current position
+
+	std::vector<std::array<double, 3>> objectPoints; // List of object points (so we can sort)
+
+	for (size_t i = 0; i < lastObjectDetection.objects.size(); i++) // filter out selected object detections
+	{
+		if ((lastObjectDetection.objects[i].id == req.object_id) && (lastObjectDetection.objects[i].location.z <= maximumZ))
+		{
+			objectPoints.push_back({lastObjectDetection.objects[i].location.x, lastObjectDetection.objects[i].location.y, 0});
+		}
+	}
+
+	std::sort(objectPoints.begin(), objectPoints.end(), [&l](std::array<double, 3> a, std::array<double, 3> b) {
+		return fabs(pointOnLine(l, a[0]) - a[1]) < fabs(pointOnLine(l, b[0]) - b[1]); // sort objects by closest to line
+	});
+
+	for (size_t i = 0; i < std::min(objects_num, objectPoints.size()); i++) { // Add object points to list of points
+		points.push_back(objectPoints[i]);
+	}
 
 	if (points.size() == 1) // No objects added
 	{
@@ -78,12 +121,18 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	for (size_t i = 0; i < points_num; i++) // copy points into spline request
 	{
 		ROS_INFO_STREAM("(" << points[i][0] << ", " << points[i][1] << "), orientation: " << points[i][2]);
-		if ((i == 0) || (i == (points_num - 1)))
+		if (i == 0)
 		{
-			// Facing forward for the last point increases our chances
-			// of running over the ball
 			spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0], points[i][1], points[i][2]);
 			spline_gen_srv.request.point_frame_id[point_index] = game_piece_frame_id;
+			base_trajectory_msgs::PathOffsetLimit path_offset_limit;
+			spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit);
+			point_index++;
+		}
+		else if (i == (points_num - 1))
+		{
+			spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0], points[i][1], points[i][2]);
+			spline_gen_srv.request.point_frame_id[point_index] = "base_link";
 			base_trajectory_msgs::PathOffsetLimit path_offset_limit;
 			spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit);
 			point_index++;
@@ -143,6 +192,14 @@ int main(int argc, char **argv)
 		}
 	} else {
 		ROS_INFO_STREAM("game_piece_path_gen : no offsets specified");
+	}
+
+	if (nh_params.hasParam("maximum_z")) {
+		if (!nh_params.getParam("maximum_z", maximumZ)) {
+			ROS_WARN_STREAM("game_piece_path_gen : getting maximum Z failed, defaulting to 1.0");
+		}
+	} else {
+		ROS_INFO_STREAM("game_piece_path_gen : no maximum Z specified");
 	}
 
 	ros::Subscriber powercellSubscriber = nh.subscribe("/tf_object_detection/object_detection_world", 1, objectDetectCallback);
