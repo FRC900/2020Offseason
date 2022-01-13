@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-  Simulate a omni (swerve) robot in stage for path following testing
+  Simulate a omni (swerve) robot in 2022 field stage
  -->
 <launch>
 	<!-- useful for running sim stuff on a laptop and path follower on a jetson -->
@@ -77,9 +77,7 @@
 		-->
 		<arg name="use_pose_for_odom" value="false"/>
 	</include>
-	<!-- Super sketchy way to hook up cmd vel output from path follower to stage /cmd_vel topic
-		 I could say this is because it is a closer match to the real robot but it is really just
-         being reused out of laziness.
+	<!-- Hook up cmd vel output from path follower to stage /cmd_vel topic
 	-->
 	<group ns="cmd_vel_mux">
 		<node name="twist_mux" pkg="twist_mux" type="twist_mux">
