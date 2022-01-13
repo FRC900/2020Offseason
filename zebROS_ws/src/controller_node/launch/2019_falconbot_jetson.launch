@@ -59,6 +59,7 @@
 				<remap from="/frcrobot_rio/joystick_states_raw" to="/frcrobot_rio/joystick_states_raw1" />
 			</node>
 		</group>
+<!--
 		<group ns="orient_strafing">
 			<rosparam file="$(find teleop_joystick_control)/config/teleop_joystick_comp.yaml" command="load"/>
 			<node name="orient_strafing_pid" pkg="pid" type="controller" >
@@ -73,6 +74,7 @@
 			</node>
 			<node name="orient_strafing_node" pkg="teleop_joystick_control" type="orient_strafing_node" output="screen"/>
 		</group>
+-->
 	</group>
 	<group ns="path_to_goal">
 		<rosparam file="$(find robot_visualizer)/config/robot_visualize.yaml" command="load"/>
@@ -87,11 +89,9 @@
 		<node name="path_to_goal_ac_server" pkg="path_to_goal" type="path_to_goal_server" output="screen" />
 		<node name="test_client" pkg="path_to_goal" type="test_client" output="screen" />
 	</group>
-	<group ns="cmd_vel_mux">
-		<node name="twist_mux" pkg="twist_mux" type="twist_mux">
-			<rosparam command="load" file="$(find talon_swerve_drive_controller)/config/twist_mux.yaml"/>
-			<remap from="cmd_vel_out" to="/frcrobot_jetson/swerve_drive_controller/cmd_vel"/>
-		</node>
+	<group ns="cmd_vel_hub">
+		<node name="cmd_vel_hub" pkg="talon_swerve_drive_controller" type="cmd_vel_hub" output="screen"/>
+		<rosparam command="load" file="$(find talon_swerve_drive_controller)/config/cmd_vel_hub_params.yaml"/>
 	</group>
 	<include file="$(find controller_node)/launch/tape_detection.launch">
 		<arg name="camera_model" value="zed2" />

@@ -50,8 +50,6 @@ bool diagnostics_mode = false;
 bool green_led_on = true;
 bool can_climb = false;
 
-double orient_strafing_angle;
-
 enum ControlPanelMode{ rotation, increment, position };
 ControlPanelMode control_panel_mode = increment;
 
@@ -63,10 +61,6 @@ frc_msgs::ButtonBoxState button_box;
 // array of joystick_states messages for multiple joysticks
 std::vector <frc_msgs::JoystickState> joystick_states_array;
 std::vector <std::string> topic_array;
-
-ros::Publisher orient_strafing_enable_pub;
-ros::Publisher orient_strafing_setpoint_pub;
-ros::Publisher orient_strafing_state_pub;
 
 ros::Publisher green_led_pub;
 
@@ -134,13 +128,6 @@ bool orientCallback(teleop_joystick_control::RobotOrient::Request& req,
 	// Used to switch between robot orient and field orient driving
 	teleop_cmd_vel->setRobotOrient(req.robot_orient, req.offset_angle);
 	ROS_WARN_STREAM("Robot Orient = " << req.robot_orient << ", Offset Angle = " << req.offset_angle);
-	return true;
-}
-
-bool orientStrafingAngleCallback(teleop_joystick_control::OrientStrafingAngle::Request& req,
-		teleop_joystick_control::OrientStrafingAngle::Response&/* res*/)
-{
-	orient_strafing_angle = req.angle;
 	return true;
 }
 
@@ -720,35 +707,16 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 			{
 			}
 
-			std_msgs::Bool enable_pub_msg;
-
 			//Joystick1: directionLeft
 			if(joystick_states_array[0].directionLeftPress)
 			{
-				ROS_WARN_STREAM("Snapping to angle for climb!");
 			}
 			if(joystick_states_array[0].directionLeftButton)
 			{
-				// Align for climbing
-				enable_pub_msg.data = true;
-			}
-			else
-			{
-				enable_pub_msg.data = false;
 			}
 			if(joystick_states_array[0].directionLeftRelease)
 			{
 			}
-
-			orient_strafing_enable_pub.publish(enable_pub_msg);
-
-			std_msgs::Float64 orient_strafing_angle_msg;
-			orient_strafing_angle_msg.data = orient_strafing_angle;
-			orient_strafing_setpoint_pub.publish(orient_strafing_angle_msg);
-
-			std_msgs::Float64 imu_angle_msg;
-			imu_angle_msg.data = imu_angle;
-			orient_strafing_state_pub.publish(imu_angle_msg);
 
 			//Joystick1: directionRight
 			if(joystick_states_array[0].directionRightPress)
@@ -1275,8 +1243,6 @@ int main(int argc, char **argv)
 		ROS_ERROR("Could not read indexer_setpoint_rate in teleop_joystick_comp");
 	}
 
-	orient_strafing_angle = config.climber_align_angle;
-
 	//Initialize the climber command
 	climber_controller_cmd.request.winch_percent_out = 0.0;
 	climber_controller_cmd.request.climber_deploy = false;
@@ -1324,17 +1290,13 @@ int main(int argc, char **argv)
 	shooter_offset_pub = n.advertise<behavior_actions::ShooterOffset>("teleop_shooter_offsets", 1, true);
 	shooter_offset_pub.publish(shooter_offset);
 
-	orient_strafing_enable_pub = n.advertise<std_msgs::Bool>("orient_strafing/pid_enable", 1);
-	orient_strafing_setpoint_pub = n.advertise<std_msgs::Float64>("orient_strafing/setpoint", 1);
-	orient_strafing_state_pub = n.advertise<std_msgs::Float64>("orient_strafing/state", 1);
 	JoystickRobotVel = n.advertise<geometry_msgs::Twist>("swerve_drive_controller/cmd_vel", 1);
+
 	ros::Subscriber imu_heading = n.subscribe("/imu/zeroed_imu", 1, &imuCallback);
 	ros::Subscriber joint_states_sub = n.subscribe("/frcrobot_jetson/joint_states", 1, &jointStateCallback);
-
 	ros::Subscriber match_state_sub = n.subscribe("/frcrobot_rio/match_data", 1, matchStateCallback);
-	ros::ServiceServer robot_orient_service = n.advertiseService("robot_orient", orientCallback);
 
-	ros::ServiceServer orient_strafing_angle_service = n.advertiseService("orient_strafing_angle", orientStrafingAngleCallback);
+	ros::ServiceServer robot_orient_service = n.advertiseService("robot_orient", orientCallback);
 
 	align_shooter_ac = std::make_shared<actionlib::SimpleActionClient<behavior_actions::AlignToShootAction>>("/align_to_shoot/align_to_shoot_server", true);
 	eject_ac = std::make_shared<actionlib::SimpleActionClient<behavior_actions::EjectAction>>("/eject/eject_server", true);

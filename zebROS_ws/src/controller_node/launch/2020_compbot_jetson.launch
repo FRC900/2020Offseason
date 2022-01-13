@@ -24,7 +24,6 @@
 		-->
 		<rosparam file="$(find behaviors)/config/alignmentOffsets.yaml" command="load"/>
 
-
 		<!--
 		<node name="zero_wheel_service" pkg="talon_swerve_drive_controller" type="zero_wheel_service" output="screen"> </node>
 		-->
@@ -70,7 +69,8 @@
 		<rosparam file="$(find teleop_joystick_control)/config/teleop_joystick_comp.yaml" command="load"/>
 		<node name="teleop_joystick_comp_2020" pkg="teleop_joystick_control" type="teleop_joystick_comp_2020" output="screen"/>
 
-		<group ns="orient_strafing"> <!--TODO Tune these values on a full weight robot -->
+<!--
+		<group ns="orient_strafing"> TODO Tune these values on a full weight robot
 			<rosparam file="$(find teleop_joystick_control)/config/teleop_joystick_comp.yaml" command="load"/>
 			<node name="orient_strafing_pid" pkg="pid" type="controller" >
 				<param name="node_name" value="orient_strafing_pid" />
@@ -84,6 +84,7 @@
 			</node>
 			<node name="orient_strafing_node" pkg="teleop_joystick_control" type="orient_strafing_node" output="screen"/>
 		</group>
+-->
 	</group>
 
 	<node name="num_powercells_pub_node" pkg="behaviors" type="num_powercells_pub_node" output="screen" />
@@ -128,11 +129,9 @@
 	</group>
 	-->
 
-	<group ns="cmd_vel_mux">
-		<node name="twist_mux" pkg="twist_mux" type="twist_mux">
-			<rosparam command="load" file="$(find talon_swerve_drive_controller)/config/twist_mux.yaml"/>
-			<remap from="cmd_vel_out" to="/frcrobot_jetson/swerve_drive_controller/cmd_vel"/>
-		</node>
+	<group ns="cmd_vel_hub">
+		<node name="cmd_vel_hub" pkg="talon_swerve_drive_controller" type="cmd_vel_hub" output="screen"/>
+		<rosparam command="load" file="$(find talon_swerve_drive_controller)/config/cmd_vel_hub_params.yaml"/>
 	</group>
 
 	<!-- TODO need a way to use the same PID node in multiple align servers without copying and pasting topics -->

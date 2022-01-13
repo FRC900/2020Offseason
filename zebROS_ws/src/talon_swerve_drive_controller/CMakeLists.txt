@@ -30,6 +30,7 @@ find_package(Eigen3 REQUIRED)
 add_service_files (
   FILES
   MotionProfile.srv
+  SetCmdVelTopics.srv
   SetXY.srv
 )
 
@@ -74,6 +75,13 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 add_executable(zero_wheel_service src/zero_wheel_angle.cpp)
 target_link_libraries(zero_wheel_service ${catkin_LIBRARIES})
 add_dependencies(zero_wheel_service
+	${${PROJECT_NAME}_EXPORTED_TARGETS}
+	${catkin_EXPORTED_TARGETS}
+)
+
+add_executable(cmd_vel_hub src/cmd_vel_hub.cpp)
+target_link_libraries(cmd_vel_hub ${catkin_LIBRARIES})
+add_dependencies(cmd_vel_hub
 	${${PROJECT_NAME}_EXPORTED_TARGETS}
 	${catkin_EXPORTED_TARGETS}
 )
