@@ -78,8 +78,6 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 
 	geometry_msgs::TransformStamped robotToMapTransform = tfBuffer->lookupTransform("map", "base_link", ros::Time(0));
 
-	ROS_INFO_STREAM("Robot location: " << robotToMapTransform.transform.translation.x << ", " << robotToMapTransform.transform.translation.y);
-
 	Line l = Line(robotToMapTransform.transform.translation.x, robotToMapTransform.transform.translation.y, req.endpoint.position.x, req.endpoint.position.y);
 
 	std::vector<std::array<double, 3>> points; // List of all points
