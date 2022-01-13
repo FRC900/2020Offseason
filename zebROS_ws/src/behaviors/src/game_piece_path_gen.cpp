@@ -82,7 +82,8 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	{
 		if ((lastObjectDetection.objects[i].id == req.object_id) && (lastObjectDetection.objects[i].location.z <= maximumZ))
 		{
-			objectPoints.push_back({lastObjectDetection.objects[i].location.x, lastObjectDetection.objects[i].location.y, 0});
+			objectPoints.push_back({lastObjectDetection.objects[i].location.x, lastObjectDetection.objects[i].location.y, 0}); // TODO: set 0 to correct orientation for intake
+			// Consider atan2(deltaX/deltaY)
 		}
 	}
 
@@ -170,6 +171,7 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	}
 	res.success = true; // Default to failure
 	res.message = "to infinity and beyond!";
+	res.path = spline_gen_srv.response.path;
 	return true;
 }
 
