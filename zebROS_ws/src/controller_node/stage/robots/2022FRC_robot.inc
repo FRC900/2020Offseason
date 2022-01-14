@@ -56,4 +56,19 @@ define omnidir_robot position
   single_terrabee(pose [0.0 0.4445 0.1 90 ] )
 
   single_terrabee(pose [0.889 0.4445 0.1 90 ] )
+
+	camera
+(
+  # laser properties
+  resolution [ 32 32 ]
+  range [ 0.2 8.0 ]
+  fov [ 70.0 40.0 ]
+  pantilt [ 0.0 0.0 ]
+
+  # model properties
+  size [ 0.66675 0.2286 0.15 ]
+	pose [0.0 0.4445 -0.3 0 ]
+  color "purple"
+  watts 100.0
+)
 )
