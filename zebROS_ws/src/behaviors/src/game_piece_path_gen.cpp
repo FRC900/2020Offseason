@@ -78,6 +78,9 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 
 	geometry_msgs::TransformStamped robotToMapTransform = tfBuffer->lookupTransform("map", "base_link", ros::Time(0));
 
+	// If not finding the optimal cargo, uncomment the print below.
+	// ROS_INFO_STREAM("Robot position: " << robotToMapTransform.transform.translation.x << ", " << robotToMapTransform.transform.translation.y);
+
 	Line l = Line(robotToMapTransform.transform.translation.x, robotToMapTransform.transform.translation.y, req.endpoint.position.x, req.endpoint.position.y);
 
 	std::vector<std::array<double, 3>> points; // List of all points
@@ -89,8 +92,7 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	{
 		if ((lastObjectDetection.objects[i].id == req.object_id) && (lastObjectDetection.objects[i].location.z <= maximumZ))
 		{
-			objectPoints.push_back({lastObjectDetection.objects[i].location.x, lastObjectDetection.objects[i].location.y, 0}); // TODO: set 0 to correct orientation for intake
-			// Consider atan2(deltaX/deltaY)
+			objectPoints.push_back({lastObjectDetection.objects[i].location.x, lastObjectDetection.objects[i].location.y, 0});
 		}
 	}
 
@@ -148,7 +150,8 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 		else
 		{
 			for (double offset : gamePieceIntakeOffsets) {
-				spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0] + offset, points[i][1], points[i][2]);
+				double rotation = std::atan2(points[i][1]-points[0][1], points[i][0]-points[0][0]); // atan2(deltaY/deltaX)
+				spline_gen_srv.request.points[point_index] = generateTrajectoryPoint(points[i][0] + offset, points[i][1], rotation);
 				spline_gen_srv.request.point_frame_id[point_index] = game_piece_frame_id;
 				base_trajectory_msgs::PathOffsetLimit path_offset_limit;
 				spline_gen_srv.request.path_offset_limit.push_back(path_offset_limit);
