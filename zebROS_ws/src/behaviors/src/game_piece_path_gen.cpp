@@ -45,10 +45,10 @@ struct Line {
 	double x2;
 	double y2;
 	Line(double x1, double y1, double x2, double y2) {
-		this->x1 = std::min(x1, x2);
-		this->x2 = std::max(x1, x2);
-		this->y1 = std::min(y1, y2);
-		this->y2 = std::max(y1, y2);
+		this->x1 = x1;
+		this->x2 = x2;
+		this->y1 = y1;
+		this->y2 = y2;
 	}
 };
 
@@ -57,7 +57,7 @@ double pointOnLine(Line l, double x) { // 2D
 	// m = (y2 - y1)/(x2 - x1)
 	double m = (l.y2 - l.y1)/(l.x2 - l.x1);
 	double y = m * (x - l.x1) + l.y1;
-	if (x >= l.x1 && x <= l.x2) {
+	if (x >= std::min(l.x1, l.x2) && x <= std::max(l.x1, l.x2)) {
 		return y;
 	} else {
 		return std::numeric_limits<double>::max();
@@ -76,12 +76,14 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	const size_t objects_num = std::min((int)(lastObjectDetection.objects.size()), (int)(req.max_objects));
 	ROS_INFO_STREAM("game_piece_path_gen : objects_num: " << objects_num);
 
-	geometry_msgs::TransformStamped robotToMapTransform = tfBuffer->lookupTransform("map", "base_link", ros::Time(0));
+	geometry_msgs::TransformStamped cameraToRobotTransform = tfBuffer->lookupTransform(lastObjectDetection.header.frame_id, "base_link", ros::Time(0));
 
 	// If not finding the optimal cargo, uncomment the print below.
-	// ROS_INFO_STREAM("Robot position: " << robotToMapTransform.transform.translation.x << ", " << robotToMapTransform.transform.translation.y);
+	// ROS_INFO_STREAM("Using position: " << cameraToMapTransform.transform.translation.x << ", " << cameraToMapTransform.transform.translation.y);
 
-	Line l = Line(robotToMapTransform.transform.translation.x, robotToMapTransform.transform.translation.y, req.endpoint.position.x, req.endpoint.position.y);
+	Line l = Line(cameraToRobotTransform.transform.translation.x, cameraToRobotTransform.transform.translation.y, req.endpoint.position.x, req.endpoint.position.y);
+
+	ROS_INFO_STREAM("Line from " << l.x1 << "," << l.y1 << " to " << l.x2 << "," << l.y2);
 
 	std::vector<std::array<double, 3>> points; // List of all points
 	points.push_back({0, 0, 0}); // First point is always {0,0,0} and not transformed, robot current position
@@ -101,6 +103,7 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	});
 
 	for (size_t i = 0; i < std::min(objects_num, objectPoints.size()); i++) { // Add object points to list of points
+		ROS_INFO_STREAM("Choosing power cell at " << objectPoints[i][0] << "," << objectPoints[i][1] << " relative to " << lastObjectDetection.header.frame_id);
 		points.push_back(objectPoints[i]);
 	}
 
@@ -110,8 +113,6 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 		res.message = "no " + req.object_id + " game pieces detected";
 		return false;
 	}
-
-	std::sort(points.begin(), points.end()); // sort on x coordinate
 
 	points.push_back({req.endpoint.position.x, req.endpoint.position.y, req.endpoint.orientation.z});
 
