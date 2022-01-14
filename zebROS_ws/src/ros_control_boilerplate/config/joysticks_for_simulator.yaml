@@ -3,7 +3,6 @@ generic_hw_control_loop:
   loop_hz: 100
   cycle_time_error_threshold: 0.01
   ctre_mc_read_hz: 100
-  pcm_read_hz: 20
   pdp_read_hz: 20
   robot_iteration_hz: 20
   joystick_read_hz: 50
@@ -22,10 +21,6 @@ joint_state_controller_rio:
 
 match_state_controller:
    type:         match_state_controller/MatchStateController
-   publish_rate: 20
-
-pcm_state_controller:
-   type : pcm_state_controller/PCMStateController
    publish_rate: 20
 
 robot_controller_state_controller:
