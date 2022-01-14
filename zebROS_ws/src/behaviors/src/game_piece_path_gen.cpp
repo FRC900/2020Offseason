@@ -68,6 +68,7 @@ std::vector<double> gamePieceIntakeOffsets{0};
 
 bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::GamePiecePickup::Response &res)
 {
+	// NOTE Endpoint is robot relative
 	res.success = false; // Default to failure
 	base_trajectory_msgs::GenerateSpline spline_gen_srv;
 
