@@ -1503,6 +1503,9 @@ bool NLOPT(
 	opt.set_ftol_abs(0.05);
 	std::vector<double> x;
 	optParams.toVector(x);
+	if (x.size() == 0) {
+		return true; // use original path
+	}
 
 	double cost;
 	try
