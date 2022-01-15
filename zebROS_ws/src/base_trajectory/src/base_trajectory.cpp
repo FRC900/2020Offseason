@@ -353,6 +353,7 @@ bool generateSpline(const std::vector<trajectory_msgs::JointTrajectoryPoint> &po
 		initSplinePoints[i].time_from_start = points[i].time_from_start.toSec();
 		initSplinePoints[i].state[0].position = points[i].positions[0] + optParams[i].posX_;
 		initSplinePoints[i].state[1].position = points[i].positions[1] + optParams[i].posY_;
+		initSplinePoints[i].state[2].position = points[i].positions[2];
 		//points[i].positions[0] += optParams[i].posX_;
 		//points[i].positions[1] += optParams[i].posY_;
 	}
@@ -1502,6 +1503,9 @@ bool NLOPT(
 	opt.set_ftol_abs(0.05);
 	std::vector<double> x;
 	optParams.toVector(x);
+	if (x.size() == 0) {
+		return true; // use original path
+	}
 
 	double cost;
 	try
@@ -2192,4 +2196,3 @@ int main(int argc, char **argv)
 
 	ros::spin();
 }
-
