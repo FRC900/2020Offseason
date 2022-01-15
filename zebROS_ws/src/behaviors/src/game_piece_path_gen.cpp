@@ -104,7 +104,7 @@ bool genPath(behavior_actions::GamePiecePickup::Request &req, behavior_actions::
 	});
 
 	for (size_t i = 0; i < std::min(objects_num, objectPoints.size()); i++) { // Add object points to list of points
-		ROS_INFO_STREAM("Choosing power cell at " << objectPoints[i][0] << "," << objectPoints[i][1] << " relative to " << lastObjectDetection.header.frame_id);
+		ROS_INFO_STREAM("Choosing game piece at " << objectPoints[i][0] << "," << objectPoints[i][1] << " relative to " << lastObjectDetection.header.frame_id);
 		points.push_back(objectPoints[i]);
 	}
 
