@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 
     pub = nh.advertise<field_obj::Detection>("object_detection_world_filtered", 2);
     ros::Subscriber detections = nh.subscribe("object_detection_world", 2, detectionCallback);
-    ros::Subscriber matchData = nh.subscribe("/frcrobot_rio/match_data_in", 1000, matchCallback);
+    ros::Subscriber matchData = nh.subscribe("/frcrobot_rio/match_data_in", 2, matchCallback);
 
     ros::spin();
 
