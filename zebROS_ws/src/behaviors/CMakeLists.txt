@@ -91,12 +91,15 @@ include_directories(
 #Climb.action
 #Elevator.action
 #Align.action
+#PathIntake.action
 #)
 
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
-#   DEPENDENCIES
-#   nav_msgs#   std_msgs
+   DEPENDENCIES
+   nav_msgs
+   std_msgs
+   actionlib_msgs
 # )
 
 ################################################
@@ -138,12 +141,17 @@ catkin_package(
    #INCLUDE_DIRS include
    #LIBRARIES behaviors
    CATKIN_DEPENDS actionlib_msgs actionlib behavior_actions path_follower_msgs nav_msgs roscpp rospy std_msgs teraranger_array tf2_ros geometry_msgs controllers_2020_msgs color_spin frc_msgs
-   DEPENDS 
+   DEPENDS
 )
 
 add_executable(auto_node src/auto_node.cpp)
 target_link_libraries(auto_node ${catkin_LIBRARIES})
 add_dependencies(auto_node ${behaviors_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+#2022 actionlib servers
+add_executable(path_intake_actionlib_server src/game_piece_path_gen.cpp)
+target_link_libraries(path_intake_actionlib_server ${catkin_LIBRARIES})
+add_dependencies(path_intake_actionlib_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # 2021 actionlib servers
 add_executable(game_piece_path_server src/game_piece_path_gen.cpp)
@@ -283,7 +291,7 @@ target_link_libraries(gotocolor_server
 # target_link_libraries(align_cargo_cargoship_server
 #   ${catkin_LIBRARIES}
 # )
-# 
+#
 # add_executable(align_cargo_rocketship src/align_cargo_rocketship.cpp)
 # add_dependencies(align_cargo_rocketship ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} )
 # target_link_libraries(align_cargo_rocketship
@@ -316,7 +324,7 @@ target_link_libraries(gotocolor_server
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS 
+install(TARGETS
 	align_to_shoot_server
 	align_hatch_server
 	align_with_camera
