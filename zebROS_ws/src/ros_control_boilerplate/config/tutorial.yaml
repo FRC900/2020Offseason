@@ -1,0 +1,46 @@
+generic_hw_control_loop:
+  loop_hz: 100
+  cycle_time_error_threshold: 0.01
+  #some processes have lower frequencies than the main control loop
+  ctre_mc_read_hz: 100
+  pcm_read_hz: 20
+  pdp_read_hz: 20
+  robot_iteration_hz: 20
+  joystick_read_hz: 50
+  match_data_read_hz: 2
+  robot_controller_read_hz: 20
+
+hardware_interface:
+  joints:
+    - {name: example_digital_output, type: digital_output, dio_channel: 4, invert: true, local: true}
+    - {name: example_digital_input, type: digital_input, dio_channel: 3, invert: false, local: true}
+    - {name: example_piston, type: solenoid, pcm: 0, id: 3, local: true}
+    - {name: example_motor, type: can_talon_srx, can_id: 11, local: true}
+    - {name: robot_code_ready_rio, local: true, type: ready}
+
+joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 100
+
+talon_state_controller:
+    type: talon_state_controller/TalonStateController
+    publish_rate: 100
+
+example_digital_out_controller:
+    type: position_controllers/JointPositionController
+    joint: example_digital_output
+example_piston_controller:
+    type: position_controllers/JointPositionController
+    joint: example_piston
+
+example_motor_controller:
+    type: talon_controllers/TalonPercentOutputController
+    joint: example_motor
+    invert: false
+    feedback_type: CTRE_MagEncoder_Relative
+    dynamic_reconfigure: True
+    voltage_compensation_Enable: True
+
+match_state_controller:
+    type: match_state_controller/MatchStateController
+    publish_rate: 20

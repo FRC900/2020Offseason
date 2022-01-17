@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="hw_or_sim" default="hw" />
+    <group ns="frcrobot_rio">
+      <rosparam file="$(find ros_control_boilerplate)/config/tutorial.yaml" command="load" />
+      <rosparam file="$(find ros_control_boilerplate)/config/robot_code_ready_controller_rio.yaml" command="load" />
+      <node name="frcrobot_$(arg hw_or_sim)_interface" pkg="ros_control_boilerplate" type="frcrobot_$(arg hw_or_sim)_main" output="screen" />
+      <node name="ros_control_controller_manager" pkg="controller_manager" type="controller_manager" respawn="false"
+   		 output="screen" args="spawn joint_state_controller talon_state_controller example_digital_out_controller example_piston_controller example_motor_controller match_state_controller  robot_code_ready_controller" />
+    </group>
+</launch>

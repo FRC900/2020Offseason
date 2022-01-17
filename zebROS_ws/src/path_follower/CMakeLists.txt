@@ -89,7 +89,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   # INCLUDE_DIRS include
   # LIBRARIES path_follower
-  CATKIN_DEPENDS geometry_msgs roscpp std_msgs std_srvs nav_msgs 
+  CATKIN_DEPENDS geometry_msgs roscpp std_msgs std_srvs nav_msgs
   # DEPENDS system_lib
 )
 
@@ -115,7 +115,12 @@ include_directories(
 
 add_executable(path_follower_server src/path_follower_server.cpp src/path_follower.cpp)
 add_dependencies(path_follower_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_executable(hold_position_server src/hold_position_server.cpp src/path_follower.cpp)
+add_dependencies(hold_position_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(path_follower_server
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(hold_position_server
   ${catkin_LIBRARIES}
 )
 
@@ -134,7 +139,7 @@ target_link_libraries(path_follower_server
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS path_follower_server 
+install(TARGETS path_follower_server
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
