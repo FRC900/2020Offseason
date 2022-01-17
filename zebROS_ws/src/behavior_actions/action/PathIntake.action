@@ -1,0 +1,13 @@
+# goal
+---
+# result
+bool timed_out
+bool success
+---
+# feedback
+uint8 current_action
+# 0 Generate path
+# 1 Follow path
+# 2 Extend intake
+# 3 Run intake
+double percentage_done
