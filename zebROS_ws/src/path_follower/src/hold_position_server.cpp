@@ -6,10 +6,11 @@
 #include <path_follower_msgs/holdPositionAction.h>
 #include <path_follower_msgs/holdPositionGoal.h>
 #include <path_follower/axis_state.h>
-#include <path_follower/path_follower.h>
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Bool.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 class holdPosition
 {
@@ -69,7 +70,7 @@ class holdPosition
 			}
 			pose_sub_ = nh_.subscribe(pose_topic, 1, &holdPosition::poseCallback, this);
 
-			combine_cmd_vel_pub_ = nh_.advertise<std_msgs::Bool>("path_follower_pid/pid_enable", 1, true);
+			combine_cmd_vel_pub_ = nh_.advertise<std_msgs::Bool>("hold_position_pid/pid_enable", 1, true);
 			std_msgs::Bool bool_msg;
 			bool_msg.data = false;
 			combine_cmd_vel_pub_.publish(bool_msg);
@@ -224,23 +225,23 @@ class holdPosition
 
 			geometry_msgs::Pose next_waypoint = goal->pose;
 
-			//ROS_INFO_STREAM("Before transform: next_waypoint = (" << next_waypoint.position.x << ", " << next_waypoint.position.y << ", " << path_follower_.getYaw(next_waypoint.orientation) << ")");
+			ROS_INFO_STREAM("Before transform: next_waypoint = (" << next_waypoint.position.x << ", " << next_waypoint.position.y << ", " << getYaw(next_waypoint.orientation) << ")");
 			tf2::doTransform(next_waypoint, next_waypoint, odom_to_base_link_tf);
-			//ROS_INFO_STREAM("After transform: next_waypoint = (" << next_waypoint.position.x << ", " << next_waypoint.position.y << ", " << path_follower_.getYaw(next_waypoint.orientation) << ")");
+			ROS_INFO_STREAM("After transform: next_waypoint = (" << next_waypoint.position.x << ", " << next_waypoint.position.y << ", " << getYaw(next_waypoint.orientation) << ")");
 
 			while (ros::ok() && !preempted && !timed_out && !succeeded)
 			{
 				// This gets the point closest to current time plus lookahead distance
 				// on the path. We use this to generate a target for the x,y,orientation
 				ROS_INFO_STREAM("----------------------------------------------");
-				//ROS_INFO_STREAM("current_position = " << odom_.pose.pose.position.x
-				//	<< " " << odom_.pose.pose.position.y
-				//	<< " " << path_follower_.getYaw(odom_.pose.pose.orientation));	// PID controllers.
+				ROS_INFO_STREAM("current_position = " << odom_.pose.pose.position.x
+					<< " " << odom_.pose.pose.position.y
+					<< " " << getYaw(odom_.pose.pose.orientation));	// PID controllers.
 
-				//ROS_INFO_STREAM("    delta odom_ = " << odom_.pose.pose.position.x - starting_odom.pose.pose.position.x
-				//	<< ", " << odom_.pose.pose.position.y - starting_odom.pose.pose.position.y);
-				//ROS_INFO_STREAM("    delta pose_ = " << pose_.pose.position.x - starting_pose.pose.position.x
-				//	<< ", " << pose_.pose.position.y - starting_pose.pose.position.y);
+				ROS_INFO_STREAM("    delta odom_ = " << odom_.pose.pose.position.x - starting_odom.pose.pose.position.x
+					<< ", " << odom_.pose.pose.position.y - starting_odom.pose.pose.position.y);
+				ROS_INFO_STREAM("    delta pose_ = " << pose_.pose.position.x - starting_pose.pose.position.x
+					<< ", " << pose_.pose.position.y - starting_pose.pose.position.y);
 
 				// If using a separate topic for orientation, merge the x+y from odom
 				// with the orientiation from that separate topic here
@@ -390,7 +391,7 @@ int main(int argc, char **argv)
 	int ros_rate = 20;
 	double time_offset = 0;
 	bool use_odom_orientation = false;
-	bool use_pose_for_odom = false;
+	bool use_pose_for_odom = true;
 
 	std::string odom_topic = "/frcrobot_jetson/swerve_drive_controller/odom";
 	std::string pose_topic = "/zed_ar/pose";
