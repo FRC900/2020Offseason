@@ -391,7 +391,7 @@ int main(int argc, char **argv)
 	int ros_rate = 20;
 	double time_offset = 0;
 	bool use_odom_orientation = false;
-	bool use_pose_for_odom = true;
+	bool use_pose_for_odom = false;
 
 	std::string odom_topic = "/frcrobot_jetson/swerve_drive_controller/odom";
 	std::string pose_topic = "/zed_ar/pose";
